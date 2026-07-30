@@ -1,0 +1,29 @@
+{
+  "name": "rwconfig-syntax",
+  "displayName": "rwconfig Syntax Highlighting",
+  "description": "Adds syntax highlighting for rwconfig files based on the parser regex in ConfigFactory.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "rwconfig",
+        "aliases": ["rwconfig", "rw config"],
+        "extensions": [".rwconfig", ".rwconfig.txt"],
+        "filenames": ["rwconfig"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rwconfig",
+        "scopeName": "source.rwconfig",
+        "path": "./syntaxes/rwconfig.tmLanguage.json"
+      }
+    ]
+  }
+}

@@ -1,0 +1,118 @@
+# Sample config setup. When the config system is initialized it will search for
+# this file in the following locations in order:
+# - the path specified by the command line argument `rw.config.path=<path>`
+# - the path specified by the system property `rw.config.path`
+# - the path specified by the environment variable `RW_CONFIG_PATH`
+# - a file named `config.config` in the current working directory
+# - a file named `config.config` in the classpath
+
+# The config sources to read in order of highest precedence to lowest.
+config.sources = args, system, environment, local, app
+
+# Current supported config types are:
+# - commandLineArguments: command line arguments passed to the application in
+#   the form `my.property=value`
+#   - in order for command line arguments to work you need to save the command
+#     line args in your main method with `Config.create(args)`
+# - systemProperties: java system properties
+# - environmentVariables: environment variables
+#   - environment variables will be searched two ways in the following order:
+#     - the property name is searched for as-is
+#     - dots and camel case letters are replaced with underscores, and then all
+#       remaining letters are uppercased
+# - file: properties from a file
+# - classpath: properties from a file on the classpath
+# - url: properties from a URL
+# - database: properties from a database
+#   - TODO: handle secrets in a secure way (load from earlier source?)
+
+config.args.type = commandLineArguments
+config.system.type = systemProperties
+config.environment.type = environmentVariables
+config.local.type = file
+config.local.path = app.properties
+# config.organization.type = url
+# config.organization.url = https://my-org.com/app.properties
+config.app.type = classpath
+config.app.path = app.properties
+
+# TODO: add support for configs to be refreshed at runtime. This would allow for
+# a config source to be updated and the application to pick up the new values
+# without needing to be restarted.
+
+# Properties must be defined in this file to be available to the application.
+# The properties defined here can be overridden by any of the config sources
+# with a higher precedence.
+#
+# You may optionally declare the type for each property (the default type is
+# `string`), acceptable values, and a default value. If no default value is
+# specified here and the property is not defined in any of the config sources,
+# the config system will throw an exception during initialization.
+#
+# The simplest syntax for declaring a property is:
+#
+#     propertyName
+#
+# This will declare a property named `propertyName` of type `string` with no
+# value. Properties with no value must be assigned a value in another config
+# source, or the config system will throw an exception during initialization.
+#
+# To declare a property with a value, use the syntax:
+#
+#     propertyName = defaultValue
+#
+# This value can be overridden in any config source with a higher precedence so
+# long as the new value is of the same type and is allowed (see below).
+#
+# To declare a property with a type, use the syntax:
+#
+#     <type> propertyName = defaultValue
+#
+# The following types are supported:
+# - string (default): a string value
+# - boolean: a boolean value (case insensitive)
+#   - values interpreted as `true` are: `true`, `yes`, `on`, and `1`
+#   - values interpreted as `false` are: `false`, `no`, `off`, and `0`
+# - int: an integer value
+# - long: a long value
+# - double: a double value
+# - stringList: a comma-separated list of string values
+# - booleanList: a comma-separated list of boolean values (case insensitive)
+# - intList: a comma-separated list of integer values
+# - longList: a comma-separated list of long values
+# - doubleList: a comma-separated list of double values
+#
+# Examples:
+#
+#     string myTextProperty
+#     int myIntProperty = 50
+#     intList luckyNumbers = 7, 77, 777
+#
+# You can define a set of allowed values for a property. Allowed values are
+# declared as a comma-separated list enclosed in brackets after the type:
+#
+#     string[home,work,other] contactType = work
+#     int[2, 3, 5, 7] myFavoriteSingleDigitPrime = 3
+#
+# Any value in the allowed values list can itself be a range of values. A range
+# is defined by `<lowerBound>:<upperBound>` and can be used for numeric types or
+# strings:
+#
+#     string[0:9,A:F] hexadecimalDigit = 5
+#     int[80, 1024:65535] port = 1520
+#
+# Allowed values apply to list types as well. In this case, each value in the
+# list must be an allowed value:
+#     intList[80,1024:65535] ports = 1520, 8080
+#
+# Attempting to set a value for a property that is not an allowed value will
+# throw an exception during initialization.
+
+appName = MyApp
+ intList[80,1024:65535] ports = 1520, 8080
+ string dbPassword
+int foo = 42
+string[home,work,other] contactTypes = other
+stringList strings = one, two, tree  \,  , four
+[one, two, three] foo2 = one
+intList[1:10] numbers = 1, 2, 3
