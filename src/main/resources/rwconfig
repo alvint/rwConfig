@@ -193,8 +193,8 @@ config.app.path = app.properties
 #     intList[2, 3, 5, 7] myFavoriteSingleDigitPrimes = 3, 7
 #
 # Any value in the allowed values list can itself be a range of values. A range
-# is defined by `<lowerBound>:<upperBound>` and can be used for numeric types or
-# strings:
+# is defined by `<lowerBound>:<upperBound>` and can be used for numeric types
+# (including booleans, where it is of limited use) and strings:
 #
 #     string[0:9, A:F] hexadecimalDigit = 5
 #     intList[80, 1024:65535] ports = 1520, 8080
