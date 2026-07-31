@@ -4,7 +4,7 @@
   "scopeName": "source.rwconfig",
   "patterns": [
     {
-      "match": "^\\s*#.*$",
+      "match": "^\\s*[#!].*$",
       "name": "comment.line.number-sign.rwconfig"
     },
     {
