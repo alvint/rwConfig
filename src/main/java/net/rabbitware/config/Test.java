@@ -12,5 +12,10 @@ public class Test {
 
         IO.println("type of `ports`: " + config.getType("ports"));
         IO.println("value of `ports`: " + config.getIntList("ports"));
+
+        IO.println("type of `firstAndLastItemsAreEmpty`: " + config.getType("firstAndLastItemsAreEmpty"));
+        IO.println("value of `firstAndLastItemsAreEmpty`: " + config.getStringList("firstAndLastItemsAreEmpty"));
+
+        IO.println("value of `noSpace`: " + config.getString("noSpace"));
     }
 }

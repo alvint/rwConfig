@@ -119,7 +119,7 @@ public class ConfigFactory {
         if (sourceNames == null || sourceNames.isEmpty()) {
             throw new ConfigException("missing config property: config.sources");
         }
-        Stream.of(sourceNames.trim().split("\\s*,\\s*"))
+        Stream.of(sourceNames.trim().split("\\s*,\\s*", -1))
             .forEach(sourceName -> {
                 if (sourceName.isEmpty()) {
                     throw new ConfigException("invalid `config.sources` property (empty source name): " + sourceNames);
@@ -344,9 +344,9 @@ public class ConfigFactory {
                     case DOUBLE, DOUBLE_LIST -> PropertyType.DOUBLE;
                     case STRING, STRING_LIST -> PropertyType.STRING;
                 };
-            Stream.of(allowedValues.split("(?<!\\\\),\\s*")) // remove leading whitespace but not trailing whitespace
+            Stream.of(allowedValues.split("(?<!\\\\),\\s*", -1)) // remove leading whitespace but not trailing
                 .forEach(rangeString -> {
-                    String[] minMax = rangeString.split("(?<!\\\\):\\s*"); // remove leading whitespace but not trailing
+                    String[] minMax = rangeString.split("(?<!\\\\):\\s*", -1); // remove leading whitespace only
                     if (minMax.length > 2) {
                         throw new ConfigException(
                             "invalid allowed value range for property `" + name + "`: " + rangeString
@@ -376,7 +376,7 @@ public class ConfigFactory {
                 case BOOLEAN -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = valueString.replaceAll("\\\\(.)", "$1").trim();
+                    var unescapedValueString = handleEscapeSequences(valueString).trim();
                     // parse
                     boolean value;
                     if (
@@ -414,7 +414,7 @@ public class ConfigFactory {
                 case INT -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = valueString.replaceAll("\\\\(.)", "$1").trim();
+                        var unescapedValueString = valueString.replaceAll("\\\\(.)", "$1").trim();
                     // parse
                     int value = Integer.parseInt(unescapedValueString);
                     // check if value is allowed
@@ -433,7 +433,7 @@ public class ConfigFactory {
                 case LONG -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = valueString.replaceAll("\\\\(.)", "$1").trim();
+                    var unescapedValueString = handleEscapeSequences(valueString).trim();
                     // parse
                     long value = Long.parseLong(unescapedValueString);
                     // check if value is allowed
@@ -452,7 +452,7 @@ public class ConfigFactory {
                 case DOUBLE -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = valueString.replaceAll("\\\\(.)", "$1").trim();
+                    var unescapedValueString = handleEscapeSequences(valueString).trim();
                     // parse
                     double value = Double.parseDouble(unescapedValueString);
                     // check if value is allowed
@@ -469,8 +469,10 @@ public class ConfigFactory {
                     return new Value.Double(value);
                 }
                 case STRING -> {
+                    // handle escape sequences
+
                     // unescape any escaped characters in the value string
-                    var unescapedValueString = valueString.replaceAll("\\\\(.)", "$1");
+                    var unescapedValueString = handleEscapeSequences(valueString);
                     // check if value is allowed
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.String)range.min).s.compareTo(unescapedValueString) <= 0 &&
@@ -488,28 +490,28 @@ public class ConfigFactory {
                 // for list types, we don't check the allowed values here -
                 // we check them when we parse the individual values
                 case BOOLEAN_LIST -> {
-                    List<Value.Boolean> list = Stream.of(valueString.split("(?<!\\\\),"))
+                    List<Value.Boolean> list = Stream.of(valueString.split("(?<!\\\\),", -1))
                         .map(s ->
                             (Value.Boolean)parseValue(sourceName, propertyName, s, PropertyType.BOOLEAN, allowedValues))
                         .toList();
                     return new Value.BooleanList(list);
                 }
                 case INT_LIST -> {
-                    List<Value.Integer> list = Stream.of(valueString.split("(?<!\\\\),"))
+                    List<Value.Integer> list = Stream.of(valueString.split("(?<!\\\\),", -1))
                         .map(s ->
                             (Value.Integer)parseValue(sourceName, propertyName, s, PropertyType.INT, allowedValues))
                         .toList();
                     return new Value.IntegerList(list);
                 }
                 case LONG_LIST -> {
-                    List<Value.Long> list = Stream.of(valueString.split("(?<!\\\\),"))
+                    List<Value.Long> list = Stream.of(valueString.split("(?<!\\\\),", -1))
                         .map(s ->
                             (Value.Long)parseValue(sourceName, propertyName, s, PropertyType.LONG, allowedValues))
                         .toList();
                     return new Value.LongList(list);
                 }
                 case DOUBLE_LIST -> {
-                    List<Value.Double> list = Stream.of(valueString.split("(?<!\\\\),"))
+                    List<Value.Double> list = Stream.of(valueString.split("(?<!\\\\),", -1))
                         .map(s ->
                             (Value.Double)parseValue(sourceName, propertyName, s, PropertyType.DOUBLE, allowedValues))
                         .toList();
@@ -518,7 +520,7 @@ public class ConfigFactory {
                 case STRING_LIST -> {
                     // preserve trailing whitespace (but not leading), and split
                     // on unescaped commas
-                    List<Value.String> list = Stream.of(valueString.split("(?<!\\\\),\\s*"))
+                    List<Value.String> list = Stream.of(valueString.split("(?<!\\\\),\\s*", -1))
                         .map(s ->
                             (Value.String)parseValue(sourceName, propertyName, s, PropertyType.STRING, allowedValues))
                         .toList();
@@ -604,6 +606,42 @@ public class ConfigFactory {
                 .toUpperCase();
             value = System.getenv(envName);
         }
+        return value;
+    }
+
+    private static String handleEscapeSequences(String value) {
+        // turn escaped backslashes into nulls temporarily, so they don't get
+        // unescaped in the next step
+        value = value.replaceAll("\\\\\\\\", "\0");
+        // handle escape sequences supported by java.util.Properties
+        value = value.replaceAll("\\\\t", "\t");
+        value = value.replaceAll("\\\\n", "\n");
+        value = value.replaceAll("\\\\r", "\r");
+        // handle other escape sequences
+        value = value.replaceAll("\\\\,", ",");
+        value = value.replaceAll("\\\\:", ":");
+        value = value.replaceAll("\\\\ ", " ");
+        value = value.replaceAll("\\\\e", "");
+        // handle unicode escape sequences
+        Pattern pattern = java.util.regex.Pattern.compile("\\\\u([0-9a-fA-F]{4})");
+        Matcher matcher = pattern.matcher(value);
+        value = matcher.replaceAll(match -> String.valueOf((char) Integer.parseInt(match.group(1), 16)));
+        // throw an exception if there are any remaining unrecognized escape sequences
+        int errorIndex = value.indexOf('\\');
+        if ( errorIndex != -1) {
+            if (errorIndex == value.length() - 1) {
+                throw new ConfigException("invalid ending backslash in value: " + value);
+            } else {
+                throw new ConfigException(
+                    "invalid escape sequence `\\" + value.charAt(errorIndex + 1)+ "` in value: " + value
+                );
+            }
+        }
+        if (value.matches(".*\\\\[^tnr,: e0-9a-fA-F].*")) {
+            throw new ConfigException("invalid escape sequence in value: " + value);
+        }
+        // turn the nulls back into backslashes
+        value = value.replaceAll("\0", "\\\\");
         return value;
     }
 
