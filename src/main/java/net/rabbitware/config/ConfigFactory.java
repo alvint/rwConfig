@@ -375,7 +375,7 @@ public class ConfigFactory {
                 case BOOLEAN -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(valueString).trim();
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
                     // parse
                     boolean value;
                     if (
@@ -413,7 +413,7 @@ public class ConfigFactory {
                 case INT -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(valueString).trim();
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
                     // parse
                     int value = Integer.parseInt(unescapedValueString);
                     // check if value is allowed
@@ -432,7 +432,7 @@ public class ConfigFactory {
                 case LONG -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(valueString).trim();
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
                     // parse
                     long value = Long.parseLong(unescapedValueString);
                     // check if value is allowed
@@ -451,7 +451,7 @@ public class ConfigFactory {
                 case DOUBLE -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(valueString).trim();
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
                     // parse
                     double value = Double.parseDouble(unescapedValueString);
                     // check if value is allowed
@@ -471,7 +471,7 @@ public class ConfigFactory {
                     // handle escape sequences
 
                     // unescape any escaped characters in the value string
-                    var unescapedValueString = handleEscapeSequences(valueString);
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString);
                     // check if value is allowed
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.String)range.min).s.compareTo(unescapedValueString) <= 0 &&
@@ -618,23 +618,25 @@ public class ConfigFactory {
         return value;
     }
 
-    private static String handleEscapeSequences(String value) {
+    private static String handleEscapeSequences(String sourceName, String value) {
         // turn escaped backslashes into nulls temporarily, so they don't get
         // unescaped in the next step
         value = value.replaceAll("\\\\\\\\", "\0");
-        // handle escape sequences supported by java.util.Properties
-        value = value.replaceAll("\\\\t", "\t");
-        value = value.replaceAll("\\\\n", "\n");
-        value = value.replaceAll("\\\\r", "\r");
+        // handle escape sequences supported by java.util.Properties in rwconfig
+        if (sourceName == null) { // this is the rwconfig file
+            value = value.replaceAll("\\\\t", "\t");
+            value = value.replaceAll("\\\\n", "\n");
+            value = value.replaceAll("\\\\r", "\r");
+            // handle unicode escape sequences
+            Pattern pattern = java.util.regex.Pattern.compile("\\\\u([0-9a-fA-F]{4})");
+            Matcher matcher = pattern.matcher(value);
+            value = matcher.replaceAll(match -> String.valueOf((char) Integer.parseInt(match.group(1), 16)));
+        }
         // handle other escape sequences
         value = value.replaceAll("\\\\,", ",");
         value = value.replaceAll("\\\\:", ":");
         value = value.replaceAll("\\\\ ", " ");
         value = value.replaceAll("\\\\e", "");
-        // handle unicode escape sequences
-        Pattern pattern = java.util.regex.Pattern.compile("\\\\u([0-9a-fA-F]{4})");
-        Matcher matcher = pattern.matcher(value);
-        value = matcher.replaceAll(match -> String.valueOf((char) Integer.parseInt(match.group(1), 16)));
         // throw an exception if there are any remaining unrecognized escape sequences
         int errorIndex = value.indexOf('\\');
         if ( errorIndex != -1) {
