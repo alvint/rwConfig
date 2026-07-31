@@ -323,7 +323,7 @@ public class ConfigFactory {
         PropertyType propertyType = PropertyType.fromString(type);
         List<Range> allowedValuesList = parseAllowedValues(name, propertyType, allowedValues);
         Value value;
-        if (defaultValue == null || defaultValue.isEmpty()) {
+        if (defaultValue == null) {
             value = null;
         } else {
             value = parseValue(null,name, defaultValue, propertyType, allowedValuesList);
@@ -489,40 +489,50 @@ public class ConfigFactory {
                 // for list types, we don't check the allowed values here -
                 // we check them when we parse the individual values
                 case BOOLEAN_LIST -> {
-                    List<Value.Boolean> list = Stream.of(valueString.split("(?<!\\\\),", -1))
-                        .map(s ->
-                            (Value.Boolean)parseValue(sourceName, propertyName, s, PropertyType.BOOLEAN, allowedValues))
-                        .toList();
+                    List<Value.Boolean> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s ->(Value.Boolean)
+                                parseValue(sourceName, propertyName, s, PropertyType.BOOLEAN, allowedValues))
+                            .toList();
                     return new Value.BooleanList(list);
                 }
                 case INT_LIST -> {
-                    List<Value.Integer> list = Stream.of(valueString.split("(?<!\\\\),", -1))
-                        .map(s ->
-                            (Value.Integer)parseValue(sourceName, propertyName, s, PropertyType.INT, allowedValues))
-                        .toList();
+                    List<Value.Integer> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s ->(Value.Integer)
+                                parseValue(sourceName, propertyName, s, PropertyType.INT, allowedValues))
+                            .toList();
                     return new Value.IntegerList(list);
                 }
                 case LONG_LIST -> {
-                    List<Value.Long> list = Stream.of(valueString.split("(?<!\\\\),", -1))
-                        .map(s ->
-                            (Value.Long)parseValue(sourceName, propertyName, s, PropertyType.LONG, allowedValues))
-                        .toList();
+                    List<Value.Long> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s ->(Value.Long)
+                                parseValue(sourceName, propertyName, s, PropertyType.LONG, allowedValues))
+                            .toList();
                     return new Value.LongList(list);
                 }
                 case DOUBLE_LIST -> {
-                    List<Value.Double> list = Stream.of(valueString.split("(?<!\\\\),", -1))
-                        .map(s ->
-                            (Value.Double)parseValue(sourceName, propertyName, s, PropertyType.DOUBLE, allowedValues))
-                        .toList();
+                    List<Value.Double> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s ->(Value.Double)
+                                parseValue(sourceName, propertyName, s, PropertyType.DOUBLE, allowedValues))
+                            .toList();
                     return new Value.DoubleList(list);
                 }
                 case STRING_LIST -> {
                     // preserve trailing whitespace (but not leading), and split
                     // on unescaped commas
-                    List<Value.String> list = Stream.of(valueString.split("(?<!\\\\),\\s*", -1))
-                        .map(s ->
-                            (Value.String)parseValue(sourceName, propertyName, s, PropertyType.STRING, allowedValues))
-                        .toList();
+                    List<Value.String> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),\\s*", -1))
+                            .map(s ->(Value.String)
+                                parseValue(sourceName, propertyName, s, PropertyType.STRING, allowedValues))
+                            .toList();
                     return new Value.StringList(list);
                 }
             }

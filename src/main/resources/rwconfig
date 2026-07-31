@@ -249,3 +249,5 @@ stringList strings = one, two, tree  \,  , four
 intList[1:10] numbers = 1, 2, 3
 stringList firstAndLastItemsAreEmpty = , foo, bar, \e
 string noSpace = no\espace
+stringList emptyList =
+intList[1:10] emptyIntList =

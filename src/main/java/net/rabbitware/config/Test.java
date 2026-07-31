@@ -17,5 +17,9 @@ public class Test {
         IO.println("value of `firstAndLastItemsAreEmpty`: " + config.getStringList("firstAndLastItemsAreEmpty"));
 
         IO.println("value of `noSpace`: " + config.getString("noSpace"));
+
+        IO.println("value of `emptyList`: " + config.getStringList("emptyList"));
+
+        IO.println("value of `emptyIntList`: " + config.getIntList("emptyIntList"));
     }
 }
