@@ -636,9 +636,6 @@ public class ConfigFactory {
                 );
             }
         }
-        if (value.matches(".*\\\\[^tnr,: e0-9a-fA-F].*")) {
-            throw new ConfigException("invalid escape sequence in value: " + value);
-        }
         // turn the nulls back into backslashes
         value = value.replaceAll("\0", "\\\\");
         return value;
