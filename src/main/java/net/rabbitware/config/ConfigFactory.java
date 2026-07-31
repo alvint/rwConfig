@@ -133,6 +133,12 @@ public class ConfigFactory {
                 }
                 switch (SourceType.fromString(sourceType)) {
                     case COMMAND_LINE_ARGUMENTS -> {
+                        if (commandLineArgs == null) {
+                            throw new ConfigException(
+                                "config source `" + sourceName + "` is of type `commandLineArguments`, "
+                                + "but no command line arguments were provided to the config system"
+                            );
+                        }
                         configSources.put(sourceName, new CommandLineProperties(commandLineArgs, propertyInfoMap));
                     }
                     case SYSTEM_PROPERTIES -> {
