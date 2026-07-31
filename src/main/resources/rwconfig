@@ -6,17 +6,15 @@
 # some areas to support property types and allowed values. See below for 
 # details.
 # 
-# When the config system is initialized it will search for
-# this file in the following locations in order:
+# When the config system is initialized it will search for this file in the
+# following locations in order:
 # - the path specified by the command line argument `rw.config.path=<path>`
 # - the path specified by the system property `rw.config.path`
 # - the path specified by the environment variable `RW_CONFIG_PATH`
 # - a file named `rwconfig` in the current working directory
 # - a file named `rwconfig` in the classpath
-#
-# TODO: add support for configs to be refreshed at runtime. This would allow for
-# a config source to be updated and the application to pick up the new values
-# without needing to be restarted.
+
+! comment lines can start with a `#` or a `!` character
 
 
 #
@@ -91,9 +89,9 @@ config.app.path = app.properties
 # an exception during initialization.
 # 
 # If a property defined here also declares a value, the value is considered to
-# be a default value; it can be overridden by any of the config sources. All
-# config sources are considered to have a higher precedence than the values
-# declared here.
+# be a default value. A default value can be overridden by any of the config
+# sources. All config sources are considered to have a higher precedence than
+# the values declared here.
 #
 # At a minimum, you must always declare the name of any property used by the
 # application. You may optionally also declare:
@@ -123,6 +121,9 @@ config.app.path = app.properties
 # This value can be overridden in any config source so long as the new value is
 # of the same type and is allowed (see below).
 #
+#
+# - Value Types -
+#
 # To declare a property with a type, use the syntax:
 #
 #     <type> propertyName
@@ -130,7 +131,9 @@ config.app.path = app.properties
 #
 # The following types are supported:
 # 1. string (default if no type is specified): a string value
-#    - leading spaces are trimmed, but trailing spaces are preserved
+#    - when setting a string property's value or allowed values (see below for
+#      information on allowed values), leading spaces are trimmed but trailing
+#      spaces are preserved
 #      - in order to include leading spaces, escape the first space with a
 #        backslash
 #    - empty strings are allowed, and can be declared with an empty value or
@@ -154,8 +157,9 @@ config.app.path = app.properties
 # 9. longList: a comma-separated list of long values
 # 10. doubleList: a comma-separated list of double values
 #
-# For list types, an empty list is allowed for both default values and config
-# sources. An empty list is represented by an empty string (`intList x = `).
+# For list types, an empty list is allowed for both default values and values
+# defined in config sources. An empty list can be represented by an empty string
+# (`intList empty = `).
 #
 # String lists have additional rules regarding how to handle empty individual
 # values:
@@ -163,28 +167,30 @@ config.app.path = app.properties
 # - individual values which are empty strings are allowed, but they must still
 #   be an allowed value if the property has a set of allowed values defined
 # - in order to include an empty string as a value in the list, you can use
-#   additional commas (e.g. `foo,,bar`)  OR you can use the escape sequence `\e`
-#   (e.g. `foo,\e,bar`)
+#   additional commas (e.g. stringList secondIsEmpty = `foo,,bar`)  or you can
+#   use the escape sequence `\e` (e.g. stringList secondIsEmpty = `foo,\e,bar`)
 #   - lists with a leading comma will produce an empty string as the first
 #     value, and a trailing comma will produce an empty string as the last
 #     value (or you can use `\e`)
 #   - An empty string as a value for a stringList property (for example,
 #     `stringList empty =`) is interpreted as an empty list--not as a list
 #     with one element which is an empty string. If the latter is desired,
-#     it must be declared with a value of `\e` (`stringList empty = \e`).
+#     it must be declared with a value of `\e` (`stringList oneBlankVal = \e`).
+#
+#
+# - Allowed Values -
 #
 # You can define a set of allowed values for a property. Allowed values are
 # declared as a comma-separated list enclosed in square brackets after the type:
 #
-#     <type>[<allowedValues>] propertyName
-#     <type>[<allowedValues>] propertyName = <comma-separated list of default values>
+#     <type>[<allowedValues>] myProperty
+#     <type>[<allowedValues>] myProperty = <value from the allowed values list>
 #
 # Allowed values must be the same type as the property, or an exception will be
 # thrown during initialization. Default values declared for a property must also
 # be an allowed value, or an exception will be thrown during initialization. For
 # list types, each value in the list must be an allowed value, or an exception
 # will be thrown during initialization.
-#
 #
 # Here are some examples of properties with allowed values:
 #
@@ -204,6 +210,8 @@ config.app.path = app.properties
 # preserved. In order to include leading spaces, escape the first space with a
 # backslash.
 #
+#
+# - Examples -
 #
 # Here are some examples of valid property declarations:
 #
@@ -236,7 +244,11 @@ config.app.path = app.properties
 #     intList[0:10, 100:200] foo = 77   // not an allowed value
 #     long[0:100:] testScore = 90       // invalid range (trailing colon)
 
-! comment lines can start with a `#` or a `!` character
+
+# TODO: add support for configs to be refreshed at runtime. This would allow for
+# a config source to be updated and the application to pick up the new values
+# without needing to be restarted.
+
 
 appName = MyApp
 intList[80,1024:65535] ports = 1520, 8080
