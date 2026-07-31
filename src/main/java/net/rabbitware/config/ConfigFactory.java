@@ -79,8 +79,7 @@ public class ConfigFactory {
 
         loadConfigFile(commandLineArgs).stream()
             .map(s -> s.replaceAll("^\\s*#.*$", "")) // remove comments
-            .map(String::trim) // trim whitespace
-            .filter(s -> !s.isEmpty()) // remove empty lines
+            .filter(s -> !s.trim().isEmpty()) // remove empty lines
             .forEach(s -> {
                 var matcher = pattern.matcher(s);
                 if (!matcher.matches()) {
@@ -414,7 +413,7 @@ public class ConfigFactory {
                 case INT -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                        var unescapedValueString = valueString.replaceAll("\\\\(.)", "$1").trim();
+                    var unescapedValueString = handleEscapeSequences(valueString).trim();
                     // parse
                     int value = Integer.parseInt(unescapedValueString);
                     // check if value is allowed
