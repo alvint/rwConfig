@@ -334,7 +334,7 @@ public class ConfigFactory {
     private static List<Range> parseAllowedValues(String name, PropertyType propertyType, String allowedValues)
             throws ConfigException {
         List<Range> ranges = new LinkedList<>();
-        if (allowedValues != null && !allowedValues.isEmpty()) {
+        if (allowedValues != null) {
             PropertyType rangeType = 
                 switch (propertyType) {
                     case BOOLEAN, BOOLEAN_LIST -> PropertyType.BOOLEAN;
