@@ -234,7 +234,6 @@ config.app.path = app.properties
 #     int [a,b,c] myIntProperty = 50    // allowed values must be the same type
 #     intList[0:10, 100:200] foo = 77   // not an allowed value
 #     long[0:100:] testScore = 90       // invalid range (trailing colon)
-#     intList[80, 1024:65535] ports = 1520, 8080
 
 ! comment lines can start with a `#` or a `!` character
 
