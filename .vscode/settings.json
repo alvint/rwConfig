@@ -4,22 +4,22 @@
     "files.associations": {
         "rwconfig": "rwconfig"
     },
-    "editor.tokenColorCustomizations": {
-        "textMateRules": [
-            {
-                "scope": "invalid.illegal.property-name.rwconfig",
-                "settings": {
-                    "foreground": "#F44747",
-                    "fontStyle": "bold"
-                }
-            },
-            {
-                "scope": "invalid.illegal.type.rwconfig",
-                "settings": {
-                    "foreground": "#F44747",
-                    "fontStyle": "bold"
-                }
-            }
-        ]
-    }
+    // "editor.tokenColorCustomizations": {
+    //     "textMateRules": [
+    //         {
+    //             "scope": "invalid.illegal.property-name.rwconfig",
+    //             "settings": {
+    //                 "foreground": "#F44747",
+    //                 "fontStyle": "bold"
+    //             }
+    //         },
+    //         {
+    //             "scope": "invalid.illegal.type.rwconfig",
+    //             "settings": {
+    //                 "foreground": "#F44747",
+    //                 "fontStyle": "bold"
+    //             }
+    //         }
+    //     ]
+    // }
 }

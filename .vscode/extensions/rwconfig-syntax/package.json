@@ -13,7 +13,7 @@
       {
         "id": "rwconfig",
         "aliases": ["rwconfig", "rw config"],
-        "extensions": [".rwconfig", ".rwconfig.txt"],
+        "extensions": [".rwconfig"],
         "filenames": ["rwconfig"],
         "configuration": "./language-configuration.json"
       }
