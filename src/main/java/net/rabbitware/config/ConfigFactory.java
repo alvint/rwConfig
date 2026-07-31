@@ -78,7 +78,7 @@ public class ConfigFactory {
 .replace("{types}", types));
 
         loadConfigFile(commandLineArgs).stream()
-            .map(s -> s.replaceAll("^\\s*#.*$", "")) // remove comments
+            .map(s -> s.replaceAll("^\\s*(?:!|#.*$", "")) // remove comments
             .filter(s -> !s.trim().isEmpty()) // remove empty lines
             .forEach(s -> {
                 var matcher = pattern.matcher(s);

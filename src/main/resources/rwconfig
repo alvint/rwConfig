@@ -236,6 +236,7 @@ config.app.path = app.properties
 #     long[0:100:] testScore = 90       // invalid range (trailing colon)
 #     intList[80, 1024:65535] ports = 1520, 8080
 
+! comment lines can start with a `#` or a `!` character
 
 appName = MyApp
 intList[80,1024:65535] ports = 1520, 8080
