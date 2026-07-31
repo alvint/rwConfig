@@ -44,12 +44,13 @@ config.sources = args, system, environment, local, app
 # config source. The type determines how the config system will load the source,
 # and which other attributes are required.
 #
-# Current supported config types are:
+# Current supported config source types are:
 # 1. commandLineArguments: command line arguments passed to the application in
 #    the form `my.property=value`
 #    - In order for this source to be loaded you need to create the config
-#      system with `Config.create(args)` If this is not done and this source
-#      type is specified, an exception will be thrown during initialization.
+#      system with `Config.create(args)`. If this is not done and this source
+#      type is used in your config setup, an exception will be thrown during
+#      initialization.
 # 2. systemProperties: java system properties
 # 3. environmentVariables: environment variables
 #    - Environment variables will be searched two ways in the following order:
