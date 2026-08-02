@@ -637,6 +637,7 @@ public class ConfigFactory {
         value = value.replaceAll("\\\\:", ":");
         value = value.replaceAll("\\\\ ", " ");
         value = value.replaceAll("\\\\e", "");
+        value = value.replaceAll("\\\\\\]", "]");
         // throw an exception if there are any remaining unrecognized escape sequences
         int errorIndex = value.indexOf('\\');
         if ( errorIndex != -1) {
