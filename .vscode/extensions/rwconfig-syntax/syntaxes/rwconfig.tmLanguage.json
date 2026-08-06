@@ -61,7 +61,7 @@
     },
     {
       "comment": "invalid type name",
-      "match": "^(?!\\s*(?:\\[|boolean|int|long|double|string|intList|stringList|booleanList|longList|doubleList)(?:\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$))\\s*[^\\[=]*(?=\\s*\\[|\\s+[^\\s=])",
+      "match": "^(?!\\s*(?:\\[|boolean|int|long|double|string|intList|stringList|booleanList|longList|doubleList)(?:\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$))(?:\\s+[^\\[=]*|[^\\[=]+)(?=\\s*\\[|\\s+[^\\s=])",
       "name": "invalid.illegal.type-name.rwconfig"
     },
     {
