@@ -42,10 +42,9 @@ public class ConfigFactory {
         // that are (syntactically) invalid, such as those with missing fields
         // and improperly escaped characters.
         //
-        // The regex cannot check for semantic validity, such as whether a
-        // property has a valid value for its type, or whether a property has a
-        // valid default value. Those checks are done later, after the config
-        // line has been parsed.
+        // The regex does not check for semantic validity, such as whether a
+        // property has an allowed value for its type. Those checks are done
+        // later, after the config line has been parsed.
         //
         // the capture groups are:
         // 1. the type of the property (optional)
