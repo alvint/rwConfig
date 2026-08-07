@@ -16,7 +16,7 @@ public interface Config {
     /// the type of the property with the given name, as a string
     /// @throws ConfigException
     /// if the config does not contain a property with the given name
-    public String getType(String name) throws ConfigException;
+    public PropertyType getType(String name) throws ConfigException;
 
     /// Get the value of the property with the given name.
     /// @param name

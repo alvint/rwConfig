@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ConfigImpl implements Config {
-    private final Map<String, String> types = new HashMap<>();
+    private final Map<String, PropertyType> types = new HashMap<>();
     private final Map<String, Value.Boolean> booleanValues = new HashMap<>();
     private final Map<String, Value.Integer> integerValues = new HashMap<>();
     private final Map<String, Value.Long> longValues = new HashMap<>();
@@ -22,8 +22,8 @@ public class ConfigImpl implements Config {
     }
 
     @Override
-    public String getType(String name) throws ConfigException {
-        String type = types.get(name);
+    public PropertyType getType(String name) throws ConfigException {
+        PropertyType type = types.get(name);
         if (type == null) {
             throw new PropertyNotFoundException(name);
         }
@@ -37,7 +37,7 @@ public class ConfigImpl implements Config {
             return value.b;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.BOOLEAN.name, type);
     }
 
@@ -48,7 +48,7 @@ public class ConfigImpl implements Config {
             return value.i;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.INT.name, type);
     }
 
@@ -59,7 +59,7 @@ public class ConfigImpl implements Config {
             return value.l;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.LONG.name, type);
     }
 
@@ -70,7 +70,7 @@ public class ConfigImpl implements Config {
             return value.d;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.DOUBLE.name, type);
     }
 
@@ -81,7 +81,7 @@ public class ConfigImpl implements Config {
             return value;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.STRING.name, type);
     }
 
@@ -92,7 +92,7 @@ public class ConfigImpl implements Config {
             return value;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.BOOLEAN_LIST.name, type);
     }
 
@@ -103,7 +103,7 @@ public class ConfigImpl implements Config {
             return value;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.INT_LIST.name, type);
     }
 
@@ -114,7 +114,7 @@ public class ConfigImpl implements Config {
             return value;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.LONG_LIST.name, type);
     }
 
@@ -125,7 +125,7 @@ public class ConfigImpl implements Config {
             return value;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.DOUBLE_LIST.name, type);
     }
 
@@ -136,7 +136,7 @@ public class ConfigImpl implements Config {
             return value;
         }
         // not found or incorrect type
-        String type = getType(name);
+        String type = getType(name).name;
         throw new IncorrectTypeException(name, PropertyType.STRING_LIST.name, type);
     }
 
@@ -198,7 +198,7 @@ public class ConfigImpl implements Config {
     void add(String name, Value value) {
         switch (value) {
             case Value.Boolean booleanValue -> {
-                types.put(name, PropertyType.BOOLEAN.name);
+                types.put(name, PropertyType.BOOLEAN);
                 booleanValues.put(name, booleanValue);
                 integerValues.remove(name);
                 longValues.remove(name);
@@ -211,7 +211,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.Integer integerValue -> {
-                types.put(name, PropertyType.INT.name);
+                types.put(name, PropertyType.INT);
                 booleanValues.remove(name);
                 integerValues.put(name, integerValue);
                 longValues.remove(name);
@@ -224,7 +224,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.Long longValue -> {
-                types.put(name, PropertyType.LONG.name);
+                types.put(name, PropertyType.LONG);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.put(name, longValue);
@@ -237,7 +237,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.Double doubleValue -> {
-                types.put(name, PropertyType.DOUBLE.name);
+                types.put(name, PropertyType.DOUBLE);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
@@ -250,7 +250,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.String stringValue -> {
-                types.put(name, PropertyType.STRING.name);
+                types.put(name, PropertyType.STRING);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
@@ -263,7 +263,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.BooleanList booleanListValue -> {
-                types.put(name, PropertyType.BOOLEAN_LIST.name);
+                types.put(name, PropertyType.BOOLEAN_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
@@ -276,7 +276,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.IntegerList integerListValue -> {
-                types.put(name, PropertyType.INT_LIST.name);
+                types.put(name, PropertyType.INT_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
@@ -289,7 +289,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.LongList longListValue -> {
-                types.put(name, PropertyType.LONG_LIST.name);
+                types.put(name, PropertyType.LONG_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
@@ -302,7 +302,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.DoubleList doubleListValue -> {
-                types.put(name, PropertyType.DOUBLE_LIST.name);
+                types.put(name, PropertyType.DOUBLE_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
@@ -315,7 +315,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.StringList stringListValue -> {
-                types.put(name, PropertyType.STRING_LIST.name);
+                types.put(name, PropertyType.STRING_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
