@@ -155,7 +155,7 @@ int[80, 1024:65535] port = 8000
 # If this property's value is *not* set in a declared source, the library will
 # throw an exception at startup.
 #
-# By the way, you don't need to supply a type when you define a property, as we
+# By the way: you don't need to supply a type when you define a property as we
 # did with `port` above. If you don't supply the type, a type of `string` is
 # assumed. The below property could also be written as `string DBPassword`.
 DBPassword
