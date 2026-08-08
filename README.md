@@ -198,7 +198,8 @@ IO.println("value of `port`: " + port);
 - effectively immutable and atomic configuration
 - fail-fast behavior
 - no dependencies
-- compatibility with existing Java `.properties` files
+- compatibility with existing Java `.properties` files (some minor restrictions
+  on property names)
 - rwConfig's configuration file syntax builds on the well-known `.properties`
   file syntax
 
