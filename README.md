@@ -85,7 +85,10 @@ Add this to your project's pom.xml:
 
 ### 2. Create a File Called `rwconfig`
 Place this file in the working directory where your app will run, or in the
-`resources` folder of your Maven project:
+`resources` folder of your Maven project. You can optionally define a custom
+path to this file by setting the environment variable `RW_CONFIG_PATH`, setting
+the Java system property `rw.config.path`, or adding the command line argument
+`rw.config.path=/path/to/rwconfig`:
 
 ```
 config.sources = args, system, environment
