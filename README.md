@@ -86,6 +86,20 @@ Place this file in the working directory where your app will run, or in the
 `resources` folder of your Maven project:
 
 ```
+config.sources = args, system, environment
+config.args.type = commandLineArguments
+config.system.type = systemProperties
+config.environment.type = environmentVariables
+
+# example properties; your properties can be anything you want
+int[80, 1024:65535] port = 8000
+DBPassword
+```
+
+Here's a heavily commented version of the same file that explains what's going
+on:
+
+```
 # sample config setup
 
 # Declare the names and priorities (highest to lowest) of any additional sources
@@ -111,8 +125,21 @@ config.environment.type = environmentVariables
 int[80, 1024:65535] port = 8000
 
 # Declare that we need a database password. Sensitive information like passwords 
-# should not be present in shared files, so we'll leave the value blank. This
-# means that the value of `DBPassword` will have to be set elsewhere.
+# should not be present in shared files, so we'll leave the value blank.
+#
+# This means that the value of `DBPassword` will have to be set in one of the
+# declared sources above. It can be set on the command line using an argument in
+# the form `DBPassword=mySecretPassword`, by setting a Java system property of
+# the same name, or by setting an environment variable. The environment variable
+# name can be the exact same name or the normalized form of `DB_PASSWORD`.
+#
+# You could also set the value of `DBPassword` in a separate, more secure file.
+# That would require adding another configuration source above. Details on how
+# to do this are in the sample `rwconfig` file in the project's `resources`
+# folder.
+#
+# If this property's value is *not* set in a declared source, the library will
+# throw an exception at startup.
 DBPassword
 ```
 
@@ -166,4 +193,5 @@ IO.println("value of `port`: " + port);
 
 ## Documentation
 
-TODO - see the sample `rwconfig` file in the project for more details
+TODO - see the sample `rwconfig` file in the project's `resources` folder for
+more details
