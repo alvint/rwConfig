@@ -203,7 +203,8 @@ IO.println("value of `port`: " + port);
 - rwConfig's configuration file syntax builds on the well-known `.properties`
   file syntax
 - configuration issues, and attempting to retrieve missing or incorrectly-typed
-  properties throw an unchecked exception
+  properties throw unchecked exceptions
+  - if you're catching these exceptions you're doing it wrong
 
 ## Documentation
 
