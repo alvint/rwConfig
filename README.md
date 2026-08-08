@@ -42,7 +42,8 @@ interface for value retrieval.
 
 ## Project Goals
 - a simple interface with virtually no learning curve
-- light-weight - when it comes to microservices, size matters
+- light-weight - when it comes to microservices and embedded environments, size
+  matters
 - high-speed retrieval of property values
 - fail-fast behavior - detect errors at startup whenever possible
   - a compile-time plugin is also planned to detect when the Java side expects
