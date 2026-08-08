@@ -2,120 +2,159 @@ package net.rabbitware.config;
 import java.util.List;
 
 public interface Config {
-    /// Return `true` if the config contains a property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// `true` if the config contains a property with the given name
+    /**
+     * Return {@code true} if the config contains a property with the given
+     * name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * {@code true} if the config contains a property with the given name
+     */
     public boolean has(String name);
 
-    /// Get the type of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the type of the property with the given name, as a string
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name
+    /**
+     * Get the type of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the type of the property with the given name, as a string
+     * @throws ConfigException
+     * if the config does not contain a property with the given name
+     */
     public PropertyType getType(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`boolean`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code boolean})
+     */
     public boolean getBoolean(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`int`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code int})
+     */
     public int getInt(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`long`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code long})
+     */
     public long getLong(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`double`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code double})
+     */
     public double getDouble(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`String`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code String})
+     */
     public String getString(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`List<Boolean>`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type
+     * ({@code List<Boolean>})
+     */
     public List<Boolean> getBooleanList(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`List<Integer>`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type
+     * ({@code List<Integer>})
+     */
     public List<Integer> getIntList(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`List<Long>`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code List<Long>})
+     */
     public List<Long> getLongList(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`List<Double>`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code List<Double>})
+     */
     public List<Double> getDoubleList(String name) throws ConfigException;
 
-    /// Get the value of the property with the given name.
-    /// @param name
-    /// the name of the property
-    /// @return
-    /// the value of the property with the given name
-    /// @throws ConfigException
-    /// if the config does not contain a property with the given name, or if the
-    /// property is not compatible with the specified type (`List<String>`)
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code List<String>})
+     */
     public List<String> getStringList(String name) throws ConfigException;
 
     // abbreviated method names for convenience

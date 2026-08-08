@@ -555,17 +555,18 @@ public class ConfigFactory {
         return properties.stringPropertyNames().stream()
             .collect(Collectors.toMap(name -> name, name -> properties.getProperty(name)));
     }
-
-    /// Retrieve the value of the command line argument corresponding to the
-    /// given property name. Commands line arguments are expected to be in the
-    /// form of `<propertyName>=value` (all one argument).
-    ///
-    /// @param propertyName
-    /// the name of the command line argument to retrieve
-    /// @param commandLineArgs
-    /// the array of command line arguments
-    /// @return
-    // the value of the command line argument, or null if not found
+    /**
+     * Retrieve the value of the command line argument corresponding to the
+     * given property name. Commands line arguments are expected to be in the
+     * form of {@code <propertyName>=value} (all one argument).
+     *
+     * @param propertyName
+     * the name of the command line argument to retrieve
+     * @param commandLineArgs
+     * the array of command line arguments
+     * @return
+     * the value of the command line argument, or {@code null} if not found
+     */
     private static String getCommandLineArgument(String propertyName, String[] commandLineArgs) {
         if (commandLineArgs == null || commandLineArgs.length == 0) {
             return null;
@@ -583,28 +584,32 @@ public class ConfigFactory {
             .orElse(null);
     }
 
-    /// Retrieve the value of the system property corresponding to the given
-    /// property name.
-    ///
-    /// @param propertyName
-    /// the name of the system property to retrieve
-    /// @return
-    // the value of the system property, or null if not found
+    /**
+     * Retrieve the value of the system property corresponding to the given
+     * property name.
+     *
+     * @param propertyName
+     * the name of the system property to retrieve
+     * @return
+     * the value of the system property, or {@code null} if not found
+     */
     private static String getSystemProperty(String propertyName) {
         return System.getProperty(propertyName);
     }
 
-    /// Retrieve the value of the environment variable corresponding to the given
-    /// property name. The environment is first searched using the property name
-    /// as-is. If the environment variable is not found under that name, the
-    /// property name is converted to an environment-variable-friendly name and
-    /// the environment is searched again. This conversion is done by replacing
-    ///  camelCase and dots with underscores, and then converting to uppercase.
-    ///
-    /// @param propertyName
-    /// the name of the environment variable to retrieve
-    /// @return
-    // the value of the environment variable, or null if not found
+    /**
+     * Retrieve the value of the environment variable corresponding to the given
+     * property name. The environment is first searched using the property name
+     * as-is. If the environment variable is not found under that name, the
+     * property name is converted to an environment-variable-friendly name and
+     * the environment is searched again. This conversion is done by replacing
+     *  camelCase and dots with underscores, and then converting to uppercase.
+     *
+     * @param propertyName
+     * the name of the environment variable to retrieve
+     * @return
+     * the value of the environment variable, or {@code null} if not found
+     */
     private static String getEnvironmentVariable(String propertyName) {
         String value = System.getenv(propertyName); // try to get the property value from the environment variables
         if (value == null) { // not found - retry after converting the property name to an environment variable name
