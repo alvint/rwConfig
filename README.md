@@ -89,7 +89,7 @@ Place this file in the working directory where your app will run, or in the
 # sample config setup
 
 # Declare the names and priorities (highest to lowest) of any additional sources
-# of configuration properties.
+# to check for configuration properties.
 config.sources = args, system, environment
 
 # Declare information about those sources. The type of the source is always
