@@ -19,7 +19,7 @@ interface for value retrieval.
   - the `rwconfig` file syntax is similar to Java `.properties` files, but the
     syntax is expanded to optionally include types, allowed values, and default
     values
-  - you can set all property values directly in the rwConfig file, or define how
+  - you can set all property values directly in the `rwconfig` file, or define how
     to retrieve them
 - simple interface for property retrieval
   - on the Java side, it's a similar API to `java.util.properties` with types
