@@ -37,7 +37,7 @@ interface for value retrieval.
 - property types and value validation
   - current supported types are `boolean`, `int`, `long`, `double`, and `string`
   - list support (`booleanList`, `intList`, etc.)
-- compatible with plain Java `.properties` files
+- compatible with plain Java `.properties` files (minor limits on property names)
   - `.yaml` file support is also planned
 
 ## Project Goals
