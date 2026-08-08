@@ -125,6 +125,11 @@ config.environment.type = environmentVariables
 # not required to give the property a value here. The property's value can be 
 # set (or overridden) in one of the configuration sources listed above.
 #
+# The key thing to remember about this file is that its primary purpose is *not*
+# to provide values for your app's properties. Its purpose is to define what
+# properties your app requires, what they should look like, and where they can
+# be found.
+#
 
 # What port should our app use. Valid values are integers, and we only want to
 # allow certain integer values. Define the allowed values as 80, and any value
@@ -164,8 +169,12 @@ import net.rabbitware.config.*;
 Config config = ConfigFactory.create(commandLineArguments);
 ```
 
-If you **don't** want to allow configuration properties to be overridden on the command
-line:
+If you **don't** want to allow configuration properties to be overridden on the
+command line, use the below code to create the Config object instead.
+
+Note that the `rwconfig` example above defines the command-line arguments as a
+configuration source, so for that example to work you must use the above version
+ of `create`:
 
 ```java
 import net.rabbitware.config.*;
@@ -189,7 +198,7 @@ IO.println("value of `port`: " + port);
 
 ## TODOs
 - a plugin system for defining custom property sources
-- IDE/Maven support to flag missing properties and incorrect property types at
+- IDE/Maven support to detect missing properties and incorrect property types at
   compile time
 - in-app notification of changed configuration sources
 - APIs for other languages
