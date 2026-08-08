@@ -62,7 +62,7 @@ interface for value retrieval.
 
     The closest to supporting this I plan to come is notifying clients of the
     API when a config source (for example, a `.properties` file) has changed.
-    The client can then choose to discard the old config object and create a new
+    The client can then choose to discard the old Config object and create a new
     one. Yes, that's not very close at all.
 - anything that would add dependencies to this project outside of Java Base
 
