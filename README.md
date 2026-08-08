@@ -117,8 +117,9 @@ config.environment.type = environmentVariables
 
 
 #
-# All properties used by your app need to be *defined* in this file as well, but
-# the value can optionally be set in another configuration source.
+# All properties used by your app need to be *defined* in this file, but you are
+# not required to give the property a value here. The property's value can be 
+# set (or overridden) in one of the configuration sources listed above.
 #
 
 # What port should our app use. Valid values are integers, and we only want to
