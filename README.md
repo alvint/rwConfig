@@ -202,6 +202,8 @@ IO.println("value of `port`: " + port);
   on property names)
 - rwConfig's configuration file syntax builds on the well-known `.properties`
   file syntax
+- configuration issues, and attempting to retrieve missing or incorrectly-typed
+  properties throw an unchecked exception
 
 ## Documentation
 
