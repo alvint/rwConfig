@@ -26,7 +26,7 @@ interface for value retrieval.
     tacked on
 - self documenting
   - it enforces a centralized source of truth for information on all application
-    properties (the `rwConfig` file)
+    properties (the `rwconfig` file)
 - support for multiple sources of configuration info with a clear hierarchy
   - file support (currently `.properties` files with `.yaml` files planned),
     loadable from the file system, URLs, or the classpath

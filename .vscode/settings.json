@@ -8,5 +8,9 @@
     "[rwconfig]": {
         "editor.bracketPairColorization.enabled": false,
         "editor.matchBrackets": "never"
-    }
+    },
+    "cSpell.words": [
+        "rabbitware",
+        "rwconfig"
+    ]
 }
