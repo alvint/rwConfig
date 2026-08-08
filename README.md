@@ -56,7 +56,7 @@ interface for value retrieval.
     or configuration more complex to cover use cases that would be of marginal
     value to me.
 - a way to set properties within the app
-  - That would require that the Config object be mutable, and creates many
+  - That would require the Config object to be mutable, and _that_ creates many
     "what if" scenarios involving thread synchronization, guaranteeing atomic
     behavior to clients of the API, etc.
 - anything that would add dependencies to this project outside of Java Base
