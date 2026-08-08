@@ -29,7 +29,6 @@ retrieval.
     properties
   - support for settings retrieved from a database (coming soon!)
 - fail-fast design - most configuration issues are detected at startup
-- fast reads
 - property types and value validation
   - current supported types are `boolean`, `int`, `long`, `double`, and `string`
   - list support (`booleanList`, `intList`, etc.)
