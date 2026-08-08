@@ -10,7 +10,7 @@ interface for value retrieval.
 - simple key-value configuration management
 - no dependencies outside of the Java Base module
 - fast reads
-  - all reading and parsing of configuration sources happens at startup only
+  - reading and parsing of configuration sources happens at startup only
   - after initialization, it's essentially just a flat, unmodifiable HashMap of
     String keys to values
   - specific value classes are preferred over generics to (hopefully) improve
