@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.rabbitware.config.Config.ConfigException;
 import net.rabbitware.config.Config.PropertyType;
-import net.rabbitware.config.Config.SourceType;
 
 public class ConfigFactory {
     public static final String CONFIG_FILE_PATH_PROPERTY = "rw.config.path";
