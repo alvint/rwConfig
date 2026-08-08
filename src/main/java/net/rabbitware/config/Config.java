@@ -159,26 +159,26 @@ public interface Config {
 
     // abbreviated method names for convenience
 
-    /// same as {@link #getBoolean(String)}
+    /** same as {@link #getBoolean(String)} */
     public boolean getb(String name) throws ConfigException;
-    /// same as {@link #getInt(String)}
+    /** same as {@link #getInt(String)} */
     public int geti(String name) throws ConfigException;
-    /// same as {@link #getLong(String)}
+    /** same as {@link #getLong(String)} */
     public long getl(String name) throws ConfigException;
-    /// same as {@link #getDouble(String)}
+    /** same as {@link #getDouble(String)} */
     public double getd(String name) throws ConfigException;
-    /// same as {@link #getString(String)}
+    /** same as {@link #getString(String)} */
     public String gets(String name) throws ConfigException;
 
-    /// same as {@link #getBooleanList(String)}
+    /** same as {@link #getBooleanList(String)} */
     public List<Boolean> getbl(String name) throws ConfigException;
-    /// same as {@link #getIntList(String)}
+    /** same as {@link #getIntList(String)} */
     public List<Integer> getil(String name) throws ConfigException;
-    /// same as {@link #getLongList(String)}
+    /** same as {@link #getLongList(String)} */
     public List<Long> getll(String name) throws ConfigException;
-    /// same as {@link #getDoubleList(String)}
+    /** same as {@link #getDoubleList(String)} */
     public List<Double> getdl(String name) throws ConfigException;
-    /// same as {@link #getStringList(String)}
+    /** same as {@link #getStringList(String)} */
     public List<String> getsl(String name) throws ConfigException;
 
 
