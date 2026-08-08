@@ -1,33 +1,38 @@
-# Config Library
-A simple and lightweight library for retrieving configuration properties in your
-projects. It can retrieve properties from an unlimited number of configuration
-sources, validate that required properties are set and contain sane values, and
-prioritze the sources so that a property from Source A can override the same
-property in Source B if needed. It presents a small, unified interface for value
-retrieval.
+# rwConfig
+rwConfig is a simple, lightweight library for reading configuration information
+in your projects. rwConfig retrieves properties from any number of configuration
+sources, validates that all properties are set and contain appropriate values,
+prioritizes configuration sources so that a property from Source A can override
+the same property in Source B if needed, and presents a small, unified, _fast_
+interface for value retrieval.
 
 ## Features
 - simple key-value configuration management
 - no dependencies outside of the Java Base module
 - fast reads
-  - all parsing happens at initialization only
-  - after initialization it's just a flat HashMap of String keys to values
+  - all reading and parsing of configuration sources happens at startup only
+  - after initialization, it's essentially just a flat, unmodifiable HashMap of
+    String keys to values
   - specific value classes are preferred over generics to (hopefully) improve
     performance by avoiding boxing and unboxing
-- simple declarative setup
-  - similar to `.properties` files with the syntax expanded to include types,
-    allowed values, and default values
-- simple interface
-  - on the Java side, essentially `java.util.properties` with types tacked on
+- simple, declarative setup
+  - the rwConfig file syntax is similar to Java `.properties` files, except the
+    syntax is expanded to optionally include types, allowed values, and default
+    values
+  - you can set all property values directly in the rwConfig file, or define how
+    to retrieve them
+- simple interface for property retrieval
+  - on the Java side, it's a similar API to `java.util.properties` with types
+    tacked on
 - self documenting
-  - enforces a centralized source of truth for information on
-    all application properties
-- support for multiple sources of configuration info with a clear heirarchy
+  - it enforces a centralized source of truth for information on all application
+    properties (the `rwConfig` file)
+- support for multiple sources of configuration info with a clear hierarchy
   - file support (currently `.properties` files with `.yaml` files planned),
     loadable from the file system, URLs, or the classpath
-  - support for command line arguments, environmet variables, and JVM system
+  - support for command line arguments, environment variables, and JVM system
     properties
-  - support for settings retrieved from a database (coming soon!)
+  - support for settings retrieved from a database (coming soon)
 - fail-fast design - most configuration issues are detected at startup
 - property types and value validation
   - current supported types are `boolean`, `int`, `long`, `double`, and `string`
@@ -37,9 +42,9 @@ retrieval.
 
 ## Project Goals
 - a simple interface with virtually no learning curve
-- high-spead retrieval of property values
-- fail-fast bevahior - detect errors at initialization whenever possible
-  - a compile-time plugin is also planned to detect when the java side expects
+- high-speed retrieval of property values
+- fail-fast behavior - detect errors at startup whenever possible
+  - a compile-time plugin is also planned to detect when the Java side expects
     a non-existent property or an incorrect property type
 - more secure
   - values that aren't expressly needed are not added to the Config object, even
@@ -52,7 +57,7 @@ retrieval.
     value to me.
 - a way to set properties within the app
   - That would require that the Config object be mutable, and creates many
-    "what if" scenarios involving thread syncronization, guaranteeing atomic
+    "what if" scenarios involving thread synchronization, guaranteeing atomic
     behavior to clients of the API, etc.
 - anything that would add dependencies to this project outside of Java Base
 
@@ -120,7 +125,7 @@ import net.rabbitware.config.*;
 Config config = ConfigFactory.create(commandLineArguments);
 ```
 
-If you **dont** want to allow configuration properties to be overridden on the command
+If you **don't** want to allow configuration properties to be overridden on the command
 line:
 
 ```java
@@ -145,7 +150,7 @@ IO.println("value of `port`: " + port);
 
 ## TODOs
 - a plugin system for defining custom property sources
-- IDE/Maven support to flag missing properties and inccorect property types at
+- IDE/Maven support to flag missing properties and incorrect property types at
   compile time
 - in-app notification of changed configuration sources
 - APIs for other languages
@@ -156,4 +161,4 @@ IO.println("value of `port`: " + port);
 
 ## Documentation
 
-TODO
+TODO - see the sample `rwconfig` file in the project for more details
