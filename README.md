@@ -16,7 +16,7 @@ interface for value retrieval.
   - specific value classes are preferred over generics to (hopefully) improve
     performance by avoiding boxing and unboxing
 - simple, declarative setup
-  - the rwConfig file syntax is similar to Java `.properties` files, except the
+  - the `rwconfig` file syntax is similar to Java `.properties` files, but the
     syntax is expanded to optionally include types, allowed values, and default
     values
   - you can set all property values directly in the rwConfig file, or define how
