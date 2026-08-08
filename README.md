@@ -60,10 +60,10 @@ interface for value retrieval.
     "what if" scenarios involving thread synchronization, guaranteeing atomic
     behavior to clients of the API, etc.
 
-    The closest I plan to come to supporting this is by notifying clients of the
+    The closest to supporting this I plan to come is notifying clients of the
     API when a config source (for example, a `.properties` file) has changed.
-    The client can then choose to reload the entire config object. Yes, that's
-    not very close.
+    The client can then choose to discard the old config object and create a new
+    one. Yes, that's not very close at all.
 - anything that would add dependencies to this project outside of Java Base
 
 ## Quick Start
