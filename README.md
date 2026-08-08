@@ -64,7 +64,8 @@ interface for value retrieval.
     API when a config source (for example, a `.properties` file) has changed.
     The client can then choose to discard the old Config object and create a new
     one. Yes, that's not very close at all.
-- anything that would add dependencies to this project outside of Java Base
+- anything that would greatly increase size, or add dependencies to this project
+  outside of Java Base
 
 ## Quick Start
 ### 1. Jar Installation (via Maven)
