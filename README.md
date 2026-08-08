@@ -92,6 +92,7 @@ the Java system property `rw.config.path`, or adding the command line argument
 `rw.config.path=/path/to/rwconfig`:
 
 ```
+# sample config setup
 config.sources = args, system, environment
 config.args.type = commandLineArguments
 config.system.type = systemProperties
