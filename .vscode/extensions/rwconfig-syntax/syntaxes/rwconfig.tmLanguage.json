@@ -56,12 +56,12 @@
     },
     {
       "comment": "type",
-      "match": "(?<=^\\s*)(?:boolean|int|long|double|string|intList|stringList|booleanList|longList|doubleList)(?=\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$)",
+      "match": "(?<=^\\s*)(?i:boolean|int|long|double|string|intList|stringList|booleanList|longList|doubleList)(?=\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$)",
       "name": "storage.type.rwconfig"
     },
     {
       "comment": "invalid type name",
-      "match": "^(?!\\s*(?:\\[|boolean|int|long|double|string|intList|stringList|booleanList|longList|doubleList)(?:\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$))(?:\\s+[^\\[=]*|[^\\[=]+)(?=\\s*\\[|\\s+[^\\s=])",
+      "match": "^(?!\\s*(?i:\\[|boolean|int|long|double|string|intList|stringList|booleanList|longList|doubleList)(?:\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$))(?:\\s+[^\\[=]*|[^\\[=]+)(?=\\s*\\[|\\s+[^\\s=])",
       "name": "invalid.illegal.type-name.rwconfig"
     },
     {
@@ -83,7 +83,7 @@
 
     {
       "comment": "integer",
-      "match": "(?<=^\\s*(?:int|long)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
+      "match": "(?<=^\\s*(?i:int|long)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
       "captures": {
         "1": {
           "patterns": [
@@ -95,7 +95,7 @@
     },
     {
       "comment": "integer list",
-      "match": "(?<=^\\s*(?:intList|longList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
+      "match": "(?<=^\\s*(?i:intList|longList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
       "captures": {
         "1":{
           "patterns": [
@@ -117,7 +117,7 @@
     },
     {
       "comment": "integer range",
-      "match": "(?<=^\\s*(?:int|intList|long|longList)\\s*\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
+      "match": "(?<=^\\s*(?i:int|intList|long|longList)\\s*\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
       "captures": {
         "1":{
           "patterns": [
@@ -157,7 +157,7 @@
 
     {
       "comment": "double",
-      "match": "(?<=^\\s*double\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
+      "match": "(?<=^\\s*(?i:double)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
       "captures": {
         "1": {
           "patterns": [
@@ -169,7 +169,7 @@
     },
     {
       "comment": "double list",
-      "match": "(?<=^\\s*doubleList\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
+      "match": "(?<=^\\s*(?i:doubleList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
       "captures": {
         "1":{
           "patterns": [
@@ -191,7 +191,7 @@
     },
     {
       "comment": "double range",
-      "match": "(?<=^\\s*(?:double|doubleList)\\s*\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
+      "match": "(?<=^\\s*(?i:double|doubleList)\\s*\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
       "captures": {
         "1":{
           "patterns": [
@@ -231,7 +231,7 @@
 
     {
       "comment": "boolean",
-      "match": "(?<=^\\s*boolean\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
+      "match": "(?<=^\\s*(?i:boolean)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
       "captures": {
         "1": {
           "patterns": [
@@ -243,7 +243,7 @@
     },
     {
       "comment": "boolean list",
-      "match": "(?<=^\\s*booleanList\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
+      "match": "(?<=^\\s*(?i:booleanList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
       "captures": {
         "1":{
           "patterns": [
@@ -265,7 +265,7 @@
     },
     {
       "comment": "boolean range",
-      "match": "(?<=^\\s*(?:boolean|booleanList)\\s*\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
+      "match": "(?<=^\\s*(?i:boolean|booleanList)\\s*\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
       "captures": {
         "1":{
           "patterns": [
@@ -305,7 +305,7 @@
 
     {
       "comment": "string",
-      "match": "(?<=^\\s*(?:string\\s*)?(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
+      "match": "(?<=^\\s*(?i:string\\s*)?(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
       "captures": {
         "1": {
           "name": "string.unquoted.rwconfig",
@@ -318,7 +318,7 @@
     },
     {
       "comment": "string list",
-      "match": "(?<=^\\s*stringList\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
+      "match": "(?<=^\\s*(?i:stringList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
       "captures": {
         "1":{
           "patterns": [
@@ -342,7 +342,7 @@
     },
     {
       "comment": "string range",
-      "match": "(?<=^\\s*(?:string\\s*|stringList\\s*)?\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
+      "match": "(?<=^\\s*(?i:string\\s*|stringList\\s*)?\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
       "captures": {
         "1":{
           "patterns": [

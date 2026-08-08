@@ -157,12 +157,12 @@ public interface Config {
 
         static {
             for (PropertyType type : PropertyType.values()) {
-                nameToTypeMap.put(type.name, type);
+                nameToTypeMap.put(type.name.toLowerCase(), type);
             }
         }
 
         public static PropertyType fromString(String type) {
-            PropertyType propertyType = nameToTypeMap.get(type);
+            PropertyType propertyType = nameToTypeMap.get(type.toLowerCase());
             if (propertyType != null) {
                 return propertyType;
             }
