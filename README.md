@@ -81,7 +81,7 @@ interface for value retrieval.
     The client can then choose to discard the old Config object and create a new
     one. Yes, that's not very close at all.
 - support for an in-memory hierarchal data structure
-  - future graph-oriented data sources like JSON files will be "flattened" during
+  - future graph-oriented data sources like JSON will be "flattened" during
     ingestion
     - it is far faster this way
     - there is effectively no difference to clients of the API when searching for
