@@ -1,6 +1,4 @@
 {
-    "java.configuration.updateBuildConfiguration": "automatic",
-    "java.dependency.packagePresentation": "flat",
     "files.associations": {
         "rwconfig": "rwconfig"
     },
