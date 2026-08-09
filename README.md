@@ -243,7 +243,7 @@ not working as the developer intended from that point on.
 - in-app notification of changed configuration sources
 - APIs for other languages
 
-## Design Choices
+## Design Choices and Miscellaneous Rants
 - effectively immutable and atomic configuration
 - "flat" data structure
   - WARNING: screed follows:
