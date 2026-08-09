@@ -156,7 +156,7 @@ config.environment.type = environmentVariables
 int[80, 1024:65535] port = 8000
 
 # Declare that we need a database password. Sensitive information like passwords 
-# should not be present in shared files, so we'll leave the value blank.
+# should not be present in shared files, so we'll leave the value unset.
 #
 # This means that the value of `DBPassword` will have to be set in one of the
 # declared sources above. It can be set on the command line using an argument in
