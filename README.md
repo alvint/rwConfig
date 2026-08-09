@@ -19,7 +19,8 @@ interface for value retrieval.
     - where to retrieve property values (the configuration sources)
 - no dependencies outside of the Java Base module
 - fast reads
-  - reading and parsing of configuration sources happens at startup only
+  - reading and parsing of configuration sources and property values happens at
+    startup only
   - after initialization, it's essentially just a flat, unmodifiable HashMap of
     String keys to values
   - specific value classes are preferred over generics to (hopefully) improve
