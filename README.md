@@ -30,7 +30,8 @@ interface for value retrieval.
     values
   - you can set all property values directly in the `rwconfig` file, or define how
     to retrieve them
-- no dependencies outside of the Java Base module
+- lightweight
+  - no dependencies outside of the Java Base module
 - simple interface for property retrieval
   - on the Java side, it's a similar API to `java.util.properties` with types
     tacked on
