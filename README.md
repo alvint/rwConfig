@@ -8,6 +8,9 @@ interface for value retrieval.
 
 ## Features
 - simple key-value configuration management
+- self-documenting
+  - it enforces a single source of truth for information about all application
+    properties (the `rwconfig` file)
 - no dependencies outside of the Java Base module
 - fast reads
   - reading and parsing of configuration sources happens at startup only
@@ -24,9 +27,6 @@ interface for value retrieval.
 - simple interface for property retrieval
   - on the Java side, it's a similar API to `java.util.properties` with types
     tacked on
-- self documenting
-  - it enforces a centralized source of truth for information on all application
-    properties (the `rwconfig` file)
 - support for multiple sources of configuration info with a clear hierarchy
   - file support (currently `.properties` files with `.yaml` files planned),
     loadable from the file system, URLs, or the classpath
