@@ -272,7 +272,7 @@ not working as the developer intended from that point on.
 
     Hierarchies and taxonomies are for **human** consumption. Computers don't give
     a shit about them. If you try to force computers to work the way that humans
-    think you will get unnecessarily terrible performance.
+    think you will get unnecessarily weaker performance.
 - fail-fast behavior
 - no dependencies
 - compatibility with existing Java `.properties` files (some minor restrictions
