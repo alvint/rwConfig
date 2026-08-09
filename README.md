@@ -202,7 +202,11 @@ import net.rabbitware.config.*;
 Config config = ConfigFactory.create();
 ```
 
-Retrieving a property is painless:
+**Retrieving a Value**
+
+Retrieving a property is painless. There's no need to deal with `Optional`s here
+because the library handles default values and value types in the `rwconfig`
+file:
 ```java
 // get the value of the property `port`
 int port = config.getInt("port");
