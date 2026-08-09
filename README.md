@@ -15,8 +15,7 @@ interface for value retrieval.
     startup only
   - after initialization, it's essentially just a flat, unmodifiable HashMap of
     String keys to values
-    - it is a _**far**_ better choice to "flatten" hierarchical structures than
-      do the reverse - see the "Design Choices" section for more details
+    - see the "Design Choices" section for more details
   - specific value classes are preferred over generics to (hopefully) improve
     performance by avoiding boxing and unboxing
 - self-documenting
