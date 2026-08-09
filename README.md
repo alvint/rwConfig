@@ -266,9 +266,9 @@ not working as the developer intended from that point on.
     structure.
 
     Google's Gmail has done this for decades. As far as everything but the last
-    bit of UI is concerned, your email folder structure is just a bunch of flat
-    tags that happen to have forward slashes in them. The end result is virtually
-    identical.
+    bit of UI is concerned, your email folder structure is just a bunch of flat,
+    opaque tags that happen to have forward slashes in them. The end result is
+    virtually identical.
 
     Hierarchies and taxonomies are for **human** consumption. Computers don't need
     to care about them. If you try to force computers to work the way that humans
