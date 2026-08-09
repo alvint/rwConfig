@@ -223,7 +223,7 @@ property declarations, default values, and value types at startup. This means:
 - unknown properties in Java code is always an error
 
 These errors are treated as unchecked exceptions because (a) they are correctable
-at coding time, and (b)encountering them at runtime guarantees that the code is
+at coding time, and (b) encountering them at runtime guarantees that the code is
 not working as the developer intended from that point on.
 
 ## TODOs
