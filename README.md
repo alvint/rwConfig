@@ -254,14 +254,14 @@ not working as the developer intended from that point on.
     (convert structures like `.properties` files to nodes).
 
     The absolute worst-case performance of retrieving a value from a flat HashMap
-    is `O(log n)`, and it is often O(1). That worst-case performance can get a bit
-    better if you make `n` smaller by sorting different property types into their
-    own buckets--something you can't do with the "node" structure.
+    is `O(log n)`, and it is often `O(1)`. That worst-case performance can get a
+    bit better if you make `n` smaller by sorting different property types into
+    their own buckets--something you can't do with the "node" structure.
 
     On the other hand, the worst-case performance of a node structure is
-    `O(log n1 + log n2... + log nx)` and the best case is O(x), where `x` is the
-    number of levels. This doesn't cover the cost of parsing the key in order to
-    do the node navigation. Any edge-case advantage of keeping the hierarchy
+    `O(log n1 + log n2... + log nx)` and the best case is `O(x)`, where `x` is
+    the number of levels. This doesn't cover the cost of parsing the key in order
+    to do the node navigation. Any edge-case advantage of keeping the hierarchy
     intact is (IMO) smaller than the performance gains from a flattened data
     structure.
 
