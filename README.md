@@ -205,8 +205,12 @@ Config config = ConfigFactory.create();
 **Retrieving a Value**
 
 Retrieving a property is painless. There's no need to deal with `Optional`s here
-because the library handles default values and value types in the `rwconfig`
-file:
+because:
+- the library handles default values and value types in the `rwconfig` file, so:
+  - missing values are caught at startup
+  - incorrect property types are always an error
+- all property names are defined in the `rwconfig` file, so unknown properties
+  are always an error
 ```java
 // get the value of the property `port`
 int port = config.getInt("port");
