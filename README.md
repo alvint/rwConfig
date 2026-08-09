@@ -253,16 +253,17 @@ not working as the developer intended from that point on.
     to "flatten" graph structures (like JSON files) than it is to do the reverse
     (convert structures like `.properties` files to nodes).
 
-    The performance of retrieving a value from a flat HashMap is `O(log n)`. That
-    performance can get a bit better if you make `n` smaller by sorting different
-    property types into their own buckets--something you can't do with the "node"
-    structure.
+    The absolute worst-case performance of retrieving a value from a flat HashMap
+    is `O(log n)`, and it is often O(1). That worst-case performance can get a bit
+    better if you make `n` smaller by sorting different property types into their
+    own buckets--something you can't do with the "node" structure.
 
-    On the other hand, the performance of a node structure is at best
-    `O(log n1 + log n2... + log nx)`, where `x` is the number of levels. This
-    doesn't cover the cost of parsing the key in in order to do the node
-    navigation. Any edge-case advantage of keeping the hierarchy intact is dwarfed
-    by the performance gains from a flattened data structure.
+    On the other hand, the worst-case performance of a node structure is
+    `O(log n1 + log n2... + log nx)` and the best case is O(x), where `x` is the
+    number of levels. This doesn't cover the cost of parsing the key in order to
+    do the node navigation. Any edge-case advantage of keeping the hierarchy
+    intact is (IMO) smaller than the performance gains from a flattened data
+    structure.
 
     Google's Gmail has done this for decades. As far as everything but the last
     bit of UI is concerned, your email folder structure is just a bunch of flat
