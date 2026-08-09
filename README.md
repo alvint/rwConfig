@@ -14,9 +14,15 @@ interface for value retrieval.
     - property names
     - property types (`boolean`, `int`, `long`, `double`, `string`, and list
       versions of these types)
-    - default values (optional)
     - allowed values (optional)
+    - default values (optional)
     - where to retrieve property values (the configuration sources)
+- simple, declarative setup
+  - the `rwconfig` file syntax is similar to Java `.properties` files, but the
+    syntax is expanded to optionally include types, allowed values, and default
+    values
+  - you can set all property values directly in the `rwconfig` file, or define how
+    to retrieve them
 - no dependencies outside of the Java Base module
 - fast reads
   - reading and parsing of configuration sources and property values happens at
@@ -25,12 +31,6 @@ interface for value retrieval.
     String keys to values
   - specific value classes are preferred over generics to (hopefully) improve
     performance by avoiding boxing and unboxing
-- simple, declarative setup
-  - the `rwconfig` file syntax is similar to Java `.properties` files, but the
-    syntax is expanded to optionally include types, allowed values, and default
-    values
-  - you can set all property values directly in the `rwconfig` file, or define how
-    to retrieve them
 - simple interface for property retrieval
   - on the Java side, it's a similar API to `java.util.properties` with types
     tacked on
