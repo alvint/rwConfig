@@ -10,13 +10,13 @@ interface for value retrieval.
 - simple key-value configuration management
 - self-documenting
   - the `rwconfig` file provides a single source of truth for information about
-    all application properties and where to get them:
-    - all property names required by the app
+    all of your application's properties and where to find values for them:
+    - property names
     - property types (`boolean`, `int`, `long`, `double`, `string`, and list
       versions of these types)
     - default values (optional)
     - allowed values (optional)
-    - where to find property values (the configuration sources)
+    - where to retrieve property values (the configuration sources)
 - no dependencies outside of the Java Base module
 - fast reads
   - reading and parsing of configuration sources happens at startup only
