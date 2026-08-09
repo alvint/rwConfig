@@ -13,6 +13,8 @@ interface for value retrieval.
     startup only
   - after initialization, it's essentially just a flat, unmodifiable HashMap of
     String keys to values
+    - it is a _**far**_ better choice to "flatten" hierarchal structures than do
+      the reverse - see the "Design Choices" section for more details
   - specific value classes are preferred over generics to (hopefully) improve
     performance by avoiding boxing and unboxing
 - self-documenting
@@ -235,8 +237,34 @@ not working as the developer intended from that point on.
 - APIs for other languages
 
 ## Design Choices
-
 - effectively immutable and atomic configuration
+- "flat" data structure
+  - WARNING screed follows:
+
+    I have **no idea** why many config systems work with a "node/graph" structure
+    instead of a flattened structure. It is _far and away_ more efficient overall
+    to "flatten" graph structures (like JSON files) than it is to do the reverse
+    (convert structures like `.properties` files to nodes).
+
+    The performance of retrieving a value from a flat HashMap is `O(log n)`. That
+    performance can get a bit better if you make `n` smaller by sorting different
+    property types into their own buckets--something you can't do with the "node"
+    structure.
+
+    On the other hand, the performance of a node structure is at best
+    `O(log n1 + log n2... + log nx)`, where `x` is the number of levels. This
+    doesn't cover the cost of parsing the key in in order to do the node
+    navigation. Any edge-case advantage of keeping the hierarchy intact is dwarfed
+    by the performance gains from a flattened data structure.
+
+    Google's Gmail has done this for decades. As far as everything but the last
+    bit of UI is concerned, your email folder structure is just a bunch of flat
+    tags that happen to have forward slashes in them. The end result is virtually
+    identical.
+
+    Hierarchies and taxonomies are for **human** consumption. Computers don't give
+    a shit about them. If you try to force computers to work the way that humans
+    think you will get unnecessarily terrible performance.
 - fail-fast behavior
 - no dependencies
 - compatibility with existing Java `.properties` files (some minor restrictions
