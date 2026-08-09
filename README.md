@@ -82,9 +82,9 @@ interface for value retrieval.
     one. Yes, that's not very close at all.
 - support for an in-memory hierarchal data structure
   - future hierarchal data sources like JSON will be "flattened" during ingestion
-    - it is far faster this way
-    - there is effectively no difference to clients of the API when searching for
-      a value by its key
+    - reads are far faster this way
+    - there is effectively no difference to clients of the API when retrieving a
+      value by its key
   - see the "Design Choices" section for more details
 - anything that would greatly increase size, or add dependencies to this project
   outside of Java Base
