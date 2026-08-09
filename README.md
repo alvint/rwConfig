@@ -222,9 +222,9 @@ property declarations, default values, and value types at startup. This means:
 - incorrect property types in Java code is always an error
 - unknown properties in Java code is always an error
 
-These errors are treated as unchecked exceptions because encountering them
-guarantees that the code is not working as the developer intended from that
-point on.
+These errors are treated as unchecked exceptions because (a) they are correctable
+at coding time, and (b)encountering them at runtime guarantees that the code is
+not working as the developer intended from that point on.
 
 ## TODOs
 - a plugin system for defining custom property sources
