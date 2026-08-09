@@ -8,6 +8,13 @@ interface for value retrieval.
 
 ## Features
 - simple key-value configuration management
+- fast reads
+  - reading and parsing of configuration sources and property values happens at
+    startup only
+  - after initialization, it's essentially just a flat, unmodifiable HashMap of
+    String keys to values
+  - specific value classes are preferred over generics to (hopefully) improve
+    performance by avoiding boxing and unboxing
 - self-documenting
   - the `rwconfig` file provides a single source of truth for information about
     all of your application's properties and where to find values for them:
@@ -24,13 +31,6 @@ interface for value retrieval.
   - you can set all property values directly in the `rwconfig` file, or define how
     to retrieve them
 - no dependencies outside of the Java Base module
-- fast reads
-  - reading and parsing of configuration sources and property values happens at
-    startup only
-  - after initialization, it's essentially just a flat, unmodifiable HashMap of
-    String keys to values
-  - specific value classes are preferred over generics to (hopefully) improve
-    performance by avoiding boxing and unboxing
 - simple interface for property retrieval
   - on the Java side, it's a similar API to `java.util.properties` with types
     tacked on
