@@ -239,7 +239,7 @@ not working as the developer intended from that point on.
 ## Design Choices
 - effectively immutable and atomic configuration
 - "flat" data structure
-  - WARNING screed follows:
+  - WARNING: screed follows:
 
     I have **no idea** why many config systems work with a "node/graph" structure
     instead of a flattened structure. It is _far and away_ more efficient overall
