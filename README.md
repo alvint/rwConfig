@@ -1,7 +1,9 @@
 # rwConfig
 rwConfig is a simple, lightweight library for reading configuration information
-in your projects. rwConfig retrieves properties from any number of configuration
-sources, validates that all properties are set and contain appropriate values,
+in your projects.
+
+rwConfig retrieves properties from any number of configuration sources,
+validates that all properties are set and contain appropriate values,
 prioritizes configuration sources so that a property from Source A can override
 the same property in Source B if needed, and presents a small, unified, _fast_
 interface for value retrieval.
@@ -13,8 +15,8 @@ interface for value retrieval.
     startup only
   - after initialization, it's essentially just a flat, unmodifiable HashMap of
     String keys to values
-    - it is a _**far**_ better choice to "flatten" hierarchal structures than do
-      the reverse - see the "Design Choices" section for more details
+    - it is a _**far**_ better choice to "flatten" hierarchical structures than
+      do the reverse - see the "Design Choices" section for more details
   - specific value classes are preferred over generics to (hopefully) improve
     performance by avoiding boxing and unboxing
 - self-documenting
@@ -56,7 +58,7 @@ interface for value retrieval.
 
 ## Project Goals
 - a simple interface with virtually no learning curve
-- light-weight - when it comes to microservices and embedded environments, size
+- lightweight - when it comes to microservices and embedded environments, size
   matters
 - high-speed retrieval of property values
 - fail-fast behavior - detect errors at startup whenever possible
@@ -80,8 +82,8 @@ interface for value retrieval.
     API when a config source (for example, a `.properties` file) has changed.
     The client can then choose to discard the old Config object and create a new
     one. Yes, that's not very close at all.
-- support for an in-memory hierarchal data structure
-  - future hierarchal data sources like JSON will be "flattened" during ingestion
+- support for an in-memory hierarchical data structure
+  - future hierarchical data sources like JSON will be "flattened" during ingestion
     - reads are far faster this way
     - there is effectively no difference to clients of the API when retrieving a
       value by its key
@@ -220,8 +222,8 @@ int port = config.getInt("port");
 // get the type of the property `port`
 Config.PropertyType propertyType = config.getType("port");
 
-IO.println("type of `port`: " + type.name);
-IO.println("value of `port`: " + port);
+System.out.println("type of `port`: " + type.name);
+System.out.println("value of `port`: " + port);
 ```
 There's no need to deal with `Optional`s here because the library handles
 property declarations, default values, and value types at startup. This means:
