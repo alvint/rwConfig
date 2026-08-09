@@ -270,9 +270,9 @@ not working as the developer intended from that point on.
     tags that happen to have forward slashes in them. The end result is virtually
     identical.
 
-    Hierarchies and taxonomies are for **human** consumption. Computers don't give
-    a shit about them. If you try to force computers to work the way that humans
-    think you will get unnecessarily weaker performance.
+    Hierarchies and taxonomies are for **human** consumption. Computers don't need
+    to care about them. If you try to force computers to work the way that humans
+    think, you will get unnecessarily weaker performance.
 - fail-fast behavior
 - no dependencies
 - compatibility with existing Java `.properties` files (some minor restrictions
