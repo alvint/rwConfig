@@ -248,10 +248,10 @@ not working as the developer intended from that point on.
 - "flat" data structure
   - WARNING: screed follows:
 
-    I have **no idea** why many config systems work with a "node/graph" structure
-    instead of a flattened structure. It is _far and away_ more efficient overall
-    to "flatten" graph structures (like JSON files) than it is to do the reverse
-    (convert structures like `.properties` files to nodes).
+    I have no idea why many config systems work with a "node/graph" structure
+    instead of a flattened structure. It is more efficient overall to "flatten"
+    graph structures (like JSON files) than it is to do the reverse (convert
+    structures like `.properties` files to nodes).
 
     The absolute worst-case performance of retrieving a value from a flat HashMap
     is `O(log n)`, and it is often `O(1)`. That worst-case performance can get a
