@@ -40,7 +40,11 @@ interface for value retrieval.
   - support for command line arguments, environment variables, and JVM system
     properties
   - support for settings retrieved from a database (coming soon)
-- fail-fast design - most configuration issues are detected at startup
+- fail-fast design - the library is designed to detect configuration issues
+  sooner rather than later
+  - most configuration issues are detected at startup
+  - a plugin to detect unexpected types and incorrect properties at compile time
+    is planned
 - property types and value validation
   - current supported types are `boolean`, `int`, `long`, `double`, and `string`
   - list support (`booleanList`, `intList`, etc.)
