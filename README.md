@@ -263,7 +263,7 @@ not working as the developer intended from that point on.
     the number of levels. This doesn't cover the cost of parsing the key in order
     to do the node navigation. Any edge-case advantage of keeping the hierarchy
     intact is (IMO) smaller than the performance gains from a flattened data
-    structure.
+    structure. Plus, node navigation makes the code more complicated. Bad!
 
     Google's Gmail has done this for decades. As far as everything but the last
     bit of UI is concerned, your email folder structure is just a bunch of flat,
