@@ -19,5 +19,6 @@
         "getsl",
         "rabbitware",
         "rwconfig"
-    ]
+    ],
+    "java.configuration.updateBuildConfiguration": "interactive"
 }
