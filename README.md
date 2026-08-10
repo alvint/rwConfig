@@ -9,7 +9,6 @@ the same property in Source B if needed, and presents a small, unified, _fast_
 interface for value retrieval.
 
 ## Features
-- simple key-value configuration management
 - fast reads
   - reading and parsing of configuration sources and property values happens at
     startup only
