@@ -230,8 +230,8 @@ property declarations, default values, and value types at startup. This means:
 
 - default values are declared in the config file--not in the code
 - missing or incorrect property values are caught at startup
-- incorrect property types in Java code is always an error
-- unknown properties in Java code is always an error
+- expecting an incorrect property type in Java code is always an error
+- requesting an unknown property in Java code is always an error
 
 These errors are treated as unchecked exceptions because (a) they are avoidable
 at coding time, and (b) encountering them at runtime guarantees that the code is
