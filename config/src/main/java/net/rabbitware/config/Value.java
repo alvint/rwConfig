@@ -5,6 +5,22 @@ sealed abstract class Value permits
         Value.Integer, Value.Long, Value.Double, Value.String, Value.Boolean,
         Value.IntegerList, Value.LongList, Value.DoubleList, Value.StringList, Value.BooleanList {
 
+    @Override
+    public java.lang.String toString() {
+        return switch (this) {
+            case Value.Integer i -> java.lang.String.valueOf(i.i);
+            case Value.Long l -> java.lang.String.valueOf(l.l);
+            case Value.Double d -> java.lang.String.valueOf(d.d);
+            case Value.String s -> s.s;
+            case Value.Boolean b -> java.lang.String.valueOf(b.b);
+            case Value.IntegerList il -> il.list.toString();
+            case Value.LongList ll -> ll.list.toString();
+            case Value.DoubleList dl -> dl.list.toString();
+            case Value.StringList sl -> sl.list.toString();
+            case Value.BooleanList bl -> bl.list.toString();
+        };
+    }
+
     static final class Boolean extends Value {
         final boolean b;
 
