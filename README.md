@@ -30,8 +30,8 @@ interface for value retrieval.
   - the `rwconfig` file syntax is similar to Java `.properties` files, but the
     syntax is expanded to optionally include types, allowed values, and default
     values
-  - you can set all property values directly in the `rwconfig` file, or define how
-    to retrieve them
+  - you can set all property values directly in the `rwconfig` file, or define
+    how to retrieve them
 - lightweight
   - no dependencies outside of the Java Base module
 - simple interface for property retrieval
@@ -51,7 +51,7 @@ interface for value retrieval.
 - property types and value validation
   - current supported types are `boolean`, `int`, `long`, `double`, and `string`
   - list support (`booleanList`, `intList`, etc.)
-- compatible with plain Java `.properties` files (minor limits on property names)
+- compatible with plain Java `.properties` files (some limits on property names)
   - `.yaml` file support is also planned
 
 ## Project Goals
@@ -81,7 +81,8 @@ interface for value retrieval.
     The client can then choose to discard the old Config object and create a new
     one. Yes, that's not very close at all.
 - support for an in-memory hierarchical data structure
-  - future hierarchical data sources like JSON will be "flattened" during ingestion
+  - future hierarchical data sources (like JSON) will be "flattened" during
+    ingestion
     - reads are far faster this way
     - there is effectively no difference to clients of the API when retrieving a
       value by its key
@@ -230,7 +231,7 @@ property declarations, default values, and value types at startup. This means:
 - incorrect property types in Java code is always an error
 - unknown properties in Java code is always an error
 
-These errors are treated as unchecked exceptions because (a) they are correctable
+These errors are treated as unchecked exceptions because (a) they are avoidable
 at coding time, and (b) encountering them at runtime guarantees that the code is
 not working as the developer intended from that point on.
 
@@ -252,15 +253,15 @@ not working as the developer intended from that point on.
     graph structures (like JSON files) than it is to do the reverse (convert
     structures like `.properties` files to nodes).
 
-    The absolute worst-case performance of retrieving a value from a flat HashMap
+    The absolute worst-case performance of retrieving values from a flat HashMap
     is `O(log n)`, and it is often `O(1)`. That worst-case performance can get a
     bit better if you make `n` smaller by sorting different property types into
     their own buckets--something you can't do with the "node" structure.
 
     On the other hand, the worst-case performance of a node structure is
     `O(log n1 + log n2... + log nx)` and the best case is `O(x)`, where `x` is
-    the number of levels. This doesn't cover the cost of parsing the key in order
-    to do the node navigation. Any edge-case advantage of keeping the hierarchy
+    the number of levels. This doesn't cover any cost of parsing the keys while
+    doing the node navigation. Any edge-case advantage of keeping the hierarchy
     intact is (IMO) smaller than the performance gains from a flattened data
     structure. Plus, node navigation makes the code more complicated. Bad!
 
@@ -269,9 +270,9 @@ not working as the developer intended from that point on.
     opaque tags that happen to have forward slashes in them. The end result is
     virtually identical.
 
-    Hierarchies and taxonomies are for **human** consumption. Computers don't need
-    to care about them. If you try to force computers to work the way that humans
-    think, you will get unnecessarily weaker performance.
+    Hierarchies and taxonomies are for **human** consumption. Computers don't
+    need to care about them. If you try to force computers to work the way that
+    humans do, you will get unnecessarily weaker performance.
 - fail-fast behavior
 - no dependencies
 - compatibility with existing Java `.properties` files (some minor restrictions
