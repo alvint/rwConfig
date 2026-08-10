@@ -17,7 +17,7 @@ public class Test {
         System.out.println("type of `firstAndLastItemsAreEmpty`: " + config.getType("firstAndLastItemsAreEmpty").name);
         System.out.println("value of `firstAndLastItemsAreEmpty`: " + config.getStringList("firstAndLastItemsAreEmpty"));
 
-        System.out.println("value of `noSpace`: " + config.getString("noSpace"));
+        System.out.println("value of `no-space`: " + config.getString("no-space"));
 
         System.out.println("value of `emptyList`: " + config.getStringList("emptyList"));
 

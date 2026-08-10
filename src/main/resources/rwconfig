@@ -216,6 +216,7 @@ config.app.path = app.properties
 # Here are some examples of valid property declarations:
 #
 #     firstName
+#     first-name
 #     string myTextProperty
 #     emptyString =
 #     emptyString = \e
@@ -234,7 +235,6 @@ config.app.path = app.properties
 #
 # Here are some examples of **invalid** property declarations:
 #
-#     first-name                        // a hyphen is not allowed
 #     first name = Joe                  // a space is not allowed
 #     .rc = /path/to/file               // cannot start with a period
 #     1stName = Joe                     // cannot start with a number
@@ -260,6 +260,6 @@ stringList strings = one, two, tree  \,  , four
 [one, two, three] foo2 = one
 intList[1:10] numbers = 1, 2, 3
 stringList firstAndLastItemsAreEmpty = , foo, bar, \e
-string noSpace = no\espace
+string no-space = no\espace
 stringList emptyList =
 intList[1:10] emptyIntList =
