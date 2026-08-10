@@ -1,4 +1,6 @@
-package net.rabbitware.config;
+package net.rabbitware.config.example;
+import net.rabbitware.config.Config;
+import net.rabbitware.config.ConfigFactory;
 
 public class Test {
     public static void main(String[] args) {

@@ -99,7 +99,7 @@ Add this to your project's pom.xml:
 <dependencies>
     ...
     <dependency>
-        <groupId>net.rabbitware</groupId>
+        <groupId>net.rabbitware.config</groupId>
         <artifactId>config</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </dependency>
@@ -171,8 +171,8 @@ int[80, 1024:65535] port = 8000
 #
 # You could also set the value of `DBPassword` in a separate, more secure file.
 # That would require adding another configuration source above. Details on how
-# to do this are in the sample `rwconfig` file in the project's `resources`
-# folder.
+# to do this are in the sample `rwconfig` file in the example project's
+# `resources` folder.
 #
 # If this property's value is *not* set in a declared source, the library will
 # throw an exception at startup.
@@ -287,5 +287,5 @@ not working as the developer intended from that point on.
 
 ## Documentation
 
-TODO - see the sample `rwconfig` file in the project's `resources` folder for
-more details
+TODO - see the sample `rwconfig` file in the example project's `resources`
+folder for more details
