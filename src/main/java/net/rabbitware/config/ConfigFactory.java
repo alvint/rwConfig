@@ -17,6 +17,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config.ConfigException;
 import net.rabbitware.config.Config.PropertyType;
 
@@ -24,11 +26,17 @@ public class ConfigFactory {
     public static final String CONFIG_FILE_PATH_PROPERTY = "rw.config.path";
     public static final String DEFAULT_CONFIG_FILE_PATH = "rwconfig";
 
+    public static final Logger logger = LoggerFactory.getLogger(ConfigFactory.class);
+
     public static Config create() throws ConfigException {
         return create(null);
     }
 
     public static Config create(String[] commandLineArgs) throws ConfigException {
+        logger.debug(
+            "creating Config instance with command line arguments {}",
+            commandLineArgs == null ? "not set" : "set"
+        );
         // parse the config setup and property info from the config file
         Map<String, String> configProperties = new HashMap<>();
         Map<String, PropertyInfo> propertyInfoMap = new HashMap<>();
@@ -105,9 +113,16 @@ public class ConfigFactory {
                     configProperties.put(name, defaultValue);
                 } else { // property info line
                     type = type != null && !type.isEmpty() ? type : "string"; // default type is `string`
+                    logger.debug(
+                        "loading property info for `{}`: type=`{}`, allowedValues=`{}`, defaultValue=`{}`",
+                        name, type, allowedValues, defaultValue
+                    );
                     propertyInfoMap.put(name, getPropertyInfo(name, type, allowedValues, defaultValue));
                 }
-            })
+            });
+        logger.debug(
+            "rwconfig file loaded successfully with {} config setup lines and {} property info lines",
+            configProperties.size(), propertyInfoMap.size())
         ;
 
         // get all of the config sources
@@ -124,6 +139,7 @@ public class ConfigFactory {
                 if (configSources.containsKey(sourceName)) {
                     throw new ConfigException("duplicate config source name: " + sourceName);
                 }
+                logger.debug("loading config source: {}", sourceName);
                 String sourceType = configProperties.get("config." + sourceName + ".type");
                 if (sourceType == null || sourceType.isEmpty()) {
                     throw new ConfigException("missing config property: config." + sourceName + ".type");
@@ -137,12 +153,15 @@ public class ConfigFactory {
                             );
                         }
                         configSources.put(sourceName, new CommandLineProperties(commandLineArgs, propertyInfoMap));
+                        logger.debug("config source `{}` loaded from command line arguments", sourceName);
                     }
                     case SYSTEM_PROPERTIES -> {
                         configSources.put(sourceName, new SystemProperties(propertyInfoMap));
+                        logger.debug("config source `{}` loaded from system properties", sourceName);
                     }
                     case ENVIRONMENT_VARIABLES -> {
                         configSources.put(sourceName, new EnvironmentProperties(propertyInfoMap));
+                        logger.debug("config source `{}` loaded from environment variables", sourceName);
                     }
                     case FILE -> {
                         String filePath = configProperties.get("config." + sourceName + ".path");
@@ -158,6 +177,7 @@ public class ConfigFactory {
                         ) {
                             properties.load(reader);
                             configSources.put(sourceName, toMap(properties));
+                            logger.debug("config source `{}` loaded from file: {}", sourceName, filePath);
                         } catch (IOException e) {
                             throw new ConfigException(
                                 "error reading config source file for `" + sourceName + "`: " + filePath, e
@@ -179,6 +199,7 @@ public class ConfigFactory {
                         try (var reader = new InputStreamReader(url.openStream(), StandardCharsets.UTF_8)) {
                             properties.load(reader);
                             configSources.put(sourceName, toMap(properties));
+                            logger.debug("config source `{}` loaded from classpath: {}", sourceName, path);
                         } catch (IOException e) {
                             throw new ConfigException(
                                 "error reading config source file from classpath for `" + sourceName + "`: " + path, e
@@ -198,6 +219,7 @@ public class ConfigFactory {
                         ) {
                             properties.load(reader);
                             configSources.put(sourceName, toMap(properties));
+                            logger.debug("config source `{}` loaded from URL: {}", sourceName, url);
                         } catch (IOException e) {
                             throw new ConfigException(
                                 "error reading config source from URL for `" + sourceName + "`: " + url, e
@@ -205,10 +227,13 @@ public class ConfigFactory {
                         }
                     }
                     // TODO
-                    case DATABASE -> throw new ConfigException(
-                        "source type for `" + sourceName + "` is not implemented yet: "
-                        + SourceType.fromString(sourceType)
-                    );
+                    case DATABASE -> {
+                        throw new ConfigException(
+                            "source type for `" + sourceName + "` is not implemented yet: "
+                            + SourceType.fromString(sourceType)
+                        );
+                        // logger.debug("config source `{}` loaded from database: {}", sourceName, url);
+                    }
                 }
             });
 
@@ -235,6 +260,9 @@ public class ConfigFactory {
                         Value value = parseValue(
                             sourceName, name, valueString, propertyInfo.propertyType, propertyInfo.allowedValues
                         );
+                        // do not log the value of the property - it may contain
+                        // sensitive information
+                        logger.debug("setting property `{}` from config source `{}`", name, sourceName);
                         config.add(name, value);
                     });
             });
@@ -250,6 +278,7 @@ public class ConfigFactory {
                 String name = entry.getKey();
                 PropertyInfo propertyInfo = entry.getValue();
                 if (propertyInfo.defaultValue != null) {
+                    logger.debug("setting property `{}` to its default value of `{}`", name, propertyInfo.defaultValue);
                     config.add(name, propertyInfo.defaultValue);
                 } else {
                     throw new ConfigException(
@@ -258,6 +287,7 @@ public class ConfigFactory {
                     );
                 }
             });
+        logger.debug("Config instance created successfully");
         return config;
     }
 
@@ -275,28 +305,13 @@ public class ConfigFactory {
     private static record Range(Value min, Value max) {}
 
     private static List<String> loadConfigFile(String[] commandLineArgs) throws ConfigException {
-        // try to get the config file path from the command line arguments
-        String configFilePath = getCommandLineArgument(CONFIG_FILE_PATH_PROPERTY, commandLineArgs);
-
-        // try to get the config file path from the system properties
-        if (configFilePath == null) {
-            configFilePath = getSystemProperty(CONFIG_FILE_PATH_PROPERTY);
-        }
-
-        // try to get the config file path from the environment variables
-        if (configFilePath == null) {
-            configFilePath = getEnvironmentVariable(CONFIG_FILE_PATH_PROPERTY);
-        }
-
-        // use the default config file path if none was specified
-        if (configFilePath == null) {
-            configFilePath = DEFAULT_CONFIG_FILE_PATH;
-        }
+        String configFilePath = getConfigFilePath(commandLineArgs);
 
         // load the config file
         Path path = Path.of(configFilePath);
         if (Files.exists(path)) { // try to load the config file from the filesystem
             try {
+                logger.debug("loading config file from filesystem: {}", configFilePath);
                 return Files.readAllLines(path, StandardCharsets.UTF_8);
             } catch (IOException e) {
                 throw new ConfigException("error reading configuration file: " + configFilePath, e);
@@ -307,6 +322,7 @@ public class ConfigFactory {
                 .getResourceAsStream(configFilePath)
             ) {
                 if (inputStream != null) {
+                    logger.debug("loading config file from classpath: {}", configFilePath);
                     return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8).lines().toList();
                 }
             } catch (IOException e) {
@@ -314,6 +330,35 @@ public class ConfigFactory {
             }
         }
         throw new ConfigException("configuration file not found: " + configFilePath);
+    }
+
+    private static String getConfigFilePath(String[] commandLineArgs) {
+        // try to get the config file path from the command line arguments
+        String configFilePath = getCommandLineArgument(CONFIG_FILE_PATH_PROPERTY, commandLineArgs);
+        if (configFilePath != null) {
+            logger.debug("config file path specified in command line arguments: {}", configFilePath);
+            return configFilePath;
+        }
+
+        // try to get the config file path from the system properties
+        configFilePath = getSystemProperty(CONFIG_FILE_PATH_PROPERTY);
+        if (configFilePath != null) {
+            logger.debug("config file path specified in system properties: {}", configFilePath);
+            return configFilePath;
+        }
+
+        // try to get the config file path from the environment variables
+        configFilePath = getEnvironmentVariable(CONFIG_FILE_PATH_PROPERTY);
+        if (configFilePath != null) {
+            logger.debug("config file path specified in environment variables: {}", configFilePath);
+            return configFilePath;
+        }
+
+        // use the default config file path if none was specified
+        configFilePath = DEFAULT_CONFIG_FILE_PATH;
+        logger.debug("using default config file path: {}", configFilePath);
+        return configFilePath;
+
     }
 
     private static PropertyInfo getPropertyInfo(String name, String type, String allowedValues, String defaultValue)

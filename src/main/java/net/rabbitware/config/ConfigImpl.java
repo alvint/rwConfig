@@ -2,8 +2,11 @@ package net.rabbitware.config;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConfigImpl implements Config {
+    private static final Logger logger = LoggerFactory.getLogger(ConfigImpl.class);
     private final Map<String, PropertyType> types = new HashMap<>();
     private final Map<String, Value.Boolean> booleanValues = new HashMap<>();
     private final Map<String, Value.Integer> integerValues = new HashMap<>();
@@ -198,6 +201,7 @@ public class ConfigImpl implements Config {
     void add(String name, Value value) {
         switch (value) {
             case Value.Boolean booleanValue -> {
+                logger.debug("adding boolean property `{}`", name);
                 types.put(name, PropertyType.BOOLEAN);
                 booleanValues.put(name, booleanValue);
                 integerValues.remove(name);
@@ -211,6 +215,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.Integer integerValue -> {
+                logger.debug("adding int property `{}`", name);
                 types.put(name, PropertyType.INT);
                 booleanValues.remove(name);
                 integerValues.put(name, integerValue);
@@ -224,6 +229,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.Long longValue -> {
+                logger.debug("adding long property `{}`", name);
                 types.put(name, PropertyType.LONG);
                 booleanValues.remove(name);
                 integerValues.remove(name);
@@ -237,6 +243,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.Double doubleValue -> {
+                logger.debug("adding double property `{}`", name);
                 types.put(name, PropertyType.DOUBLE);
                 booleanValues.remove(name);
                 integerValues.remove(name);
@@ -250,6 +257,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.String stringValue -> {
+                logger.debug("adding string property `{}`", name);
                 types.put(name, PropertyType.STRING);
                 booleanValues.remove(name);
                 integerValues.remove(name);
@@ -263,6 +271,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.BooleanList booleanListValue -> {
+                logger.debug("adding boolean list property `{}`", name);
                 types.put(name, PropertyType.BOOLEAN_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
@@ -276,6 +285,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.IntegerList integerListValue -> {
+                logger.debug("adding int list property `{}`", name);
                 types.put(name, PropertyType.INT_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
@@ -289,6 +299,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.LongList longListValue -> {
+                logger.debug("adding long list property `{}`", name);
                 types.put(name, PropertyType.LONG_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
@@ -302,6 +313,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.DoubleList doubleListValue -> {
+                logger.debug("adding double list property `{}`", name);
                 types.put(name, PropertyType.DOUBLE_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
@@ -315,6 +327,7 @@ public class ConfigImpl implements Config {
                 stringListValues.remove(name);
             }
             case Value.StringList stringListValue -> {
+                logger.debug("adding string list property `{}`", name);
                 types.put(name, PropertyType.STRING_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
@@ -331,6 +344,7 @@ public class ConfigImpl implements Config {
     }
 
     void remove(String name) {
+        logger.debug("removing property `{}`", name);
         types.remove(name);
         booleanValues.remove(name);
         integerValues.remove(name);

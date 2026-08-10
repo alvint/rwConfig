@@ -238,7 +238,6 @@ at coding time, and (b) encountering them at runtime guarantees that the code is
 not working as the developer intended from that point on.
 
 ## TODOs
-- logging
 - a plugin system for defining custom property sources
 - IDE/Maven support to detect missing properties and incorrect property types at
   compile time
