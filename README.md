@@ -124,8 +124,8 @@ int[80, 1024:65535] port = 8000
 DBPassword
 ```
 
-Here's a heavily commented version of the same file that explains what's going
-on:
+Here's a heavily commented version of the same file that elaborates on what's
+going on:
 
 ```
 # sample config setup
