@@ -33,7 +33,8 @@ interface for value retrieval.
   - you can set all property values directly in the `rwconfig` file, or define
     how to retrieve them
 - lightweight
-  - no dependencies outside of the Java Base module
+  - no dependencies outside of the Java Base module (and slf4j, which also only
+    requires Java Base)
 - simple interface for property retrieval
   - on the Java side, it's a similar API to `java.util.properties` with types
     tacked on
