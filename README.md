@@ -227,6 +227,7 @@ System.out.println("value of `port`: " + port);
 There's no need to deal with `Optional`s here because the library handles
 property declarations, default values, and value types at startup. This means:
 
+- default values are declared in the config file--not in the code
 - missing or incorrect property values are caught at startup
 - incorrect property types in Java code is always an error
 - unknown properties in Java code is always an error
