@@ -39,7 +39,7 @@ interface for value retrieval.
   - since the library does the work of determining property types, allowed
     values, and default values at initialization, the Java side doesn't need to
     deal with `Optional`s or a long, fluent chain of methods just to get a
-    simple value.
+    simple value
   - on the Java side, it's a similar API to `java.util.properties` with types
     tacked on
 - support for multiple sources of configuration info with a clear hierarchy
