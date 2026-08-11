@@ -26,5 +26,7 @@ public class Test {
         System.out.println("value of `emptyIntList`: " + config.getIntList("emptyIntList"));
 
         System.out.println("value of `prefix.test`: " + config.getString("prefix.test"));
+
+        System.out.println("directory test`: " + config.getString("greeting") + config.getString("name") + "!");
     }
 }

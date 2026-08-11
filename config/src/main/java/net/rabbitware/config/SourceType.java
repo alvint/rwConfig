@@ -7,6 +7,7 @@ enum SourceType {
     FILE("file"),
     CLASSPATH("classpath"),
     URL("url"),
+    DIRECTORY("directory"),
     DATABASE("database");
 
     public final String name;
