@@ -17,6 +17,13 @@ interface for value retrieval.
     - see the "Design Choices" section for more details
   - specific value classes are preferred over generics to (hopefully) improve
     performance by avoiding boxing and unboxing
+- simple interface for property retrieval
+  - since the library does the work of determining property types, allowed
+    values, and default values at initialization, the API side doesn't need to
+    deal with `Optional`s or a long, fluent chain of methods just to get a
+    simple value
+  - on the API side, it's a similar API to `java.util.properties` with types
+    tacked on
 - self-documenting
   - the `rwconfig` file provides a single source of truth for information about
     all of your application's properties and where to find values for them:
@@ -35,13 +42,6 @@ interface for value retrieval.
 - lightweight
   - no dependencies outside of the Java Base module (and slf4j, which also only
     requires Java Base)
-- simple interface for property retrieval
-  - since the library does the work of determining property types, allowed
-    values, and default values at initialization, the Java side doesn't need to
-    deal with `Optional`s or a long, fluent chain of methods just to get a
-    simple value
-  - on the Java side, it's a similar API to `java.util.properties` with types
-    tacked on
 - support for multiple sources of configuration info with a clear hierarchy
   - file support (currently `.properties` files with `.yaml` files planned),
     loadable from the file system, URLs, or the classpath
