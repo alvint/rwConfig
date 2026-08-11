@@ -30,8 +30,8 @@ interface for value retrieval.
   - the `rwconfig` file syntax is similar to Java `.properties` files, but the
     syntax is expanded to optionally include types, allowed values, and default
     values
-  - you can set all property values directly in the `rwconfig` file, or define
-    how to retrieve them
+  - you can set property values directly in the `rwconfig` file, or define how
+    to retrieve them
 - lightweight
   - no dependencies outside of the Java Base module (and slf4j, which also only
     requires Java Base)
