@@ -1,6 +1,6 @@
 # rwConfig
-rwConfig is a simple, lightweight library for reading configuration information
-in your projects.
+rwConfig is a simple, lightweight library that provides a unified interface for
+reading configuration information in your projects.
 
 rwConfig retrieves properties from any number of configuration sources,
 validates that all properties are set and contain appropriate values,
