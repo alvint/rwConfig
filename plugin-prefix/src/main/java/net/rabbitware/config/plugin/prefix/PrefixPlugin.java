@@ -3,11 +3,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.Properties;
 import java.util.Set;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.StringReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
@@ -31,8 +27,9 @@ import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
 public class PrefixPlugin implements SimpleConfigSourcePlugin {
     private static final Logger logger = LoggerFactory.getLogger(PrefixPlugin.class);
     private String sourceName;
+    private String mediaType;
     private String sourceType;
-    private Path path;
+    private String path;
 
     public PrefixPlugin() {
         logger.info("PrefixPlugin instantiated");
@@ -61,7 +58,7 @@ public class PrefixPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public Set<String> getRequiredPluginPropertyNames() {
-        return Set.of("sourceType", "path");
+        return Set.of("mediaType", "sourceType", "path");
     }
 
     @Override
@@ -72,47 +69,34 @@ public class PrefixPlugin implements SimpleConfigSourcePlugin {
     @Override
     public void setPluginProperties(Map<String, String> properties) throws Exception {
         // set and validate required properties
+        mediaType = properties.get("mediaType");
+        if (mediaType == null || mediaType.isBlank()) {
+            throw new Exception("missing required property: mediaType");
+        }
         sourceType = properties.get("sourceType");
-        if (sourceType == null) {
+        if (sourceType == null || sourceType.isBlank()) {
             throw new Exception("missing required property: sourceType");
         }
-        if (!sourceType.equalsIgnoreCase("propertiesFile")) {
-            throw new Exception("unsupported sourceType: " + sourceType);
-        }
-        String pathString = properties.get("path");
-        if (pathString == null) {
+        path = properties.get("path");
+        if (path == null || path.isBlank()) {
             throw new Exception("missing required property: path");
         }
-        path = Path.of(pathString);
-        if (!path.toFile().exists()) {
-            throw new Exception("path does not exist: " + path);
+        logger.info("setting properties: mediaType={}, sourceType={}, path={}", mediaType, sourceType, path);
+        if (!mediaType.equals("properties")) {
+            throw new Exception("unsupported mediaType: " + mediaType);
         }
-        if (!path.toFile().isFile()) {
-            throw new Exception("path is not a file: " + path);
+        if (!SimpleConfigSourcePlugin.isSupportedSourceType(sourceType)) {
+            throw new Exception("unsupported sourceType: " + sourceType);
         }
-        if (!path.toFile().canRead()) {
-            throw new Exception("path is not readable: " + path);
-        }
-        logger.info("Plugin properties set: sourceType={}, path={}", sourceType, path);
     }
 
     @Override
-    public Map<String, String> getConfigSourceProperties() {
+    public Map<String, String> getConfigSourceProperties() throws Exception {
         Properties properties = new Properties();
-        switch (sourceType) {
-            case "propertiesFile" -> {
-                try (var reader = new InputStreamReader(Files.newInputStream(path), StandardCharsets.UTF_8)) {
-                    properties.load(reader);
-                    logger.debug("config source `{}` loaded from file: {}", sourceName, path);
-                } catch (IOException e) {
-                    throw new RuntimeException(
-                        "error reading config source file for `" + sourceName + "`: " + path, e
-                    );
-                }
-            }
-            default -> {
-                throw new RuntimeException("unsupported sourceType: " + sourceType);
-            }
+        String sourceContent = SimpleConfigSourcePlugin.loadFile(sourceType, path);
+        try (StringReader reader = new StringReader(sourceContent)) {
+            properties.load(reader);
+            logger.debug("config source `{}` loaded from {}: {}", sourceName, sourceType, path);
         }
         return properties.entrySet().stream()
             .collect(Collectors.toMap(
@@ -120,5 +104,4 @@ public class PrefixPlugin implements SimpleConfigSourcePlugin {
                 e -> e.getValue().toString()
             ));
     }
-    
 }

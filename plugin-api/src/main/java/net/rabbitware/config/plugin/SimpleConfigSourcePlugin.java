@@ -1,4 +1,7 @@
 package net.rabbitware.config.plugin;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +62,34 @@ import java.util.Set;
  * </ul>
  */
 public interface SimpleConfigSourcePlugin {
+    public static String loadFile(String sourceType, String path) throws Exception {
+        switch (sourceType) {
+            case "file" -> {
+                return Files.readString(Path.of(path), StandardCharsets.UTF_8);
+            }
+            case "classpath" -> {
+                var resource = Thread.currentThread().getContextClassLoader().getResource(path);
+                if (resource == null) {
+                    throw new IllegalArgumentException("classpath resource not found: " + path);
+                }
+                return Files.readString(Path.of(resource.toURI()), StandardCharsets.UTF_8);
+            }
+            case "url" -> {
+                return Files.readString(Path.of(java.net.URI.create(path)), StandardCharsets.UTF_8);
+            }
+            default -> {
+                throw new IllegalArgumentException("unsupported source type: " + sourceType);
+            }
+        }
+    }
+
+    public static boolean isSupportedSourceType(String sourceType) {
+        return switch (sourceType) {
+            case "file", "classpath", "url" -> true;
+            default -> false;
+        };
+    }
+
     /**
      * Return the version of the plugin in the format "major[.minor[.patch]]"
      * 
