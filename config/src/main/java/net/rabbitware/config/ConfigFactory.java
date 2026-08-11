@@ -141,24 +141,35 @@ public class ConfigFactory {
                     throw new ConfigException("duplicate config source name: " + sourceName);
                 }
                 logger.debug("loading config source: {}", sourceName);
-                String sourceType = configProperties.get("config." + sourceName + ".type");
-                if (sourceType == null || sourceType.isEmpty()) {
+                String type = configProperties.get("config." + sourceName + ".type");
+                if (type == null || type.isEmpty()) {
                     throw new ConfigException("missing config property: config." + sourceName + ".type");
                 }
-                if (sourceType.indexOf('.') != -1) { // sourceType is a plugin
+                if (type.indexOf('.') != -1) { // sourceType is a plugin
+                    // allow shortened plugin class names for rabbitware, e.g. 
+                    // `net.rabbitware.config.plugin.json.Json` can be shortened
+                    // to `json.plugin`
+                    String className;
+                    if (type.endsWith(".plugin")) {
+                        String pluginName = type.substring(0, type.length() - 7).toLowerCase();
+                        className = "net.rabbitware.config.plugin." + pluginName + "."
+                            + pluginName.substring(0, 1).toUpperCase() + pluginName.substring(1);
+                    } else {
+                        className = type;
+                    }
                     SimpleConfigSourcePlugin plugin;
                     try {
-                        var pluginClass = Class.forName(sourceType);
+                        var pluginClass = Class.forName(className);
                         if (!SimpleConfigSourcePlugin.class.isAssignableFrom(pluginClass)) {
                             throw new ConfigException(
-                                "config source `" + sourceName + "` is of type `" + sourceType
+                                "config source `" + sourceName + "` is of type `" + className
                                 + "`, which is not a valid SimpleConfigSourcePlugin"
                             );
                         }
                         plugin = (SimpleConfigSourcePlugin) pluginClass.getDeclaredConstructor().newInstance();
                     } catch (ReflectiveOperationException e) {
                         throw new ConfigException(
-                            "config source `" + sourceName + "` is of type `" + sourceType
+                            "config source `" + sourceName + "` is of type `" + className
                             + "`, which could not be instantiated", e
                         );
                     }
@@ -181,7 +192,7 @@ public class ConfigFactory {
                             if (propertyValue == null || propertyValue.isEmpty()) {
                                 throw new ConfigException(
                                     "missing required config property for config source `" + sourceName
-                                    + "` of type `" + sourceType + "`: config." + sourceName + "." + propertyName
+                                    + "` of type `" + type + "`: config." + sourceName + "." + propertyName
                                 );
                             }
                             properties.put(propertyName, propertyValue);
@@ -198,7 +209,7 @@ public class ConfigFactory {
                         plugin.setPluginProperties(properties);
                     } catch (Exception e) {
                         throw new ConfigException(
-                            "error setting properties for config source `" + sourceName + "` of type `" + sourceType
+                            "error setting properties for config source `" + sourceName + "` of type `" + type
                             + "`", e
                         );
                     }
@@ -208,19 +219,19 @@ public class ConfigFactory {
                         configSourceProperties = plugin.getConfigSourceProperties();
                     } catch (Exception e) {
                         throw new ConfigException(
-                            "error getting properties for config source `" + sourceName + "` of type `" + sourceType
+                            "error getting properties for config source `" + sourceName + "` of type `" + type
                             + "`", e
                         );
                     }
                     if (configSourceProperties == null) {
                         throw new ConfigException(
-                            "config source `" + sourceName + "` of type `" + sourceType
+                            "config source `" + sourceName + "` of type `" + type
                             + "` returned null from getConfigSourceProperties()"
                         );
                     }
                     configSources.put(sourceName, Map.copyOf(configSourceProperties));
                 } else { // sourceType is a built-in source
-                    switch (SourceType.fromString(sourceType)) {
+                    switch (SourceType.fromString(type)) {
                         case COMMAND_LINE_ARGUMENTS -> {
                             if (commandLineArgs == null) {
                                 throw new ConfigException(
@@ -336,8 +347,7 @@ public class ConfigFactory {
                         // TODO
                         case DATABASE -> {
                             throw new ConfigException(
-                                "source type for `" + sourceName + "` is not implemented yet: "
-                                + SourceType.fromString(sourceType)
+                                "source type for `" + sourceName + "` is not implemented yet: " + type
                             );
                             // logger.debug("config source `{}` loaded from database: {}", sourceName, url);
                         }

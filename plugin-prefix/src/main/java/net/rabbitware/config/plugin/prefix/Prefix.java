@@ -24,15 +24,15 @@ import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
  * </li>
  * </ul>
  */
-public class PrefixPlugin implements SimpleConfigSourcePlugin {
-    private static final Logger logger = LoggerFactory.getLogger(PrefixPlugin.class);
+public class Prefix implements SimpleConfigSourcePlugin {
+    private static final Logger logger = LoggerFactory.getLogger(Prefix.class);
     private String sourceName;
     private String mediaType;
     private String sourceType;
     private String path;
 
-    public PrefixPlugin() {
-        logger.info("PrefixPlugin instantiated");
+    public Prefix() {
+        logger.info("prefix plugin instantiated");
     } 
 
     @Override
