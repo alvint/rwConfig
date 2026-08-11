@@ -137,6 +137,10 @@ config.sources = args, system, environment
 # Declare information about those sources. The type of the source is always
 # required. Other information may be needed as well, depending on the source
 # type.
+#
+# For more information on all of the built-on source types--as well as how to
+# create a custom source type plugin--see the `rwconfig` file in the example
+# project's `resources` folder
 config.args.type = commandLineArguments
 config.system.type = systemProperties
 config.environment.type = environmentVariables

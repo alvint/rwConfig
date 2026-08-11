@@ -34,8 +34,7 @@
 # declared below this line, using this syntax:
 #
 # `config.<sourceName>.<attribute>=<value>`.
-# 
-#
+ 
 config.sources = args, system, environment, local, app, prefix, directory
 
 # All config sources must have a `type` attribute that declares the type of the
@@ -61,12 +60,31 @@ config.sources = args, system, environment, local, app, prefix, directory
 # 5. classpath: properties from a file on the classpath
 #   - The attribute `config.<sourceName>.path` must be declared for this source
 #     type, and it must be a valid path to a file on the classpath.
-# 6. url: properties from a URL
+# 6. directory: properties from all files in a directory
+#   - The attribute `config.<sourceName>.path` must be declared for this source
+#     type, and it must be a valid path to a directory on the filesystem.
+#   - The directory is seen as a single config source. The names of any regular
+#     files (or symlinks to regular files) inside the directory are used as the
+#     property names, and the file contents are used as the property values. For
+#     example, if a directory contains a file named `greeting` with the contents
+#     `Hello`, and a file named `name` with the contents `World`, then the
+#     config system will see two properties in this source: `greeting=Hello` and
+#     `name=World`.
+#     - Leading and trailing whitespace in the file contents is preserved, and
+#       the file contents are read as a single string (including newlines).
+#     - An exception will be thrown during initialization if any of the files in
+#       the directory cannot be read.
+# 7. url: properties from a URL
 #   - The attribute `config.<sourceName>.url` must be declared for this source
 #     type, and it must be a valid URL to a file.
-# 7. database: properties from a database
+# 8. database: properties from a database
 #    - TODO: this source type is not yet implemented
 #    - TODO: handle secrets in a secure way (load from earlier source?)
+#
+# You can also create your own custom configuration source types by implementing
+# the `SimpleConfigSourcePlugin` interface (in the `plugin-api` module). Check
+# out the `PrefixPlugin` class in the `plugin-prefix` module for an example of a
+# custom configuration source type.
 
 config.args.type = commandLineArguments
 config.system.type = systemProperties
@@ -246,14 +264,8 @@ config.directory.path = test-directory-source
 #     string[] myTextProperty           // empty allowed values list
 #     int foo = 50.5                    // default value is not an int
 #     int [a,b,c] myIntProperty = 50    // allowed values must be the same type
-#     intList[0:10, 100:200] foo = 77   // not an allowed value
 #     long[0:100:] testScore = 90       // invalid range (trailing colon)
-
-
-# TODO: add support for configs to be refreshed at runtime. This would allow for
-# a config source to be updated and the application to pick up the new values
-# without needing to be restarted.
-
+#     intList[0:10, 100:200] foo = 77   // not an allowed value
 
 appName = MyApp
 intList[80,1024:65535] ports = 1520, 8080
