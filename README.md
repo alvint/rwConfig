@@ -22,7 +22,7 @@ interface for value retrieval.
     values, and default values at initialization, the API side doesn't need to
     deal with `Optional`s or a long, fluent chain of methods just to get a
     simple value
-  - on the API side, it's a similar API to `java.util.properties` with types
+  - on the API side, it's a similar API to `java.util.Map` with types
     tacked on
 - self-documenting
   - the `rwconfig` file provides a single source of truth for information about
