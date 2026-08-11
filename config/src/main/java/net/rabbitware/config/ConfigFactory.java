@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config.ConfigException;
 import net.rabbitware.config.Config.PropertyType;
+import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
 
 public class ConfigFactory {
     public static final String CONFIG_FILE_PATH_PROPERTY = "rw.config.path";
@@ -144,95 +145,171 @@ public class ConfigFactory {
                 if (sourceType == null || sourceType.isEmpty()) {
                     throw new ConfigException("missing config property: config." + sourceName + ".type");
                 }
-                switch (SourceType.fromString(sourceType)) {
-                    case COMMAND_LINE_ARGUMENTS -> {
-                        if (commandLineArgs == null) {
+                if (sourceType.indexOf('.') != -1) { // sourceType is a plugin
+                    SimpleConfigSourcePlugin plugin;
+                    try {
+                        var pluginClass = Class.forName(sourceType);
+                        if (!SimpleConfigSourcePlugin.class.isAssignableFrom(pluginClass)) {
                             throw new ConfigException(
-                                "config source `" + sourceName + "` is of type `commandLineArguments`, "
-                                + "but no command line arguments were provided to the config system"
+                                "config source `" + sourceName + "` is of type `" + sourceType
+                                + "`, which is not a valid SimpleConfigSourcePlugin"
                             );
                         }
-                        configSources.put(sourceName, new CommandLineProperties(commandLineArgs, propertyInfoMap));
-                        logger.debug("config source `{}` loaded from command line arguments", sourceName);
-                    }
-                    case SYSTEM_PROPERTIES -> {
-                        configSources.put(sourceName, new SystemProperties(propertyInfoMap));
-                        logger.debug("config source `{}` loaded from system properties", sourceName);
-                    }
-                    case ENVIRONMENT_VARIABLES -> {
-                        configSources.put(sourceName, new EnvironmentProperties(propertyInfoMap));
-                        logger.debug("config source `{}` loaded from environment variables", sourceName);
-                    }
-                    case FILE -> {
-                        String filePath = configProperties.get("config." + sourceName + ".path");
-                        if (filePath == null || filePath.isEmpty()) {
-                            throw new ConfigException("missing config property: config." + sourceName + ".path");
-                        }
-                        Properties properties = new Properties();
-                        try (
-                            var reader = new InputStreamReader(
-                                Files.newInputStream(Path.of(filePath)),
-                                StandardCharsets.UTF_8
-                            )
-                        ) {
-                            properties.load(reader);
-                            configSources.put(sourceName, toMap(properties));
-                            logger.debug("config source `{}` loaded from file: {}", sourceName, filePath);
-                        } catch (IOException e) {
-                            throw new ConfigException(
-                                "error reading config source file for `" + sourceName + "`: " + filePath, e
-                            );
-                        }
-                    }
-                    case CLASSPATH -> {
-                        String path = configProperties.get("config." + sourceName + ".path");
-                        if (path == null || path.isEmpty()) {
-                            throw new ConfigException("missing config property: config." + sourceName + ".path");
-                        }
-                        Properties properties = new Properties();
-                        var url = Thread.currentThread().getContextClassLoader().getResource(path);
-                        if (url == null) {
-                            throw new ConfigException(
-                                "config source file not found on classpath for `" + sourceName + "`: " + path
-                            );
-                        }
-                        try (var reader = new InputStreamReader(url.openStream(), StandardCharsets.UTF_8)) {
-                            properties.load(reader);
-                            configSources.put(sourceName, toMap(properties));
-                            logger.debug("config source `{}` loaded from classpath: {}", sourceName, path);
-                        } catch (IOException e) {
-                            throw new ConfigException(
-                                "error reading config source file from classpath for `" + sourceName + "`: " + path, e
-                            );
-                        }
-                    }
-                    case URL -> {
-                        String url = configProperties.get("config." + sourceName + ".url");
-                        if (url == null || url.isEmpty()) {
-                            throw new ConfigException("missing config property: config." + sourceName + ".url");
-                        }
-                        Properties properties = new Properties();
-                        try (
-                            var reader = new InputStreamReader(
-                                java.net.URI.create(url).toURL().openStream(), StandardCharsets.UTF_8
-                            )
-                        ) {
-                            properties.load(reader);
-                            configSources.put(sourceName, toMap(properties));
-                            logger.debug("config source `{}` loaded from URL: {}", sourceName, url);
-                        } catch (IOException e) {
-                            throw new ConfigException(
-                                "error reading config source from URL for `" + sourceName + "`: " + url, e
-                            );
-                        }
-                    }
-                    // TODO
-                    case DATABASE -> {
+                        plugin = (SimpleConfigSourcePlugin) pluginClass.getDeclaredConstructor().newInstance();
+                    } catch (ReflectiveOperationException e) {
                         throw new ConfigException(
-                            "source type for `" + sourceName + "` is not implemented yet: "
-                            + SourceType.fromString(sourceType)
+                            "config source `" + sourceName + "` is of type `" + sourceType
+                            + "`, which could not be instantiated", e
                         );
-                        // logger.debug("config source `{}` loaded from database: {}", sourceName, url);
+                    }
+                    String pluginVersion = plugin.getPluginVersion();
+                    logger.info(
+                        "using plugin `{}` v{} for config source `{}`",
+                        plugin.getClass().getName(), pluginVersion, sourceName
+                    );
+                    plugin.setSourceName(sourceName);
+                    // get the required and optional properties for the
+                    // plugin
+                    Set<String> requiredProperties = Set.copyOf(plugin.getRequiredPluginPropertyNames());
+                    Set<String> optionalProperties = Set.copyOf(plugin.getOptionalPluginPropertyNames());
+                    // get the properties for the plugin from the config
+                    // file
+                    Map<String, String> properties = new HashMap<>();
+                    requiredProperties.stream()
+                        .forEach(propertyName -> {
+                            String propertyValue = configProperties.get("config." + sourceName + "." + propertyName);
+                            if (propertyValue == null || propertyValue.isEmpty()) {
+                                throw new ConfigException(
+                                    "missing required config property for config source `" + sourceName
+                                    + "` of type `" + sourceType + "`: config." + sourceName + "." + propertyName
+                                );
+                            }
+                            properties.put(propertyName, propertyValue);
+                        });
+                    optionalProperties.stream()
+                        .forEach(propertyName -> {
+                            String propertyValue = configProperties.get("config." + sourceName + "." + propertyName);
+                            if (propertyValue != null && !propertyValue.isEmpty()) {
+                                properties.put(propertyName, propertyValue);
+                            }
+                        });
+                    // set the properties for the plugin
+                    try {
+                        plugin.setPluginProperties(properties);
+                    } catch (Exception e) {
+                        throw new ConfigException(
+                            "error setting properties for config source `" + sourceName + "` of type `" + sourceType
+                            + "`", e
+                        );
+                    }
+                    // get the config source properties from the plugin
+                    Map<String, String> configSourceProperties;
+                    try {
+                        configSourceProperties = plugin.getConfigSourceProperties();
+                    } catch (Exception e) {
+                        throw new ConfigException(
+                            "error getting properties for config source `" + sourceName + "` of type `" + sourceType
+                            + "`", e
+                        );
+                    }
+                    if (configSourceProperties == null) {
+                        throw new ConfigException(
+                            "config source `" + sourceName + "` of type `" + sourceType
+                            + "` returned null from getConfigSourceProperties()"
+                        );
+                    }
+                    configSources.put(sourceName, Map.copyOf(configSourceProperties));
+                } else { // sourceType is a built-in source
+                    switch (SourceType.fromString(sourceType)) {
+                        case COMMAND_LINE_ARGUMENTS -> {
+                            if (commandLineArgs == null) {
+                                throw new ConfigException(
+                                    "config source `" + sourceName + "` is of type `commandLineArguments`, "
+                                    + "but no command line arguments were provided to the config system"
+                                );
+                            }
+                            configSources.put(sourceName, new CommandLineProperties(commandLineArgs, propertyInfoMap));
+                            logger.debug("config source `{}` loaded from command line arguments", sourceName);
+                        }
+                        case SYSTEM_PROPERTIES -> {
+                            configSources.put(sourceName, new SystemProperties(propertyInfoMap));
+                            logger.debug("config source `{}` loaded from system properties", sourceName);
+                        }
+                        case ENVIRONMENT_VARIABLES -> {
+                            configSources.put(sourceName, new EnvironmentProperties(propertyInfoMap));
+                            logger.debug("config source `{}` loaded from environment variables", sourceName);
+                        }
+                        case FILE -> {
+                            String filePath = configProperties.get("config." + sourceName + ".path");
+                            if (filePath == null || filePath.isEmpty()) {
+                                throw new ConfigException("missing config property: config." + sourceName + ".path");
+                            }
+                            Properties properties = new Properties();
+                            try (
+                                var reader = new InputStreamReader(
+                                    Files.newInputStream(Path.of(filePath)),
+                                    StandardCharsets.UTF_8
+                                )
+                            ) {
+                                properties.load(reader);
+                                configSources.put(sourceName, toMap(properties));
+                                logger.debug("config source `{}` loaded from file: {}", sourceName, filePath);
+                            } catch (IOException e) {
+                                throw new ConfigException(
+                                    "error reading config source file for `" + sourceName + "`: " + filePath, e
+                                );
+                            }
+                        }
+                        case CLASSPATH -> {
+                            String path = configProperties.get("config." + sourceName + ".path");
+                            if (path == null || path.isEmpty()) {
+                                throw new ConfigException("missing config property: config." + sourceName + ".path");
+                            }
+                            Properties properties = new Properties();
+                            var url = Thread.currentThread().getContextClassLoader().getResource(path);
+                            if (url == null) {
+                                throw new ConfigException(
+                                    "config source file not found on classpath for `" + sourceName + "`: " + path
+                                );
+                            }
+                            try (var reader = new InputStreamReader(url.openStream(), StandardCharsets.UTF_8)) {
+                                properties.load(reader);
+                                configSources.put(sourceName, toMap(properties));
+                                logger.debug("config source `{}` loaded from classpath: {}", sourceName, path);
+                            } catch (IOException e) {
+                                throw new ConfigException(
+                                    "error reading config source file from classpath for `" + sourceName + "`: " + path, e
+                                );
+                            }
+                        }
+                        case URL -> {
+                            String url = configProperties.get("config." + sourceName + ".url");
+                            if (url == null || url.isEmpty()) {
+                                throw new ConfigException("missing config property: config." + sourceName + ".url");
+                            }
+                            Properties properties = new Properties();
+                            try (
+                                var reader = new InputStreamReader(
+                                    java.net.URI.create(url).toURL().openStream(), StandardCharsets.UTF_8
+                                )
+                            ) {
+                                properties.load(reader);
+                                configSources.put(sourceName, toMap(properties));
+                                logger.debug("config source `{}` loaded from URL: {}", sourceName, url);
+                            } catch (IOException e) {
+                                throw new ConfigException(
+                                    "error reading config source from URL for `" + sourceName + "`: " + url, e
+                                );
+                            }
+                        }
+                        // TODO
+                        case DATABASE -> {
+                            throw new ConfigException(
+                                "source type for `" + sourceName + "` is not implemented yet: "
+                                + SourceType.fromString(sourceType)
+                            );
+                            // logger.debug("config source `{}` loaded from database: {}", sourceName, url);
+                        }
                     }
                 }
             });

@@ -47,8 +47,7 @@ interface for value retrieval.
 - fail-fast design - the library is designed to detect configuration issues
   sooner rather than later
   - most configuration issues are detected at startup
-  - plugins to detect unexpected types and incorrect property names at compile
-    time are planned
+- a plugin system for defining custom property sources
 - property types and value validation
   - current supported types are `boolean`, `int`, `long`, `double`, and `string`
   - list support (`booleanList`, `intList`, etc.)
@@ -239,7 +238,6 @@ not working as the developer intended from that point on.
 
 ## TODOs
 - tests
-- a plugin system for defining custom property sources
 - IDE/Maven support to detect missing properties and incorrect property types at
   compile time
 - in-app notification of changed configuration sources

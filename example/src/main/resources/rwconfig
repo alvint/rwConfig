@@ -36,7 +36,7 @@
 # `config.<sourceName>.<attribute>=<value>`.
 # 
 #
-config.sources = args, system, environment, local, app
+config.sources = args, system, environment, local, app, prefix
 
 # All config sources must have a `type` attribute that declares the type of the
 # config source. The type determines how the config system will load the source,
@@ -77,6 +77,9 @@ config.local.path = app.properties
 # config.organization.url = https://my-org.com/app.properties
 config.app.type = classpath
 config.app.path = app.properties
+config.prefix.type = net.rabbitware.config.plugin.prefix.PrefixPlugin
+config.prefix.sourceType = propertiesFile
+config.prefix.path = prefix-test.properties
 
 
 #
@@ -263,3 +266,4 @@ stringList firstAndLastItemsAreEmpty = , foo, bar, \e
 string no-space = no\espace
 stringList emptyList =
 intList[1:10] emptyIntList =
+string prefix.test

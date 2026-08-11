@@ -20,6 +20,12 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>net.rabbitware.config</groupId>
+            <artifactId>plugin-prefix</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>

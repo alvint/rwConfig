@@ -17,6 +17,8 @@
     <modules>
         <module>config</module>
         <module>example</module>
+        <module>plugin-api</module>
+        <module>plugin-prefix</module>
     </modules>
 
     <dependencyManagement>
