@@ -85,7 +85,8 @@ flattening, the following rules are applied in order:
 1. if a property key is empty (legal in the JSON spec), it is renamed to
    `empty\key`
 
-In practice, these rules should affect relatively few JSON sources.
+In practice these rules should affect relatively few JSON sources, since it is
+not common to have empty property keys or property keys with backslashes.
 
 ## Prefix (plugin.prefix)
 This is a example plugin which prefixes the source name to all properties that it
