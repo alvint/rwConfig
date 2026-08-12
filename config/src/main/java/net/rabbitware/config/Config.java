@@ -1,7 +1,16 @@
 package net.rabbitware.config;
 import java.util.List;
+import java.util.Set;
 
 public interface Config {
+    /**
+     * Return a set of all property names in the config.
+     *
+     * @return
+     * a set of all property names in the config
+     */
+    public Set<String> getPropertyNames();
+
     /**
      * Return {@code true} if the config contains a property with the given
      * name.

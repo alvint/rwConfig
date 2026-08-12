@@ -6,27 +6,41 @@ public class Test {
     public static void main(String[] args) {
         Config config = ConfigFactory.create(args);
 
-        Config.PropertyType type = config.getType("foo");
-        System.out.println("type of `foo`: " + type.name);
-        System.out.println("value of `foo`: " + config.getInt("foo"));
-
-        System.out.println("type of `dbPassword`: " + config.getType("dbPassword").name);
-        System.out.println("value of `dbPassword`: " + config.getString("dbPassword"));
-
-        System.out.println("type of `ports`: " + config.getType("ports").name);
-        System.out.println("value of `ports`: " + config.getIntList("ports"));
-
-        System.out.println("type of `firstAndLastItemsAreEmpty`: " + config.getType("firstAndLastItemsAreEmpty").name);
-        System.out.println("value of `firstAndLastItemsAreEmpty`: " + config.getStringList("firstAndLastItemsAreEmpty"));
-
-        System.out.println("value of `no-space`: " + config.getString("no-space"));
-
-        System.out.println("value of `emptyList`: " + config.getStringList("emptyList"));
-
-        System.out.println("value of `emptyIntList`: " + config.getIntList("emptyIntList"));
-
-        System.out.println("value of `prefix.test`: " + config.getString("prefix.test"));
-
-        System.out.println("directory test`: " + config.getString("greeting") + config.getString("name") + "!");
+        config.getPropertyNames().stream().forEach(name -> {
+            Config.PropertyType type = config.getType(name);
+            System.out.println("\n type of property `" + name + "`: " + type.name);
+            switch (type) {
+                case BOOLEAN -> {
+                    System.out.println("value of property `" + name + "`: " + config.getBoolean(name));
+                }
+                case INT -> {
+                    System.out.println("value of property `" + name + "`: " + config.getInt(name));
+                }
+                case LONG -> {
+                    System.out.println("value of property `" + name + "`: " + config.getLong(name));
+                }
+                case DOUBLE -> {
+                    System.out.println("value of property `" + name + "`: " + config.getDouble(name));
+                }
+                case STRING -> {
+                    System.out.println("value of property `" + name + "`: " + config.getString(name));
+                }
+                case BOOLEAN_LIST -> {
+                    System.out.println("value of property `" + name + "`: " + config.getBooleanList(name));
+                }
+                case INT_LIST -> {
+                    System.out.println("value of property `" + name + "`: " + config.getIntList(name));
+                }
+                case LONG_LIST -> {
+                    System.out.println("value of property `" + name + "`: " + config.getLongList(name));
+                }
+                case DOUBLE_LIST -> {
+                    System.out.println("value of property `" + name + "`: " + config.getDoubleList(name));
+                }
+                case STRING_LIST -> {
+                    System.out.println("value of property `" + name + "`: " + config.getStringList(name));
+                }
+            }
+        });
     }
 }

@@ -1,7 +1,9 @@
 package net.rabbitware.config;
+import java.util.TreeSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +20,11 @@ public class ConfigImpl implements Config {
     private final Map<String, List<Long>> longListValues = new HashMap<>();
     private final Map<String, List<Double>> doubleListValues = new HashMap<>();
     private final Map<String, List<String>> stringListValues = new HashMap<>();
+
+    @Override
+    public Set<String> getPropertyNames() {
+        return new TreeSet<>(types.keySet());
+    }
 
     @Override
     public boolean has(String name) {
