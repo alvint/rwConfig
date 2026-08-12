@@ -360,28 +360,40 @@ public class ConfigFactory {
         configSources.entrySet().stream()
             .forEach(entry -> {
                 String sourceName = entry.getKey();
+                boolean ignoreUnknownProperties = configProperties
+                    .getOrDefault("config." + sourceName + ".ignoreUnknownProperties", "false")
+                    .matches("(?i)true|yes|on|1");
                 Map<String, String> properties = entry.getValue();
                 properties.keySet().stream()
                     .filter(s -> !config.has(s))
                     .forEach(name -> {
                         String valueString = properties.get(name);
                         if (!propertyInfoMap.containsKey(name)) {
-                            throw new ConfigException(
-                                "property `"
-                                    + name
-                                    + "` is not defined in the config file, but is present in a config source `"
-                                    + sourceName
-                                    + "`"
+                            if (!ignoreUnknownProperties) {
+                                throw new ConfigException(
+                                    "property `"
+                                        + name
+                                        + "` is not defined in the `rwconfig` file, and config source `"
+                                        + sourceName
+                                        + "` does not allow unknown properties"
+                                );
+                            } else {
+                                logger.info(
+                                    "property `{}` is not defined in the `rwconfig` file, but is present in config source `{}`"
+                                    + " - it will be ignored",
+                                    name, sourceName
+                                );
+                            }
+                        } else {
+                            PropertyInfo propertyInfo = propertyInfoMap.get(name);
+                            Value value = parseValue(
+                                sourceName, name, valueString, propertyInfo.propertyType, propertyInfo.allowedValues
                             );
+                            // do not log the value of the property - it may contain
+                            // sensitive information
+                            logger.debug("setting property `{}` from config source `{}`", name, sourceName);
+                            config.add(name, value);
                         }
-                        PropertyInfo propertyInfo = propertyInfoMap.get(name);
-                        Value value = parseValue(
-                            sourceName, name, valueString, propertyInfo.propertyType, propertyInfo.allowedValues
-                        );
-                        // do not log the value of the property - it may contain
-                        // sensitive information
-                        logger.debug("setting property `{}` from config source `{}`", name, sourceName);
-                        config.add(name, value);
                     });
             });
 

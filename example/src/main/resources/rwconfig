@@ -20,7 +20,7 @@
 #
 # Config setup section. Any property that starts with `config.` is used to
 # configure the config system itself, and uses a syntax similar to a standard
-# java properties file.
+# java properties file. This means that all values in this section are strings.
 #
 
 # The config sources to read in order of highest precedence to lowest. Each
@@ -85,6 +85,12 @@ config.sources = args, system, environment, local, app, prefix, directory
 # the `SimpleConfigSourcePlugin` interface (in the `plugin-api` module). Check
 # out the `PrefixPlugin` class in the `plugin-prefix` module for an example of a
 # custom configuration source type.
+
+# Config sources can optionally declare an `ignoreUnknownProperties` attribute.
+# If this attribute is set to `true`, any properties in the config source that
+# are not declared in this file will be ignored. If this attribute is set to
+# `false` (or not declared), any properties in the config source that are not
+# declared in this file will cause an exception during initialization.
 
 config.args.type = commandLineArguments
 config.system.type = systemProperties
