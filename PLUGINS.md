@@ -94,10 +94,11 @@ It's ambiguous which value the property name `a\b` should refer to.
 
 In order to preclude the possibility of a naming conflict while flattening,
 the following rules are applied in order:
-1. if a property key contains a literal backslash, it is escaped with another
-   backslash
-1. if a property key is empty (legal in the JSON spec), it is renamed to
-   `empty\key`
+1. If a property key contains a literal backslash, it is escaped with another
+   backslash.
+1. If a property key is empty (legal in the JSON spec), it is renamed to
+   `empty\key`.
+
 As a result, the JSON shown above will produce the following properties:
 - `a\b=wazoo`
 - `a\\b=what happens here?`
