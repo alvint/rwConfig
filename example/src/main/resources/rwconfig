@@ -262,6 +262,7 @@ config.directory.path = test-directory-source
 #     [home,work,other] contactTypes = other
 #     stringList notRequired =
 #     booleanList[true, false] flags = true, false, yes, no, on, off, 1, 0
+#     string backslashes\are\allowed\in\names = yep
 #
 # Here are some examples of **invalid** property declarations:
 #
