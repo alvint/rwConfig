@@ -56,7 +56,6 @@ interface for value retrieval.
 - fail-fast design - the library is designed to detect configuration issues
   sooner rather than later
   - most configuration issues are detected at startup
-- a plugin system for defining custom configuration sources
 - property types and value validation
   - current supported types are `boolean`, `int`, `long`, `double`, and `string`
   - list support (`booleanList`, `intList`, etc.)
