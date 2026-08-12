@@ -78,12 +78,31 @@ any type but `string` will result in an exception at startup. This is by
 design.
 
 #### Avoiding Naming Conflicts
-In order to preclude the possibility of a naming conflict while
-flattening, the following rules are applied in order:
+Consider the following JSON:
+```json
+{
+  "a": {
+    "b": "wazoo"
+  },
+  "a\\b": "what happens here?"
+}
+```
+Remember that the escaped backslash in the second top-level property will be
+interpreted as a literal backslash when this text representation of JSON is
+ingested by the JSON engine. This creates a dilemma with our naming system.
+It's ambiguous which value the property name `a\b` should refer to.
+
+In order to preclude the possibility of a naming conflict while flattening,
+the following rules are applied in order:
 1. if a property key contains a literal backslash, it is escaped with another
    backslash
 1. if a property key is empty (legal in the JSON spec), it is renamed to
    `empty\key`
+As a result, the JSON shown above will produce the following properties:
+- `a\b=wazoo`
+- `a\\b=what happens here?`
+
+Any potential conflicts are avoided.
 
 In practice these rules should affect relatively few JSON sources, since it is
 not common to have empty property keys or property keys with backslashes. In any
