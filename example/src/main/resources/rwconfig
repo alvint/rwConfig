@@ -35,7 +35,7 @@
 #
 # `config.<sourceName>.<attribute>=<value>`.
  
-config.sources = args, system, environment, local, app, prefix, directory
+config.sources = args, system, environment, local, app, prefix, directory, json
 
 # All config sources must have a `type` attribute that declares the type of the
 # config source. The type determines how the config system will load the source,
@@ -107,6 +107,10 @@ config.prefix.sourceType = file
 config.prefix.path = prefix-test.properties
 config.directory.type = directory
 config.directory.path = test-directory-source
+config.json.type = json.plugin
+config.json.sourceType = file
+config.json.path = test.json
+config.json.ignoreUnknownProperties = true
 
 
 #
@@ -291,3 +295,10 @@ intList[1:10] emptyIntList =
 string prefix.test
 greeting
 name
+intList numb\\ers
+foo\4\nested
+a\empty\key
+a\b
+a\\b
+mixedNumbers\1
+mixedNumbers\2
