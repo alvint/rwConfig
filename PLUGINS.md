@@ -12,9 +12,9 @@ Loads properties from a JSON file.
 The JSON plugin reads and parses valid JSON, and then "flattens" the JSON into
 key-value pairs. It only extracts JSON nodes with values. Nodes that represent
 other JSON objects or JSON arrays are recursed and the name of the node followed
-by a backslash is added to any value therein's property name. The property name
-used for each node or is either its key name (if it was found in an object), or
-its index (if it was found in an array).
+by a backslash is prefixed to any value therein's property name. The property
+name used for each node or is either its key name (if it was found in an object),
+or its index (if it was found in an array).
 
 It's easier to understand looking at an example:
 ```json
