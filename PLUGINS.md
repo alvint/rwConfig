@@ -86,7 +86,9 @@ flattening, the following rules are applied in order:
    `empty\key`
 
 In practice these rules should affect relatively few JSON sources, since it is
-not common to have empty property keys or property keys with backslashes.
+not common to have empty property keys or property keys with backslashes. In any
+case the data is still there; you just have to access it under a slightly tweaked
+name.
 
 ## Prefix (plugin.prefix)
 This is a example plugin which prefixes the source name to all properties that it
