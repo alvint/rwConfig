@@ -48,8 +48,8 @@ interface for value retrieval.
     - support for loading configuration info from a database (using a plugin) is
       coming
   - built-in support for java `.properties` files
-  - support for JSON using the supplied plugin
-    - YAML and XML support is also coming
+  - support for JSON and XML using the supplied plugins
+    - YAML support is also coming
   - support for command line arguments, environment variables, and JVM system
     properties
   - simple plugin API for creating custom configuration sources
