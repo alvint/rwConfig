@@ -110,6 +110,91 @@ not common to have empty property keys or property keys with backslashes. In any
 case the data is still there; you just have to access it under a slightly tweaked
 name.
 
+## XML (plugin.xml)
+Loads properties from an XML file.
+### Required Properties
+- `sourceType`
+  - currently supports `file`, `classpath`, and `url`
+- path
+  - the path to the configuration source
+### Details
+The XML plugin reads and parses valid XML, and then "flattens" the XML into
+key-value pairs. It only extracts properties from elements or attributes with
+a value. Elements that contain attributes or other XML elements are recursed,
+and the name of this element followed by a backslash is prefixed to any value
+therein's property name.
+
+If an element contains multiple elements with the same name, it is considered
+to be an array. This is represented as the nested elements' name, followed by
+a backslash, followed by the
+element's index.
+
+It's easier to understand looking at an example:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <groupId>com.foo</groupId>
+    <artifactId>example</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+        </dependency>
+    </dependencies>
+</project>
+```
+The above JSON will produce the following properties:
+- `project\xmlns=http://maven.apache.org/POM/4.0.0`
+- `project\groupId=com.foo`
+- `project\artifactId=example`
+- `project\dependencies\dependency\0\groupId=org.slf4j`
+- `project\dependencies\dependency\0\artifactId=slf4j-api`
+- `project\dependencies\dependency\1\groupId=org.slf4j`
+- `project\dependencies\dependency\1\artifactId=slf4j-simple`
+
+#### Lists
+There is a special exception applied to the algorithm above: if an array
+contains a homogenous list of booleans, strings, floating-point numbers,
+or integers, the entire array is converted into a comma-separated list and
+used as the value for the current node. If the array is **not** one of the
+above types, or it contains a mixture of types, the standard rules apply.
+
+For example:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<foo>
+  <ints>
+    <val>1</val>
+    <val>3</val>
+    <val>5</val>
+  </ints>
+  <floats>
+    <val>1.5</val>
+    <val>3.5</val>
+    <val>5.5</val>
+  </floats>
+  <mixed>
+    <val>1</val>
+    <val>2.5</val>
+    <val>3</val>
+  </mixed>
+</foo>
+```
+The above JSON will produce the following properties:
+- `foo\ints\val=1,3,5`
+- `foo\floats\val=1.5, 3.5, 5.5`
+- `foo\mixed\val\0=1`
+- `foo\mixed\val\1=2.5`
+- `foo\mixed\val\2=3`
+
+The `mixed` array falls back to the original rules because it contains a
+mixture of integers and floating-point numbers. This is not supported in
+rwConfig lists.
+
 ## Prefix (plugin.prefix)
 This is a example plugin which prefixes the source name to all properties that it
 loads.
