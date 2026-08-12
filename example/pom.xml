@@ -29,6 +29,11 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <groupId>net.rabbitware.config</groupId>
+            <artifactId>plugin-xml</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>

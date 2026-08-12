@@ -35,7 +35,7 @@
 #
 # `config.<sourceName>.<attribute>=<value>`.
  
-config.sources = args, system, environment, local, app, prefix, directory, json
+config.sources = args, system, environment, local, app, prefix, directory, json, xml
 
 # All config sources must have a `type` attribute that declares the type of the
 # config source. The type determines how the config system will load the source,
@@ -111,6 +111,10 @@ config.json.type = json.plugin
 config.json.sourceType = file
 config.json.path = test.json
 config.json.ignoreUnknownProperties = true
+config.xml.type = xml.plugin
+config.xml.sourceType = file
+config.xml.path = pom.xml
+config.xml.ignoreUnknownProperties = true
 
 
 #
@@ -302,3 +306,7 @@ a\b
 a\\b
 mixedNumbers\1
 mixedNumbers\2
+project\groupId
+project\artifactId
+project\dependencies\dependency\0\groupId
+project\dependencies\dependency\0\artifactId

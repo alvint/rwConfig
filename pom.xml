@@ -19,6 +19,7 @@
         <module>plugin-api</module>
         <module>plugin-prefix</module>
         <module>plugin-json</module>
+        <module>plugin-xml</module>
     </modules>
 
     <dependencyManagement>
@@ -41,6 +42,11 @@
             <dependency>
                 <groupId>net.rabbitware.config</groupId>
                 <artifactId>plugin-json</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.rabbitware.config</groupId>
+                <artifactId>plugin-xml</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
