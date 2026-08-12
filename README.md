@@ -42,12 +42,17 @@ interface for value retrieval.
 - lightweight
   - no dependencies outside of the Java Base module (and slf4j, which also only
     requires Java Base)
-- support for multiple sources of configuration info with a clear hierarchy
-  - file support (currently `.properties` files with `.yaml` files planned),
-    loadable from the file system, URLs, or the classpath
+- support for multiple configuration sources
+  - built-in support for loading configuration files from the filesystem,
+    a URL, or the Java classpath
+    - support for loading configuration info from a database (using a plugin) is
+      coming
+  - built-in support for java `.properties` files
+  - support for JSON using the supplied plugin
+    - YAML and XML support is also coming
   - support for command line arguments, environment variables, and JVM system
     properties
-  - support for settings retrieved from a database (coming soon)
+  - simple plugin API for creating custom configuration sources
 - fail-fast design - the library is designed to detect configuration issues
   sooner rather than later
   - most configuration issues are detected at startup
