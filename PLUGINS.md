@@ -10,8 +10,74 @@ Loads properties from a JSON file.
   - the path to the configuration source
 ### Details
 The JSON plugin reads and parses valid JSON, and then "flattens" the JSON into
-key-value pairs.
+key-value pairs. It only extracts JSON nodes with values. Nodes that represent
+other JSON objects or JSON arrays are recursed and the name of the node followed
+by a backslash is added to any value therein's property name. The property name
+used for each node or is either its key name (if it was found in an object), or
+its index (if it was found in an array).
 
+It's easier to understand looking at an example:
+```json
+{
+  "numberOfAccounts": 2,
+  "accounts" [
+    {
+      "name": "alvin",
+      "role": "admin"
+    },
+    {
+      "name": "carl",
+      "role": "user"
+    }
+  ]
+}
+```
+The above JSON will produce the following properties:
+- `numberOfAccounts=2`
+- `accounts\0\name=alvin`
+- `accounts\0\role=admin`
+- `accounts\1\name=carl`
+- `accounts\1\role=user`
+
+#### Lists
+There is a special exception applied to the algorithm above: if an array
+contains a homogenous list of booleans, strings, floating-point numbers,
+or integers, the entire array is converted into a comma-separated list and
+used as the value for the current node. If the array is **not** one of the
+above types, or it contains a mixture of types, the standard rules apply.
+
+Empty lists are considered to be homogenous and their value will be an empty
+string. This works because any rwConfig property with a list type will
+interpret empty strings as an empty list.
+
+For example:
+```json
+{
+  "strings": [ "a", "b", "c"]
+  "ints": [ 1, 2, 3, 4, 5],
+  "floats": [1.5, 2.5, 3.5],
+  "mixed": [1, 2.5, 3]
+}
+```
+The above JSON will produce the following properties:
+- `strings=a, b, c`
+- `ints=1, 2, 3, 4, 5`
+- `floats=1.5, 2.5, 3.5`
+- `mixed\0=1`
+- `mixed\1=2.5`
+- `mixed\2=3`
+
+The `mixed` array falls back to the original rules because it contains a
+mixture of integers and floating-point numbers. This is not supported in
+rwConfig lists.
+
+#### Null Values
+Null values are represented as the string "null". Attempting to load JSON
+which has a `null` value for a property declared in the `rwconfig` file as
+any type but `string` will result in an exception at startup. This is by
+design.
+
+#### Avoiding Naming Conflicts
 In order to preclude the possibility of a naming conflict while
 flattening, the following rules are applied in order:
 1. if a property key contains a literal backslash, it is escaped with another
