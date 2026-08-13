@@ -34,10 +34,10 @@ It's easier to understand looking at an example:
 ```yaml
 numberOfAccounts: 2
 accounts:
-  - name: "alvin"
-    role: "admin"
-  - name: "carl"
-    role: "user"
+  - name: alvin
+    role: admin
+  - name: carl
+    role: user
 ```
 The above YAML will produce the following properties:
 - `numberOfAccounts=2`
