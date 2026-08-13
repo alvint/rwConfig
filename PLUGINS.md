@@ -1,12 +1,129 @@
 # Plugins
 These plugins are currently available and are built with the project.
 <br><br>
+## YAML (plugin.yaml)
+Loads properties from a YAML file.
+### Required Properties
+- `sourceType`
+  - currently supports `file`, `classpath`, and `url`
+- `path`
+  - the path to the configuration source
+### Optional Properties
+- `resolveMergeKeys` (default is `true`)
+  - The YAML version 1.2 specification removed merge key support, although many
+    parsers still support them. There's a catch: with merge keys removed from
+    the 1.2 spec, the spec is unambiguous that the `<<` symbol must be treated
+    like any other key. That means that the `<<` key is added to the node
+    hierarchy instead of being transparent. I find this behavior annoying so
+    this property (on by default) removes these stray `<<` keys from the
+    hierarchy.
+
+    The catch is with this hack on, `<<` is no longer a valid node name. If you
+    want to adhere more closely to the 1.2 spec then you can turn this off.
+
+    See below for more details.
+### Details
+The YAML plugin reads and parses valid YAML files, and then "flattens" the node
+graph into key-value pairs. It only extracts YAML nodes with values. Nodes that
+represent other YAML objects or sequences are recursed and the name of the node
+followed by a backslash is prefixed to any value therein's property name. The
+property name used for each node or is either its key name (if it was found in
+an object), or its index (if it was found in a sequence).
+
+It's easier to understand looking at an example:
+```yaml
+numberOfAccounts: 2
+accounts:
+  - name: "alvin"
+    role: "admin"
+  - name: "carl"
+    role: "user"
+```
+The above YAML will produce the following properties:
+- `numberOfAccounts=2`
+- `accounts\0\name=alvin`
+- `accounts\0\role=admin`
+- `accounts\1\name=carl`
+- `accounts\1\role=user`
+
+#### Lists
+There is a special exception applied to the algorithm above: if a sequence
+contains a homogenous list of booleans, strings, floating-point numbers,
+or integers, the entire sequence is converted into a comma-separated list
+and used as the value for the current node. If the array is **not** one of
+the above types, or it contains a mixture of types, the standard rules
+apply.
+
+Empty sequences are considered to be homogenous and their value will be an
+empty string. This works because any rwConfig property with a list type
+will interpret empty strings as an empty list.
+
+For example:
+```yaml
+strings: [a, b, c]
+ints:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+floats: [1.5, 2.5, 3.5],
+mixed: [1, 2.5, 3]
+```
+The above YAML will produce the following properties:
+- `strings=a, b, c`
+- `ints=1, 2, 3, 4, 5`
+- `floats=1.5, 2.5, 3.5`
+- `mixed\0=1`
+- `mixed\1=2.5`
+- `mixed\2=3`
+
+The `mixed` array falls back to the original rules because it contains a
+mixture of integers and floating-point numbers. This is not supported in
+rwConfig lists.
+
+#### Null Values
+Null values are represented as the string "null". Attempting to load YAML
+which has a `null` value for a property declared in the `rwconfig` file as
+any type but `string` will result in an exception at startup. This is by
+design.
+
+#### Avoiding Naming Conflicts
+Consider the following YAML:
+```yaml
+a:
+  b: wazoo
+a\b: what happens here?
+```
+This creates a dilemma with our naming system. It's ambiguous which value
+the property name `a\b` should refer to.
+
+In order to preclude the possibility of a naming conflict while flattening,
+the following rules are applied in order:
+1. If a property key contains a literal backslash, it is escaped with another
+   backslash.
+1. If a property key is empty (legal in the YAML spec), it is renamed to
+   `empty\key`.
+1. If a property key is null (legal in the YAML spec), it is renamed to
+   `null\key`.
+
+As a result, the YAML shown above will produce the following properties:
+- `a\b=wazoo`
+- `a\\b=what happens here?`
+
+Any potential conflicts are avoided.
+
+In practice these rules should affect relatively few YAML sources, since it is
+not common to have empty property keys, null keys, or keys with backslashes. In
+any case the data is still there; you just have to access it under a slightly
+tweaked name.
+
 ## JSON (plugin.json)
 Loads properties from a JSON file.
 ### Required Properties
 - `sourceType`
   - currently supports `file`, `classpath`, and `url`
-- path
+- `path`
   - the path to the configuration source
 ### Details
 The JSON plugin reads and parses valid JSON, and then "flattens" the JSON into
@@ -53,8 +170,8 @@ interpret empty strings as an empty list.
 For example:
 ```json
 {
-  "strings": [ "a", "b", "c"]
-  "ints": [ 1, 2, 3, 4, 5],
+  "strings": ["a", "b", "c"],
+  "ints": [1, 2, 3, 4, 5],
   "floats": [1.5, 2.5, 3.5],
   "mixed": [1, 2.5, 3]
 }
@@ -115,7 +232,7 @@ Loads properties from an XML file.
 ### Required Properties
 - `sourceType`
   - currently supports `file`, `classpath`, and `url`
-- path
+- `path`
   - the path to the configuration source
 ### Details
 The XML plugin reads and parses valid XML, and then "flattens" the XML into
