@@ -10,7 +10,7 @@ Loads properties from a YAML file.
   - the path to the configuration source
 ### Optional Properties
 - `resolveMergeKeys` (default is `true`)
-  - The YAML version 1.2 specification removed merge key support, although many
+  - YAML version 1.2 removed merge keys from the specification, although many
     parsers still support it. There's a catch: with merge keys removed from
     the 1.2 spec, the spec is unambiguous that the `<<` symbol must be treated
     like any other key. That means that the `<<` key is added to the node
