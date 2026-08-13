@@ -285,13 +285,9 @@ not working as the developer intended from that point on.
 - no dependencies
 - compatibility with existing Java `.properties` files (some minor restrictions
   on property names)
-- rwConfig's configuration file syntax builds on the well-known `.properties`
-  file syntax
-- configuration issues, and attempting to retrieve missing or incorrectly-typed
-  properties throw unchecked exceptions
-  - if you're catching these exceptions you're doing it wrong
+- simple, easy to learn config file syntax
+- avoid `Optional`s by declaring types and default values in the config file.
 
 ## Documentation
-
 TODO - see the sample `rwconfig` file in the example project's `resources`
 folder for more details
