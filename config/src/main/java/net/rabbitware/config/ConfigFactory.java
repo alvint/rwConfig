@@ -474,7 +474,7 @@ public class ConfigFactory {
         List<Range> allowedValues
     ) throws ConfigException {
         try {
-            switch (propertyType) {
+            return switch (propertyType) {
                 case BOOLEAN -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
@@ -511,7 +511,7 @@ public class ConfigFactory {
                         );
                     }
                     // value is allowed; return it
-                    return new Value.Boolean(value);
+                    yield new Value.Boolean(value);
                 }
                 case INT -> {
                     // unescape any escaped characters in the value string (and
@@ -530,7 +530,7 @@ public class ConfigFactory {
                         );
                     }
                     // value is allowed; return it
-                    return new Value.Integer(value);
+                    yield new Value.Integer(value);
                 }
                 case LONG -> {
                     // unescape any escaped characters in the value string (and
@@ -549,7 +549,7 @@ public class ConfigFactory {
                         );
                     }
                     // value is allowed; return it
-                    return new Value.Long(value);
+                    yield new Value.Long(value);
                 }
                 case DOUBLE -> {
                     // unescape any escaped characters in the value string (and
@@ -568,11 +568,9 @@ public class ConfigFactory {
                         );
                     }
                     // value is allowed; return it
-                    return new Value.Double(value);
+                    yield new Value.Double(value);
                 }
                 case STRING -> {
-                    // handle escape sequences
-
                     // unescape any escaped characters in the value string
                     var unescapedValueString = handleEscapeSequences(sourceName, valueString);
                     // check if value is allowed
@@ -587,7 +585,7 @@ public class ConfigFactory {
                         );
                     }
                     // value is allowed; return it
-                    return new Value.String(unescapedValueString);
+                    yield new Value.String(unescapedValueString);
                 }
                 // for list types, we don't check the allowed values here -
                 // we check them when we parse the individual values
@@ -598,7 +596,7 @@ public class ConfigFactory {
                             .map(s ->(Value.Boolean)
                                 parseValue(sourceName, propertyName, s, PropertyType.BOOLEAN, allowedValues))
                             .toList();
-                    return new Value.BooleanList(list);
+                    yield new Value.BooleanList(list);
                 }
                 case INT_LIST -> {
                     List<Value.Integer> list = valueString.isEmpty()
@@ -607,7 +605,7 @@ public class ConfigFactory {
                             .map(s ->(Value.Integer)
                                 parseValue(sourceName, propertyName, s, PropertyType.INT, allowedValues))
                             .toList();
-                    return new Value.IntegerList(list);
+                    yield new Value.IntegerList(list);
                 }
                 case LONG_LIST -> {
                     List<Value.Long> list = valueString.isEmpty()
@@ -616,7 +614,7 @@ public class ConfigFactory {
                             .map(s ->(Value.Long)
                                 parseValue(sourceName, propertyName, s, PropertyType.LONG, allowedValues))
                             .toList();
-                    return new Value.LongList(list);
+                    yield new Value.LongList(list);
                 }
                 case DOUBLE_LIST -> {
                     List<Value.Double> list = valueString.isEmpty()
@@ -625,7 +623,7 @@ public class ConfigFactory {
                             .map(s ->(Value.Double)
                                 parseValue(sourceName, propertyName, s, PropertyType.DOUBLE, allowedValues))
                             .toList();
-                    return new Value.DoubleList(list);
+                    yield new Value.DoubleList(list);
                 }
                 case STRING_LIST -> {
                     // preserve trailing whitespace (but not leading), and split
@@ -636,24 +634,18 @@ public class ConfigFactory {
                             .map(s ->(Value.String)
                                 parseValue(sourceName, propertyName, s, PropertyType.STRING, allowedValues))
                             .toList();
-                    return new Value.StringList(list);
+                    yield new Value.StringList(list);
                 }
-            }
+            };
         } catch (ConfigException e) {
             throw e;
         } catch (Exception e) {
             String source = sourceName != null ? "source `" + sourceName + "`" : "config file";
             throw new ConfigException(
-                "error parsing the value of `" + propertyName + "` (in " + source + ") as type `" + propertyType.name + "`: "+ valueString,
-                e
+                "error parsing the value of `" + propertyName + "` (in " + source + ") as type `"
+                + propertyType.name + "`: "+ valueString, e
             );
         }
-        // TODO:
-        // The code above is an exhaustive switch with a `return` on all
-        // branches, so I'm not sure why I need to throw an exception here. This
-        // line should never be reached but the compiler is complaining without
-        // it.
-        throw new ConfigException("unsupported property type: " + propertyType.name);
     }
 
     private static Map<String, String> toMap(Properties properties) {
