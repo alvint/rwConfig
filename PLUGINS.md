@@ -67,7 +67,7 @@ ints:
   - 3
   - 4
   - 5
-floats: [1.5, 2.5, 3.5],
+floats: [1.5, 2.5, 3.5]
 mixed: [1, 2.5, 3]
 ```
 The above YAML will produce the following properties:
