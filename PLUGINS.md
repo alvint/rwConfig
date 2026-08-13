@@ -95,8 +95,8 @@ a:
   b: wazoo
 a\b: what happens here?
 ```
-This creates a dilemma with our naming system. It's ambiguous which value
-the property name `a\b` should refer to.
+This creates a dilemma with our property naming system. It's ambiguous which
+value the property name `a\b` should refer to.
 
 In order to preclude the possibility of a naming conflict while flattening,
 the following rules are applied in order:
@@ -117,6 +117,37 @@ In practice these rules should affect relatively few YAML sources, since it is
 not common to have empty property keys, null keys, or keys with backslashes. In
 any case the data is still there; you just have to access it under a slightly
 tweaked name.
+
+#### Merge Keys
+Merge keys have been popular and useful since YAML 1.1. It allows you to insert
+the properties of one object into another object. For example:
+```yaml
+defaults: &defaults
+  retries: 3
+  timeout-seconds: 10
+mergeKeyTest:
+  <<: *defaults
+  queue: jobs
+```
+In this YAML, the properties from `defaults` are also added to `mergeKeyTest`.
+
+However, there's a catch as of YAML version 1.2. The spec is pretty clear that
+the `<<` key must be added to the node graph, even if in this case it's just a
+stand-in for the properties in `defaults`. If you stick faithfully to the 1.2
+spec, this yields the following properties for `mergeKeyTest`:
+- `mergeKeyTest\queue=jobs`
+- `mergeKeyTest\<<\retries=3`
+- `mergeKeyTest\<<\timeout-seconds=10`
+
+I found these extra `<<` keys annoying, so if the optional plugin property
+`resolveMergeKeys` is set to `true` (the default), the merge keys will be
+removed from the object graph. This yield more pleasant keys:
+- `mergeKeyTest\queue=jobs`
+- `mergeKeyTest\retries=3`
+- `mergeKeyTest\timeout-seconds=10`
+
+There is a caveat: now `<<` is not a valid key name. If you want to stick more
+closely to the YAML version 1.2 spec you can turn this option off.
 
 ## JSON (plugin.json)
 Loads properties from a JSON file.
@@ -206,8 +237,8 @@ Consider the following JSON:
 ```
 Remember that the escaped backslash in the second top-level property will be
 interpreted as a literal backslash when this text representation of JSON is
-ingested by the JSON engine. This creates a dilemma with our naming system.
-It's ambiguous which value the property name `a\b` should refer to.
+ingested by the JSON engine. This creates a dilemma with our property naming
+system. It's ambiguous which value the property name `a\b` should refer to.
 
 In order to preclude the possibility of a naming conflict while flattening,
 the following rules are applied in order:
