@@ -43,13 +43,12 @@ interface for value retrieval.
   - no dependencies outside of the Java Base module (and slf4j, which also only
     requires Java Base)
 - support for multiple configuration sources
+  - built-in support for java `.properties` files
+  - support for YAML, JSON and XML using the supplied plugins
   - built-in support for loading configuration files from the filesystem,
     a URL, or the Java classpath
     - support for loading configuration info from a database (using a plugin) is
       coming
-  - built-in support for java `.properties` files
-  - support for JSON and XML using the supplied plugins
-    - YAML support is also coming
   - support for command line arguments, environment variables, and JVM system
     properties
   - simple plugin API for creating custom configuration sources
