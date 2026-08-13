@@ -286,7 +286,14 @@ not working as the developer intended from that point on.
 - compatibility with existing Java `.properties` files (some minor restrictions
   on property names)
 - simple, easy to learn config file syntax
-- avoid `Optional`s by declaring types and default values in the config file.
+- declarative rather than code-based configuration
+  - avoid `Optional`s and long method chains in the code by declaring types and
+    default values in the config file
+      - the use of `Optional` and `orElse` encourages the "magic number"
+        anti-pattern
+  - avoid the need to recompile just to tweak a configuration source or change
+    a default value
+  - no need to search through the code to find out where a value came from
 
 ## Documentation
 TODO - see the sample `rwconfig` file in the example project's `resources`
