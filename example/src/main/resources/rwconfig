@@ -35,7 +35,7 @@
 #
 # `config.<sourceName>.<attribute>=<value>`.
  
-config.sources = args, system, environment, local, app, prefix, directory, json, xml
+config.sources = args, system, environment, local, app, prefix, directory, json, xml, yaml
 
 # All config sources must have a `type` attribute that declares the type of the
 # config source. The type determines how the config system will load the source,
@@ -115,6 +115,11 @@ config.xml.type = xml.plugin
 config.xml.sourceType = file
 config.xml.path = pom.xml
 config.xml.ignoreUnknownProperties = true
+config.yaml.type = yaml.plugin
+config.yaml.sourceType = file
+config.yaml.path = test.yaml
+config.yaml.ignoreUnknownProperties = true
+config.yaml.resolveMergeKeys = on
 
 
 #
@@ -299,6 +304,7 @@ intList[1:10] emptyIntList =
 string prefix.test
 greeting
 name
+# json plugin test cases
 intList numb\\ers
 foo\4\nested
 a\empty\key
@@ -306,7 +312,15 @@ a\b
 a\\b
 mixedNumbers\1
 mixedNumbers\2
+# xml plugin test cases
 project\groupId
 project\artifactId
 project\dependencies\dependency\0\groupId
 project\dependencies\dependency\0\artifactId
+# yaml plugin test cases
+weirdKeyNameTest\back\\slash
+weirdKeyNameTest\empty\key
+weirdKeyNameTest\null\key
+mergeKeyTest\timeout-seconds
+intList server\limits
+server\endpoints\1\path

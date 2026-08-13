@@ -1,0 +1,47 @@
+# sample YAML
+app:
+  name: "Config YAML Demo"
+  version: 1.0
+  enabled: true
+  owner: null
+
+server:
+  host: localhost
+  port: 8080
+  limits: [100, 250, 500] # flow-style sequence
+  endpoints:
+    - path: /health
+      methods: [GET]
+    - path: /items
+      methods:
+        - GET
+        - POST
+
+features:
+  - name: metrics
+    enabled: true
+  - name: audit-log
+    enabled: false
+
+labels:
+  environment: "development"
+  release: '2026.08'
+  note: "quotes preserve # and : characters"
+
+message: |-
+  Welcome to the example application.
+  This block keeps its line breaks.
+
+weirdKeyNameTest:
+  "": "empty key"
+  back\slash: "key with backslash"
+  ?
+  : "null key"
+
+defaults: &defaults
+  retries: 3
+  timeout-seconds: 10
+
+mergeKeyTest:
+  <<: *defaults
+  queue: jobs
