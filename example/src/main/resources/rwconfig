@@ -42,44 +42,59 @@ config.sources = args, system, environment, local, app, prefix, directory, json,
 # and which other attributes are required.
 #
 # Current supported config source types are:
-# 1. commandLineArguments: command line arguments passed to the application in
-#    the form `my.property=value`
+# 1. commandLineArguments: load configuration properties from command line
+#    arguments passed to the application in the form `my.property=value`
 #    - In order for this source to be loaded you need to create the config
 #      system with `Config.create(args)`. If this is not done and this source
 #      type is used in your config setup, an exception will be thrown during
 #      initialization.
-# 2. systemProperties: java system properties
-# 3. environmentVariables: environment variables
+# 2. systemProperties: load configuration properties from JVM system properties
+# 3. environmentVariables: load configuration properties from environment
+#    variables
 #    - Environment variables will be searched two ways in the following order:
 #      - the property name is searched for as-is
 #      - dots and camel case letters are replaced with underscores, and then all
 #        remaining letters are uppercased
-# 4. file: properties from a file
-#   - The attribute `config.<sourceName>.path` must be declared for this source
-#     type, and it must be a valid path to a file on the filesystem.
-# 5. classpath: properties from a file on the classpath
-#   - The attribute `config.<sourceName>.path` must be declared for this source
-#     type, and it must be a valid path to a file on the classpath.
-# 6. directory: properties from all files in a directory
-#   - The attribute `config.<sourceName>.path` must be declared for this source
-#     type, and it must be a valid path to a directory on the filesystem.
-#   - The directory is seen as a single config source. The names of any regular
-#     files (or symlinks to regular files) inside the directory are used as the
-#     property names, and the file contents are used as the property values. For
-#     example, if a directory contains a file named `greeting` with the contents
-#     `Hello`, and a file named `name` with the contents `World`, then the
-#     config system will see two properties in this source: `greeting=Hello` and
-#     `name=World`.
-#     - Leading and trailing whitespace in the file contents is preserved, and
-#       the file contents are read as a single string (including newlines).
-#     - An exception will be thrown during initialization if any of the files in
-#       the directory cannot be read.
-# 7. url: properties from a URL
-#   - The attribute `config.<sourceName>.url` must be declared for this source
-#     type, and it must be a valid URL to a file.
-# 8. database: properties from a database
-#    - TODO: this source type is not yet implemented
-#    - TODO: handle secrets in a secure way (load from earlier source?)
+# 4. properties: load configuration properties from a `.properties` file
+#    - The attribute `config.<sourceName>.location` must be declared for this
+#     source type, and it must be a valid URL to a Java properties file.
+#     - Examples of valid URLs include:
+#       - `file:path/to/file.properties` - can be a relative or absolute path
+#       - `classpath:my.properties`
+#       - `jar:file:/path/to/my.jar!/path/to/my.properties`
+#       - `https://my-org.com/app.properties`
+#       - `http://my-org.com/app.properties`
+# 5. directory: properties from all files in a directory
+#    - The attribute `config.<sourceName>.path` must be declared for this source
+#      type, and it must be a valid path to a directory on the filesystem.
+#    - The directory is seen as a single config source. The names of any regular
+#      files (or symlinks to regular files) inside the directory are used as the
+#      property names, and the file contents are used as the property values.
+#      For example, if a directory contains a file named `greeting` with the
+#      contents `Hello`, and a file named `name` with the contents `World`, then
+#      the config system will see two properties in the source: `greeting=Hello`
+#      and `name=World`.
+#      - Leading and trailing whitespace in the file contents is preserved, and
+#        the file contents are read as a single string (including newlines).
+#      - An exception will be thrown during initialization if any of the files in
+#        the directory cannot be read.
+# 6. yaml.plugin: load configuration properties from a YAML file
+#    - The attribute `config.<sourceName>.location` must be declared for this
+#      source type, and it must be a valid URL to a YAML file.
+#      - see the `properties` section above for examples of valid URLs
+# 7. json.plugin: load configuration properties from a JSON file
+#    - The attribute `config.<sourceName>.location` must be declared for this
+#      source type, and it must be a valid URL to a JSON file.
+#      - see the `properties` section above for examples of valid URLs
+# 8. xml.plugin: load configuration properties from an XML file
+#    - The attribute `config.<sourceName>.location` must be declared for this
+#      source type, and it must be a valid URL to an XML file.
+#      - see the `properties` section above for examples of valid URLs
+# 9. prefix.plugin: load configuration properties from a properties file, and
+#    add a prefix to each property name.
+#    - The attribute `config.<sourceName>.location` must be declared for this
+#      source type, and it must be a valid URL to a properties file.
+#      - see the `properties` section above for examples of valid URLs
 #
 # You can also create your own custom configuration source types by implementing
 # the `SimpleConfigSourcePlugin` interface (in the `plugin-api` module). Check
@@ -90,34 +105,31 @@ config.sources = args, system, environment, local, app, prefix, directory, json,
 # If this attribute is set to `true`, any properties in the config source that
 # are not declared in this file will be ignored. If this attribute is set to
 # `false` (or not declared), any properties in the config source that are not
-# declared in this file will cause an exception during initialization.
+# declared in this file will cause an exception during initialization. This
+# behavior is on by default to help catch typos in property names.
 
 config.args.type = commandLineArguments
 config.system.type = systemProperties
 config.environment.type = environmentVariables
-config.local.type = file
-config.local.path = app.properties
-# config.organization.type = url
+config.local.type = properties
+config.local.location = file:app.properties
+# config.organization.type = properties
 # config.organization.url = https://my-org.com/app.properties
-config.app.type = classpath
-config.app.path = app.properties
+config.app.type = properties
+config.app.location = classpath:app.properties
 config.prefix.type = prefix.plugin
 config.prefix.mediaType = properties
-config.prefix.sourceType = file
-config.prefix.path = prefix-test.properties
+config.prefix.location = file:prefix-test.properties
 config.directory.type = directory
 config.directory.path = test-directory-source
 config.json.type = json.plugin
-config.json.sourceType = file
-config.json.path = test.json
+config.json.location = file:test.json
 config.json.ignoreUnknownProperties = true
 config.xml.type = xml.plugin
-config.xml.sourceType = file
-config.xml.path = pom.xml
+config.xml.location = file:pom.xml
 config.xml.ignoreUnknownProperties = true
 config.yaml.type = yaml.plugin
-config.yaml.sourceType = file
-config.yaml.path = test.yaml
+config.yaml.location = file:test.yaml
 config.yaml.ignoreUnknownProperties = true
 config.yaml.resolveMergeKeys = on
 

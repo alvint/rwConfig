@@ -1,6 +1,7 @@
 package net.rabbitware.config.plugin.api;
+import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -62,32 +63,105 @@ import java.util.Set;
  * </ul>
  */
 public interface SimpleConfigSourcePlugin {
-    public static String loadFile(String sourceType, String path) throws Exception {
-        switch (sourceType) {
-            case "file" -> {
-                return Files.readString(Path.of(path), StandardCharsets.UTF_8);
+    /**
+     * Load the content of a resource from the specified location. The location
+     * must start with one of the following prefixes:
+     * <ul>
+     * <li>
+     * {@code classpath:} - Load the resource from the classpath.
+     * </li>
+     * <li>
+     * {@code file:} - Load the resource from the filesystem. The location can
+     * be an absolute path or a relative path. If it is a relative path, it will
+     * be resolved against the current working directory.
+     * </li>
+     * <li>
+     * {@code jar:} - Load the resource from a JAR file. The location must be a
+     * valid JAR URL, such as {@code jar:file:/path/to/jar!/path/inside/jar}.
+     * The JAR file must be accessible and readable by the application.
+     * </li>
+     * <li>
+     * {@code http:} - Load the resource from an HTTP URL.
+     * </li>
+     * <li>
+     * {@code https:} - Load the resource from an HTTPS URL.
+     * </li>
+     * </ul>
+     * If the location does not start with one of these prefixes, an
+     * {@link IllegalArgumentException} will be thrown.
+     * <p>
+     * The content is returned as a String.
+     *
+     * @param location
+     * the location of the resource to load
+     * @return
+     * the content of the resource as a String
+     * @throws Exception
+     * if an error occurs while loading the resource
+     */
+    public static String loadResource(String location) throws Exception {
+        URL url;
+        // check if the location has a `classpath:` prefix - if so, remove it
+        // and load the resource from the classpath
+        if (location.startsWith("classpath:")) {
+            location = location.substring("classpath:".length());
+            url = Thread.currentThread().getContextClassLoader().getResource(location);
+            if (url == null) {
+                throw new IllegalArgumentException("classpath resource not found: " + location);
             }
-            case "classpath" -> {
-                var resource = Thread.currentThread().getContextClassLoader().getResource(path);
-                if (resource == null) {
-                    throw new IllegalArgumentException("classpath resource not found: " + path);
-                }
-                return Files.readString(Path.of(resource.toURI()), StandardCharsets.UTF_8);
-            }
-            case "url" -> {
-                return Files.readString(Path.of(java.net.URI.create(path)), StandardCharsets.UTF_8);
-            }
-            default -> {
-                throw new IllegalArgumentException("unsupported source type: " + sourceType);
+        } else if (location.startsWith("file:")) { // not a classpath resource - check if it's a file URL
+            // convert the file URL to an absolute file path
+            URI uri = URI.create(location);
+            Path path = Path.of(uri.getSchemeSpecificPart()).toAbsolutePath();
+            URI absoluteUri = path.toUri();
+            url = absoluteUri.toURL();
+        } else { // anything else
+            // check if it's a URL with a scheme (including file URLs)
+            URI uri = URI.create(location);
+            if (uri.isAbsolute()) { // a URL we can load directly
+                url = uri.toURL();
+            } else { // not a URL
+                throw new IllegalArgumentException("location is not a valid URL: " + location);
             }
         }
+        return new String(url.openStream().readAllBytes(), StandardCharsets.UTF_8);
     }
 
-    public static boolean isSupportedSourceType(String sourceType) {
-        return switch (sourceType) {
-            case "file", "classpath", "url" -> true;
-            default -> false;
-        };
+    /**
+     * Return {@code true} if the specified location to a resource is supported.
+     * <p>
+     * Supported locations are:
+     * <ul>
+     * <li>
+     * {@code classpath:} - Load the resource from the classpath.
+     * </li>
+     * <li>
+     * {@code file:} - Load the resource from the filesystem.
+     * </li>
+     * <li>
+     * {@code jar:} - Load the resource from a JAR file.
+     * </li>
+     * <li>
+     * {@code http:} - Load the resource from an HTTP URL.
+     * </li>
+     * <li>
+     * {@code https:} - Load the resource from an HTTPS URL.
+     * </li>
+     * </ul>
+     * 
+     * @param location
+     * the location to check
+     * @return
+     * {@code true} if the specified location to a resource is supported,
+     * {@code false} otherwise
+     */
+    public static boolean isSupportedLocation(String location) {
+        location = location.toLowerCase().trim();
+        return location.startsWith("classpath:")
+            || location.startsWith("file:")
+            || location.startsWith("jar:")
+            || location.startsWith("http:")
+            || location.startsWith("https:");
     }
 
     /**

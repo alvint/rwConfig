@@ -11,23 +11,17 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * A simple JSON plugin implementation. It leverages the {@code org.json}
  * library to read JSON files and convert them into a flat map of properties.
  * <p>
- * The plugin requires two properties to be set in the {@code rwconfig} file:
+ * The plugin requires one property to be set in the {@code rwconfig} file:
  * <ul>
  * <li>
- * {@code config.<sourceName>.sourceType} - the type of the source. Currently,
- * the supported source types are {@code file}, {@code classpath}, and
- * {@code url}.
- * </li>
- * <li>
- * {@code config.<sourceName>.path} - the path to the source.
+ * {@code config.<sourceName>.location} - the location of the source.
  * </li>
  * </ul>
  */
 public class JsonPlugin implements SimpleConfigSourcePlugin {
     private static final Logger logger = LoggerFactory.getLogger(JsonPlugin.class);
     private String sourceName;
-    private String sourceType;
-    private String path;
+    private String location;
 
     public JsonPlugin() {
         logger.info("JSON plugin instantiated");
@@ -56,7 +50,7 @@ public class JsonPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public Set<String> getRequiredPluginPropertyNames() {
-        return Set.of("sourceType", "path");
+        return Set.of("location");
     }
 
     @Override
@@ -66,25 +60,20 @@ public class JsonPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public void setPluginProperties(Map<String, String> properties) throws Exception {
-        // set and validate required properties
-        sourceType = properties.get("sourceType");
-        if (sourceType == null) {
-            throw new Exception("missing required property: sourceType");
+        location = properties.get("location");
+        if (location == null) {
+            throw new Exception("missing required property: location");
         }
-        path = properties.get("path");
-        if (path == null) {
-            throw new Exception("missing required property: path");
-        }
-        logger.info("setting plugin properties: sourceType={}, path={}", sourceType, path);
-        if (!SimpleConfigSourcePlugin.isSupportedSourceType(sourceType)) {
-            throw new Exception("unsupported sourceType: " + sourceType);
+        logger.info("setting plugin properties: location={}", location);
+        if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
+            throw new Exception("unsupported location: " + location);
         }
     }
 
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
         // load the JSON content from the specified source (as a String)
-        String sourceContent = SimpleConfigSourcePlugin.loadFile(sourceType, path);
+        String sourceContent = SimpleConfigSourcePlugin.loadResource(location);
         // wrap in braces if not already a JSON object
         if (!sourceContent.trim().startsWith("{")) {
             sourceContent = "{ \"unnamed\": " + sourceContent + " }";

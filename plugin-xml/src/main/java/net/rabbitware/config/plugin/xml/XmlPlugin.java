@@ -12,26 +12,20 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * A simple XML plugin implementation. It leverages the {@code org.json}
  * library to read XML files and convert them into a flat map of properties.
  * <p>
- * The plugin requires two properties to be set in the {@code rwconfig} file:
+ * The plugin requires one property to be set in the {@code rwconfig} file:
  * <ul>
  * <li>
- * {@code config.<sourceName>.sourceType} - the type of the source. Currently,
- * the supported source types are {@code file}, {@code classpath}, and
- * {@code url}.
- * </li>
- * <li>
- * {@code config.<sourceName>.path} - the path to the source.
+ * {@code config.<sourceName>.location} - the location of the source.
  * </li>
  * </ul>
  */
 public class XmlPlugin implements SimpleConfigSourcePlugin {
     private static final Logger logger = LoggerFactory.getLogger(XmlPlugin.class);
     private String sourceName;
-    private String sourceType;
-    private String path;
+    private String location;
 
     public XmlPlugin() {
-        logger.info("JSON plugin instantiated");
+        logger.info("XML plugin instantiated");
     }
 
     @Override
@@ -57,7 +51,7 @@ public class XmlPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public Set<String> getRequiredPluginPropertyNames() {
-        return Set.of("sourceType", "path");
+        return Set.of("location");
     }
 
     @Override
@@ -68,25 +62,21 @@ public class XmlPlugin implements SimpleConfigSourcePlugin {
     @Override
     public void setPluginProperties(Map<String, String> properties) throws Exception {
         // set and validate required properties
-        sourceType = properties.get("sourceType");
-        if (sourceType == null) {
-            throw new Exception("missing required property: sourceType");
+        location = properties.get("location");
+        if (location == null) {
+            throw new Exception("missing required property: location");
         }
-        path = properties.get("path");
-        if (path == null) {
-            throw new Exception("missing required property: path");
-        }
-        logger.info("setting plugin properties: sourceType={}, path={}", sourceType, path);
-        if (!SimpleConfigSourcePlugin.isSupportedSourceType(sourceType)) {
-            throw new Exception("unsupported sourceType: " + sourceType);
+        logger.info("setting plugin properties: location={}", location);
+        if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
+            throw new Exception("unsupported location: " + location);
         }
     }
 
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
-        // load the JSON content from the specified source (as a String)
-        String sourceContent = SimpleConfigSourcePlugin.loadFile(sourceType, path);
-        // parse the JSON content and flatten it into a map of properties
+        // load the XML content from the specified source (as a String)
+        String sourceContent = SimpleConfigSourcePlugin.loadResource(location);
+        // parse the XML content into a JSON object and flatten it into a map of properties
         JSONObject json = XML.toJSONObject(sourceContent);
         logger.info("loaded XML content from source: {}", sourceName);
         Map<String, String> properties = new HashMap<>();

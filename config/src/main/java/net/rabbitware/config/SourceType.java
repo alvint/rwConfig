@@ -4,11 +4,8 @@ enum SourceType {
     COMMAND_LINE_ARGUMENTS("commandLineArguments"),
     SYSTEM_PROPERTIES("systemProperties"),
     ENVIRONMENT_VARIABLES("environmentVariables"),
-    FILE("file"),
-    CLASSPATH("classpath"),
-    URL("url"),
-    DIRECTORY("directory"),
-    DATABASE("database");
+    PROPERTIES("properties"),
+    DIRECTORY("directory");
 
     public final String name;
     private static final java.util.Map<String, SourceType> nameToTypeMap = new java.util.HashMap<>();

@@ -16,11 +16,11 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * It requires two properties to be set in the {@code rwconfig} file:
  * <ul>
  * <li>
- * {@code config.<sourceName>.sourceType} - the type of the source. Currently,
- * the only supported source type is {@code propertiesFile}.
+ * {@code config.<sourceName>.mediaType} - the media type of the source.
+ * Currently, the only supported media type is {@code properties}.
  * </li>
  * <li>
- * {@code config.<sourceName>.path} - the path to the source.
+ * {@code config.<sourceName>.location} - the location of the source.
  * </li>
  * </ul>
  */
@@ -28,8 +28,7 @@ public class PrefixPlugin implements SimpleConfigSourcePlugin {
     private static final Logger logger = LoggerFactory.getLogger(PrefixPlugin.class);
     private String sourceName;
     private String mediaType;
-    private String sourceType;
-    private String path;
+    private String location;
 
     public PrefixPlugin() {
         logger.info("prefix plugin instantiated");
@@ -58,7 +57,7 @@ public class PrefixPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public Set<String> getRequiredPluginPropertyNames() {
-        return Set.of("mediaType", "sourceType", "path");
+        return Set.of("mediaType", "location");
     }
 
     @Override
@@ -73,30 +72,26 @@ public class PrefixPlugin implements SimpleConfigSourcePlugin {
         if (mediaType == null || mediaType.isBlank()) {
             throw new Exception("missing required property: mediaType");
         }
-        sourceType = properties.get("sourceType");
-        if (sourceType == null || sourceType.isBlank()) {
-            throw new Exception("missing required property: sourceType");
+        location = properties.get("location");
+        if (location == null || location.isBlank()) {
+            throw new Exception("missing required property: location");
         }
-        path = properties.get("path");
-        if (path == null || path.isBlank()) {
-            throw new Exception("missing required property: path");
+        logger.info("setting properties: mediaType={}, location={}", mediaType, location);
+        if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
+            throw new Exception("unsupported location: " + location);
         }
-        logger.info("setting properties: mediaType={}, sourceType={}, path={}", mediaType, sourceType, path);
         if (!mediaType.equals("properties")) {
             throw new Exception("unsupported mediaType: " + mediaType);
-        }
-        if (!SimpleConfigSourcePlugin.isSupportedSourceType(sourceType)) {
-            throw new Exception("unsupported sourceType: " + sourceType);
         }
     }
 
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
         Properties properties = new Properties();
-        String sourceContent = SimpleConfigSourcePlugin.loadFile(sourceType, path);
+        String sourceContent = SimpleConfigSourcePlugin.loadResource(location);
         try (StringReader reader = new StringReader(sourceContent)) {
             properties.load(reader);
-            logger.debug("config source `{}` loaded from {}: {}", sourceName, sourceType, path);
+            logger.debug("config source `{}` loaded from `{}`", sourceName, location);
         }
         return properties.entrySet().stream()
             .collect(Collectors.toMap(

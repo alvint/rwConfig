@@ -1,7 +1,7 @@
 package net.rabbitware.config;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -225,66 +225,28 @@ public class ConfigFactory {
                             configSources.put(sourceName, new EnvironmentProperties(propertyInfoMap));
                             logger.debug("config source `{}` loaded from environment variables", sourceName);
                         }
-                        case FILE -> {
-                            String filePath = configProperties.get("config." + sourceName + ".path");
-                            if (filePath == null || filePath.isEmpty()) {
-                                throw new ConfigException("missing config property: config." + sourceName + ".path");
+                        case PROPERTIES -> {
+                            String location = configProperties.get("config." + sourceName + ".location");
+                            if (location == null || location.isEmpty()) {
+                                throw new ConfigException("missing config property: config." + sourceName + ".location");
                             }
-                            Properties properties = new Properties();
-                            try (
-                                var reader = new InputStreamReader(
-                                    Files.newInputStream(Path.of(filePath)),
-                                    StandardCharsets.UTF_8
-                                )
-                            ) {
-                                properties.load(reader);
+                            logger.info("setting plugin properties: location={}", location);
+                            if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
+                                throw new ConfigException("unsupported location: " + location);
+                            }
+                            try {
+                                String sourceContent = SimpleConfigSourcePlugin.loadResource(location);
+                                Properties properties = new Properties();
+                                properties.load(new StringReader(sourceContent));
                                 configSources.put(sourceName, toMap(properties));
-                                logger.debug("config source `{}` loaded from file: {}", sourceName, filePath);
-                            } catch (IOException e) {
-                                throw new ConfigException(
-                                    "error reading config source file for `" + sourceName + "`: " + filePath, e
+                                logger.debug(
+                                    "config source `{}` loaded {} properties from location: {}",
+                                    sourceName, properties.size(), location
                                 );
-                            }
-                        }
-                        case CLASSPATH -> {
-                            String path = configProperties.get("config." + sourceName + ".path");
-                            if (path == null || path.isEmpty()) {
-                                throw new ConfigException("missing config property: config." + sourceName + ".path");
-                            }
-                            Properties properties = new Properties();
-                            var url = Thread.currentThread().getContextClassLoader().getResource(path);
-                            if (url == null) {
+                            } catch (Exception e) {
                                 throw new ConfigException(
-                                    "config source file not found on classpath for `" + sourceName + "`: " + path
-                                );
-                            }
-                            try (var reader = new InputStreamReader(url.openStream(), StandardCharsets.UTF_8)) {
-                                properties.load(reader);
-                                configSources.put(sourceName, toMap(properties));
-                                logger.debug("config source `{}` loaded from classpath: {}", sourceName, path);
-                            } catch (IOException e) {
-                                throw new ConfigException(
-                                    "error reading config source file from classpath for `" + sourceName + "`: " + path, e
-                                );
-                            }
-                        }
-                        case URL -> {
-                            String url = configProperties.get("config." + sourceName + ".url");
-                            if (url == null || url.isEmpty()) {
-                                throw new ConfigException("missing config property: config." + sourceName + ".url");
-                            }
-                            Properties properties = new Properties();
-                            try (
-                                var reader = new InputStreamReader(
-                                    java.net.URI.create(url).toURL().openStream(), StandardCharsets.UTF_8
-                                )
-                            ) {
-                                properties.load(reader);
-                                configSources.put(sourceName, toMap(properties));
-                                logger.debug("config source `{}` loaded from URL: {}", sourceName, url);
-                            } catch (IOException e) {
-                                throw new ConfigException(
-                                    "error reading config source from URL for `" + sourceName + "`: " + url, e
+                                    "error loading properties from location for config source `" + sourceName + "`: "
+                                    + location, e
                                 );
                             }
                         }
@@ -318,13 +280,6 @@ public class ConfigFactory {
                             files.close();
                             configSources.put(sourceName, properties);
                             logger.debug("config source `{}` loaded from directory: {}", sourceName, dirPath);
-                        }
-                        // TODO
-                        case DATABASE -> {
-                            throw new ConfigException(
-                                "source type for `" + sourceName + "` is not implemented yet: " + type
-                            );
-                            // logger.debug("config source `{}` loaded from database: {}", sourceName, url);
                         }
                     }
                 }
