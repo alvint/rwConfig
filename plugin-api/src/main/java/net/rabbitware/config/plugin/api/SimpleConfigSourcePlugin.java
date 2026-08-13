@@ -1,4 +1,4 @@
-package net.rabbitware.config.plugin;
+package net.rabbitware.config.plugin.api;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;

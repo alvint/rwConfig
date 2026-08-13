@@ -1,15 +1,16 @@
-package net.rabbitware.config.plugin.json;
+package net.rabbitware.config.plugin.xml;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.json.JSONObject;
+import org.json.XML;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 
 /**
- * A simple JSON plugin implementation. It leverages the {@code org.json}
- * library to read JSON files and convert them into a flat map of properties.
+ * A simple XML plugin implementation. It leverages the {@code org.json}
+ * library to read XML files and convert them into a flat map of properties.
  * <p>
  * The plugin requires two properties to be set in the {@code rwconfig} file:
  * <ul>
@@ -23,13 +24,13 @@ import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
  * </li>
  * </ul>
  */
-public class Json implements SimpleConfigSourcePlugin {
-    private static final Logger logger = LoggerFactory.getLogger(Json.class);
+public class XmlPlugin implements SimpleConfigSourcePlugin {
+    private static final Logger logger = LoggerFactory.getLogger(XmlPlugin.class);
     private String sourceName;
     private String sourceType;
     private String path;
 
-    public Json() {
+    public XmlPlugin() {
         logger.info("JSON plugin instantiated");
     }
 
@@ -85,15 +86,12 @@ public class Json implements SimpleConfigSourcePlugin {
     public Map<String, String> getConfigSourceProperties() throws Exception {
         // load the JSON content from the specified source (as a String)
         String sourceContent = SimpleConfigSourcePlugin.loadFile(sourceType, path);
-        // wrap in braces if not already a JSON object
-        if (!sourceContent.trim().startsWith("{")) {
-            sourceContent = "{ \"unnamed\": " + sourceContent + " }";
-        }
         // parse the JSON content and flatten it into a map of properties
-        JSONObject json = new JSONObject(sourceContent);
+        JSONObject json = XML.toJSONObject(sourceContent);
+        logger.info("loaded XML content from source: {}", sourceName);
         Map<String, String> properties = new HashMap<>();
         getContents("", json, properties);
-        logger.info("loaded {} properties from JSON source: {}", properties.size(), sourceName);
+        logger.info("loaded {} properties from XML source: {}", properties.size(), sourceName);
         return properties;
     }   
 

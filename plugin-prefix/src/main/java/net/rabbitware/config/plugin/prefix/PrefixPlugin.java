@@ -6,7 +6,7 @@ import java.util.Set;
 import java.io.StringReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 
 /**
  * A simple prefix plugin implementation. It will prefix the name of the source
@@ -24,14 +24,14 @@ import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
  * </li>
  * </ul>
  */
-public class Prefix implements SimpleConfigSourcePlugin {
-    private static final Logger logger = LoggerFactory.getLogger(Prefix.class);
+public class PrefixPlugin implements SimpleConfigSourcePlugin {
+    private static final Logger logger = LoggerFactory.getLogger(PrefixPlugin.class);
     private String sourceName;
     private String mediaType;
     private String sourceType;
     private String path;
 
-    public Prefix() {
+    public PrefixPlugin() {
         logger.info("prefix plugin instantiated");
     } 
 

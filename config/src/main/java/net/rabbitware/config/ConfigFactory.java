@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,13 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config.ConfigException;
 import net.rabbitware.config.Config.PropertyType;
-import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 
 public class ConfigFactory {
     public static final String CONFIG_FILE_PATH_PROPERTY = "rw.config.path";
     public static final String DEFAULT_CONFIG_FILE_PATH = "rwconfig";
 
-    public static final Logger logger = LoggerFactory.getLogger(ConfigFactory.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConfigFactory.class);
 
     public static Config create() throws ConfigException {
         return create(null);
@@ -146,33 +147,7 @@ public class ConfigFactory {
                     throw new ConfigException("missing config property: config." + sourceName + ".type");
                 }
                 if (type.indexOf('.') != -1) { // sourceType is a plugin
-                    // allow shortened plugin class names for rabbitware, e.g. 
-                    // `net.rabbitware.config.plugin.json.Json` can be shortened
-                    // to `json.plugin`
-                    String className;
-                    if (type.endsWith(".plugin")) {
-                        String pluginName = type.substring(0, type.length() - 7).toLowerCase();
-                        className = "net.rabbitware.config.plugin." + pluginName + "."
-                            + pluginName.substring(0, 1).toUpperCase() + pluginName.substring(1);
-                    } else {
-                        className = type;
-                    }
-                    SimpleConfigSourcePlugin plugin;
-                    try {
-                        var pluginClass = Class.forName(className);
-                        if (!SimpleConfigSourcePlugin.class.isAssignableFrom(pluginClass)) {
-                            throw new ConfigException(
-                                "config source `" + sourceName + "` is of type `" + className
-                                + "`, which is not a valid SimpleConfigSourcePlugin"
-                            );
-                        }
-                        plugin = (SimpleConfigSourcePlugin) pluginClass.getDeclaredConstructor().newInstance();
-                    } catch (ReflectiveOperationException e) {
-                        throw new ConfigException(
-                            "config source `" + sourceName + "` is of type `" + className
-                            + "`, which could not be instantiated", e
-                        );
-                    }
+                    SimpleConfigSourcePlugin plugin = loadPluginByModule(type);
                     String pluginVersion = plugin.getPluginVersion();
                     logger.info(
                         "using plugin `{}` v{} for config source `{}`",
@@ -830,6 +805,25 @@ public class ConfigFactory {
         // turn the nulls back into backslashes
         value = value.replaceAll("\0", "\\\\");
         return value;
+    }
+
+    private static SimpleConfigSourcePlugin loadPluginByModule(String name) {
+        String moduleName;
+        if (name.endsWith(".plugin")) {
+            moduleName = "net.rabbitware.config.plugin." + name.substring(0, name.length() - 7);
+        } else {
+            moduleName = name;
+        }
+        return ServiceLoader.load(SimpleConfigSourcePlugin.class).stream()
+            .filter(provider -> {
+                Module m = provider.type().getModule();
+                return m.isNamed() && moduleName.equals(m.getName());
+            })
+            .findFirst()
+            .map(ServiceLoader.Provider::get)
+            .orElseThrow(() -> new ConfigException(
+                "no module that provides `SimpleConfigSourcePlugin` was found by that name: " + moduleName)
+            );
     }
 
 

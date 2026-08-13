@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snakeyaml.engine.v2.api.Load;
 import org.snakeyaml.engine.v2.api.LoadSettings;
-import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 
 /**
  * A simple YAML plugin implementation. It leverages the {@code eo-yaml}
@@ -27,14 +27,14 @@ import net.rabbitware.config.plugin.SimpleConfigSourcePlugin;
  * </li>
  * </ul>
  */
-public class Yaml implements SimpleConfigSourcePlugin {
-    private static final Logger logger = LoggerFactory.getLogger(Yaml.class);
+public class YamlPlugin implements SimpleConfigSourcePlugin {
+    private static final Logger logger = LoggerFactory.getLogger(YamlPlugin.class);
     private String sourceName;
     private String sourceType;
     private String path;
     private boolean resolveMergeKeys = true; // default is true
 
-    public Yaml() {
+    public YamlPlugin() {
         logger.info("YAML plugin instantiated");
     }
 
