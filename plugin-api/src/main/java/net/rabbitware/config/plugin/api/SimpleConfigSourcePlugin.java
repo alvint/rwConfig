@@ -1,4 +1,5 @@
 package net.rabbitware.config.plugin.api;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -124,7 +125,13 @@ public interface SimpleConfigSourcePlugin {
                 throw new IllegalArgumentException("location is not a valid URL: " + location);
             }
         }
-        return new String(url.openStream().readAllBytes(), StandardCharsets.UTF_8);
+        try (InputStream in = url.openStream()) {
+            // check if the resource is readable
+            if (in == null) {
+                throw new IllegalArgumentException("resource is not readable: " + location);
+            }
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     /**
