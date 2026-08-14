@@ -4,10 +4,12 @@ These plugins are currently available and are built with the project.
 ## YAML (plugin.yaml)
 Loads properties from a YAML file.
 ### Required Properties
-- `sourceType`
-  - currently supports `file`, `classpath`, and `url`
-- `path`
-  - the path to the configuration source
+- `location`
+  - The prefixed location of the configuration source. Supported location
+    prefixes are `file:`, `classpath:`, `jar:`, `http:`, and `https:`.
+    - `file:` prefixes can be relative or absolute. Relative prefixes resolve
+      from the current working directory. for example, `file:my/file` is ok.
+    - `jar:` URL syntax is normally `jar:file:/path/to/jar!path/to/item`.
 ### Optional Properties
 - `resolveMergeKeys` (default is `true`)
   - YAML version 1.2 removed merge keys from the specification, although many
@@ -152,10 +154,12 @@ closely to the YAML version 1.2 spec you can turn this option off.
 ## JSON (plugin.json)
 Loads properties from a JSON file.
 ### Required Properties
-- `sourceType`
-  - currently supports `file`, `classpath`, and `url`
-- `path`
-  - the path to the configuration source
+- `location`
+  - The prefixed location of the configuration source. Supported location
+    prefixes are `file:`, `classpath:`, `jar:`, `http:`, and `https:`.
+    - `file:` prefixes can be relative or absolute. Relative prefixes resolve
+      from the current working directory. for example, `file:my/file` is ok.
+    - `jar:` URL syntax is normally `jar:file:/path/to/jar!path/to/item`.
 ### Details
 The JSON plugin reads and parses valid JSON, and then "flattens" the JSON into
 key-value pairs. It only extracts JSON nodes with values. Nodes that represent
@@ -261,10 +265,12 @@ name.
 ## XML (plugin.xml)
 Loads properties from an XML file.
 ### Required Properties
-- `sourceType`
-  - currently supports `file`, `classpath`, and `url`
-- `path`
-  - the path to the configuration source
+- `location`
+  - The prefixed location of the configuration source. Supported location
+    prefixes are `file:`, `classpath:`, `jar:`, `http:`, and `https:`.
+    - `file:` prefixes can be relative or absolute. Relative prefixes resolve
+      from the current working directory. for example, `file:my/file` is ok.
+    - `jar:` URL syntax is normally `jar:file:/path/to/jar!path/to/item`.
 ### Details
 The XML plugin reads and parses valid XML, and then "flattens" the XML into
 key-value pairs. It only extracts properties from elements or attributes with
@@ -349,10 +355,35 @@ loads.
 ### Required Properties
 - `mediaType`
   - currently supports `properties`
-- `sourceType`
-  - currently supports `file`, `classpath`, and `url`
-- path
-  - the path to the configuration source
+- `location`
+  - The prefixed location of the configuration source. Supported location
+    prefixes are `file:`, `classpath:`, `jar:`, `http:`, and `https:`.
+    - `file:` prefixes can be relative or absolute. Relative prefixes resolve
+      from the current working directory. for example, `file:my/file` is ok.
+    - `jar:` URL syntax is normally `jar:file:/path/to/jar!path/to/item`.
 ### Details
 The plugin currently derives the prefix from the source name, but this may change
 to a required property.
+
+## JDBC (plugin.jdbc)
+This plugin loads properties from a database. This plugin also requires that the
+JDBC driver of the database you're trying to connect to is on your classpath.
+### Required Properties
+- `connectionString`
+  - The string used by the JDBC driver to connect to the database.
+- `query`
+  - The query used to retrieve the properties for your application. This query
+    must return at least two columns. The first column must be the property name
+    and the second column must be the property value.
+### Optional Properties
+- `username`
+  - The username used to connect to the database.
+- `password`
+  - The password used to connect to the database. It is recommended to **not**
+    put the password for your database directly in this file. Instead, set the
+    value of this property to the "back reference" symbol (`<<`) and place the
+    real value in a configuration source that gets loaded before this one. See
+    the `rwconfig` file documentation for more details.
+### Details
+The plugin works as you would expect. It executes the supplied query and gathers
+the results to be used as properties.
