@@ -35,7 +35,7 @@
 #
 # `config.<sourceName>.<attribute>=<value>`.
  
-config.sources = args, system, environment, local, app, prefix, directory, json, xml, yaml
+config.sources = args, system, environment, local, app, prefix, directory, json, xml, yaml, db
 
 # All config sources must have a `type` attribute that declares the type of the
 # config source. The type determines how the config system will load the source,
@@ -132,6 +132,25 @@ config.yaml.type = yaml.plugin
 config.yaml.location = file:test.yaml
 config.yaml.ignoreUnknownProperties = true
 config.yaml.resolveMergeKeys = on
+config.db.type = jdbc.plugin
+config.db.connectionString = jdbc:h2:mem:test-db
+config.db.query = SELECT * FROM config_properties
+config.db.username = admin
+# You can use `<<` as a stand-in value in configuration properties to indicate
+# that the *actual* value for this property is located in another configuration
+# source. This is useful for sensitive sensitive information like passwords. The
+# config source that contains the actual value must have a higher priority than
+# the one being described here.
+#
+# Even though the value for this property is present in an earlier configuration
+# source, it is still considered to be configuration info and not an application
+# property. This means that it will not be available to the application, and you
+# do not need to set the `ignoreUnknownProperties` flag to `true`.
+#
+# In this case, a higher-priority configuration source must contain the property
+# `config.db.password=mySecretPassword` or an exception will be thrown during
+# initialization.
+config.db.password = <<
 
 
 #
@@ -336,3 +355,5 @@ weirdKeyNameTest\null\key
 mergeKeyTest\timeout-seconds
 intList server\limits
 server\endpoints\1\path
+# database plugin test cases
+databaseGreeting

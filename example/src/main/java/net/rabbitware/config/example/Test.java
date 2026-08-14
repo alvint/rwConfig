@@ -1,9 +1,14 @@
 package net.rabbitware.config.example;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config;
 import net.rabbitware.config.ConfigFactory;
 
 public class Test {
-    public static void main(String[] args) {
+    private static final Logger logger = LoggerFactory.getLogger(Test.class);
+
+    public static void main(String[] args) throws Exception {
+        createDatabase();
         Config config = ConfigFactory.create(args);
 
         config.getPropertyNames().stream().forEach(name -> {
@@ -42,5 +47,23 @@ public class Test {
                 }
             }
         });
+    }
+
+    private static void createDatabase() throws Exception {
+        try (
+            var connection = java.sql.DriverManager.getConnection(
+                "jdbc:h2:mem:test-db;DB_CLOSE_DELAY=-1", "admin", "secret1234"
+            )
+        ) {
+            var statement = connection.createStatement();
+            statement.execute(
+                "CREATE TABLE config_properties (property_key VARCHAR(255), property_value VARCHAR(255))"
+            );
+            statement.execute(
+                "INSERT INTO config_properties (property_key, property_value) "
+                + "VALUES ('databaseGreeting', 'hello from the database!')"
+            );
+        }
+        logger.info("database created and populated with test data");
     }
 }
