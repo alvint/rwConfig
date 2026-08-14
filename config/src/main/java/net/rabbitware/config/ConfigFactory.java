@@ -102,6 +102,9 @@ public class ConfigFactory {
         //      "bar "
         //      - to create a value that starts with whitespace, escape the
         //        first space with a backslash
+        //      - an escaped space anywhere else does nothing, and is logged as
+        //        a warning while the value is unescaped rather than checked
+        //        here, since a value is not broken into its parts until then
         //
         // If you find a valid config line that is not matched by this regex,
         // please report it as a bug.
@@ -745,6 +748,23 @@ public class ConfigFactory {
         // turn escaped backslashes into nulls temporarily, so they don't get
         // unescaped in the next step
         value = value.replaceAll("\\\\\\\\", "\0");
+        // an escaped space is only meaningful as the first non-whitespace
+        // character of a value, where it keeps the leading space from being
+        // trimmed. anywhere else the space does not need to be escaped, so an
+        // escaped space there is almost certainly a mistake - but it is only a
+        // warning for now, since config sources hold arbitrary values that we
+        // do not control. note that each item of a list, and each allowed
+        // value, is its own value here (checking the last escaped space is
+        // enough - if anything precedes it, whether that is an ordinary
+        // character or an earlier escaped space, it is not at the start)
+        int escapedSpaceIndex = value.lastIndexOf("\\ ");
+        if (escapedSpaceIndex != -1 && !value.substring(0, escapedSpaceIndex).isBlank()) {
+            logger.warn(
+                "an escaped space is only meaningful at the start of a value, so it does nothing here (in {}): {}",
+                sourceName != null ? "source `" + sourceName + "`" : "config file",
+                value.replace('\0', '\\')
+            );
+        }
         // handle escape sequences supported by java.util.Properties in rwconfig
         if (sourceName == null) { // this is the rwconfig file
             value = value.replaceAll("\\\\t", "\t");

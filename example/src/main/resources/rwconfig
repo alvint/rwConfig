@@ -211,6 +211,9 @@ rwc.db.password = <<
 #      spaces are preserved
 #      - in order to include leading spaces, escape the first space with a
 #        backslash
+#      - that is the only place an escaped space means anything. a space
+#        anywhere else in a value is kept as-is, so escaping it does nothing
+#        and logs a warning
 #    - empty strings are allowed, and can be declared with an empty value or
 #      with a value of `\e`
 #    - in order to include a literal backslash, escape it with another backslash
