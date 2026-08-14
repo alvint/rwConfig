@@ -131,7 +131,7 @@ public class ConfigFactory {
                 if (configProperties.containsKey(name) || propertyInfoMap.containsKey(name)) {
                     throw new ConfigException("duplicate config line for property: " + name);
                 }
-                if (name.startsWith(configRoot)) { // config setup line
+                if (name.startsWith(configRoot) || name.equalsIgnoreCase(CONFIG_ROOT_PROPERTY)) { // config setup line
                     if (type != null && !type.isEmpty()) {
                         throw new ConfigException("invalid config line (config setup lines cannot have a type): " + s);
                     }
@@ -837,7 +837,7 @@ public class ConfigFactory {
         // name of the property here. For example, if the property name here is
         // `<configRoot>jdbc.password`, the plugin will look for this property
         // name in the previously loaded config sources.
-        if (BACKREFERENCE_VALUE.equals(propertyValue.trim())) {
+        if (propertyValue != null && BACKREFERENCE_VALUE.equals(propertyValue.trim())) {
             propertyValue = configSources.values().stream()
                 .filter(map -> map.containsKey(fullPropertyName))
                 .findFirst()
