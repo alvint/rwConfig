@@ -11,8 +11,8 @@
 # - the path specified by the command line argument `rw.config.path=<path>`
 # - the path specified by the system property `rw.config.path`
 # - the path specified by the environment variable `RW_CONFIG_PATH`
-# - a file named `rwconfig` in the current working directory
 # - a file named `rwconfig` in the classpath
+# - a file named `rwconfig` in the current working directory
 
 ! comment lines can start with a `#` or a `!` character
 

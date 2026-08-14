@@ -229,7 +229,7 @@ int port = config.getInt("port");
 // get the type of the property `port`
 Config.PropertyType propertyType = config.getType("port");
 
-System.out.println("type of `port`: " + type.name);
+System.out.println("type of `port`: " + propertyType.name);
 System.out.println("value of `port`: " + port);
 ```
 There's no need to deal with `Optional`s here because the library handles

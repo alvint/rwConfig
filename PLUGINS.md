@@ -45,7 +45,7 @@ It's easier to understand looking at an example:
 ```json
 {
   "numberOfAccounts": 2,
-  "accounts" [
+  "accounts": [
     {
       "name": "alvin",
       "role": "admin"
@@ -190,7 +190,7 @@ It's easier to understand looking at an example:
     </dependencies>
 </project>
 ```
-The above JSON will produce the following properties:
+The above XML will produce the following properties:
 - `project\xmlns=http://maven.apache.org/POM/4.0.0`
 - `project\groupId=com.foo`
 - `project\artifactId=example`
@@ -227,7 +227,7 @@ For example:
   </mixed>
 </foo>
 ```
-The above JSON will produce the following properties:
+The above XML will produce the following properties:
 - `foo\ints\val=1,3,5`
 - `foo\floats\val=1.5, 3.5, 5.5`
 - `foo\mixed\val\0=1`
