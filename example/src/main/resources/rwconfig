@@ -285,6 +285,18 @@ rwc.db.password = <<
 # preserved. In order to include leading spaces, escape the first space with a
 # backslash.
 #
+# Allowed values support the same escape sequences as values do, plus `\]`,
+# `\,` and `\:`, which must be escaped because each one is otherwise meaningful
+# inside the list. A `[` needs no escaping once the list is open, and cannot be
+# escaped (`\[` is not an escape sequence anywhere in this file):
+#
+#     string[a\,b, c\:d, e\]f, g[h\]] punctuation = g[h]
+#
+# Since `\e` is an empty string, it can be used as the lower bound of a string
+# range to allow any value up to the upper bound:
+#
+#     string[\e:z] anythingUpToZ = hello
+#
 #
 # - Examples -
 #

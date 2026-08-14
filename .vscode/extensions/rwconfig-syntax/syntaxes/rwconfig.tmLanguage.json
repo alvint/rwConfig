@@ -90,7 +90,13 @@
       "name": "constant.character.escape.rwconfig"
     },
     "escape.string.range.valid": {
-      "match": "\\\\[\\],:]",
+      "comment": "escapes that are only needed inside an allowed values list, where each of these characters is otherwise meaningful. `[` is not escaped here - it is used as-is",
+      "match": "\\\\[\\\\\\],:]",
+      "name": "constant.character.escape.rwconfig"
+    },
+    "escape.unicode.valid": {
+      "comment": "a unicode escape - a backslash, a `u`, then exactly four hex digits",
+      "match": "\\\\u[0-9a-fA-F]{4}",
       "name": "constant.character.escape.rwconfig"
     },
     "escape.invalid": {
@@ -387,6 +393,7 @@
       "patterns": [
         { "include": "#continuation"},
         { "include": "#escape.space.value.valid"},
+        { "include": "#escape.unicode.valid"},
         { "include": "#escape.string.valid"},
         { "include": "#escape.invalid"},
         { "include": "#backreference"}
@@ -408,6 +415,7 @@
               "patterns": [
                 { "include": "#escape.string.list.valid"},
                 { "include": "#escape.space.item.valid"},
+                { "include": "#escape.unicode.valid"},
                 { "include": "#escape.string.valid"},
                 { "include": "#escape.invalid"}
               ]
@@ -436,9 +444,9 @@
                     "1":{
                       "name": "string.unquoted.rwconfig",
                       "patterns": [
-                        { "include": "#escape.string.list.valid"},
                         { "include": "#escape.string.range.valid"},
                         { "include": "#escape.space.range.valid"},
+                        { "include": "#escape.unicode.valid"},
                         { "include": "#escape.string.valid"},
                         { "include": "#escape.invalid"}
                       ]
@@ -446,9 +454,9 @@
                     "2":{
                       "name": "string.unquoted.rwconfig",
                       "patterns": [
-                        { "include": "#escape.string.list.valid"},
                         { "include": "#escape.string.range.valid"},
                         { "include": "#escape.space.range.valid"},
+                        { "include": "#escape.unicode.valid"},
                         { "include": "#escape.string.valid"},
                         { "include": "#escape.invalid"}
                       ]

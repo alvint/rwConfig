@@ -85,6 +85,15 @@ public class ConfigFactory {
         //      "bar "
         //      - to create a value that starts with whitespace, escape the
         //        first space with a backslash
+        //    - allowed values accept the same escape sequences as values (`\\`,
+        //      `\e`, `\n`, `\r`, `\t`, and a unicode escape - a backslash, then
+        //      a `u`, then four hex digits), plus `\]`, `\,` and `\:`, which
+        //      have to be escaped here because each one is otherwise meaningful
+        //      inside the list. `[` is not meaningful once the list is open, so
+        //      it is used as-is (and cannot be escaped - `\[` is not an escape
+        //      sequence anywhere in this file)
+        //      - note that a unicode escape cannot be written out in this
+        //        comment, since javac expands those before it parses comments
         // 3. the name of the property (required)
         //    - leading and trailing whitespace is ignored
         // 4. the value of the property (optional)
@@ -101,7 +110,7 @@ public class ConfigFactory {
             .reduce((a, b) -> a + "|" + b)
             .orElse("");
         var pattern = Pattern.compile(
-"^[^\\S\\n\\r]*((?i:{types}))?[^\\S\\n\\r]*(?:\\[\\s*((?:(?:(?:\\\\[\\\\\\]\\[,: ]|[^\\\\\\]\\[,:\\s])(?:\\\\[\\\\\\]\\[,:]|[^\\\\\\]\\[,:])*)(?::\\s*(?:(?:\\\\[\\\\\\]\\[,: ]|[^\\\\\\]\\[,:\\s])(?:\\\\[\\\\\\]\\[,:]|[^\\\\\\]\\[,:])*))?)(?:,\\s*(?:(?:(?:\\\\[\\\\\\]\\[,: ]|[^\\\\\\]\\[,:\\s])(?:\\\\[\\\\\\]\\[,:]|[^\\\\\\]\\[,:])*)(?::\\s*(?:(?:\\\\[\\\\\\]\\[,: ]|[^\\\\\\]\\[,:\\s])(?:\\\\[\\\\\\]\\[,:]|[^\\\\\\]\\[,:])*))?))*)\\])?\\s*([A-Za-z][\\w\\.\\\\-]*)\\s*(?:=[^\\S\\n\\r]*([^\\n\\r]*))?$"
+"^[^\\S\\n\\r]*((?i:{types}))?[^\\S\\n\\r]*(?:\\[\\s*((?:(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*)(?::\\s*(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*))?)(?:,\\s*(?:(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*)(?::\\s*(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*))?))*)\\])?\\s*([A-Za-z][\\w\\.\\\\-]*)\\s*(?:=[^\\S\\n\\r]*([^\\n\\r]*))?$"
             .replace("{types}", types)
         );
         configFile.stream()
