@@ -775,7 +775,7 @@ public class ConfigFactory {
         // name of the property here. For example, if the property name here is
         // `config.jdbc.password`, the plugin will look for this same property
         // name in the previously loaded config sources.
-        if (BACKREFERENCE_VALUE.equals(propertyValue)) {
+        if (BACKREFERENCE_VALUE.equals(propertyValue.trim())) {
             propertyValue = configSources.values().stream()
                 .filter(map -> map.containsKey(fullPropertyName))
                 .findFirst()

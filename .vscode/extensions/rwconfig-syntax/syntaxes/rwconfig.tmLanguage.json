@@ -3,6 +3,10 @@
   "scopeName": "source.rwconfig",
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "repository": {
+    "backreference": {
+      "match": "(?<=^\\s*config\\.[^=]+=\\s*)<<(?=\\s*$)",
+      "name": "markup.bold"
+    },
     "string.valid": {
       "match": ".*",
       "name": "string.unquoted.rwconfig"
@@ -311,7 +315,8 @@
           "name": "string.unquoted.rwconfig",
           "patterns": [
             { "include": "#escape.string.valid"},
-            { "include": "#escape.invalid"}
+            { "include": "#escape.invalid"},
+            { "include": "#backreference"}
           ]
         }
       }
