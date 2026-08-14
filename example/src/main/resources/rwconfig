@@ -35,7 +35,8 @@
 #
 # `rwc.<sourceName>.<attribute>=<value>`.
  
-rwc.sources = args, system, environment, local, organization, app, prefix, directory, json, xml, yaml, db
+rwc.sources = args, system, environment, local, organization, app, prefix, \
+              directory, json, xml, yaml, db
 
 # All config sources must have a `type` attribute that declares the type of the
 # config source. The type determines how the config system will load the source,

@@ -7,6 +7,15 @@
       "match": "(?<=^\\s*rwc\\.[^=]+=\\s*)<<(?=\\s*$)",
       "name": "markup.bold"
     },
+    "continuation": {
+      "comment": "a trailing backslash joins the line with the next one",
+      "match": "\\\\$",
+      "name": "constant.character.escape.line-continuation.rwconfig"
+    },
+    "continuation.indent": {
+      "comment": "leading whitespace on a joined line is part of the value",
+      "match": "^[ \\t]+"
+    },
     "string.valid": {
       "match": ".*",
       "name": "string.unquoted.rwconfig"
@@ -28,35 +37,40 @@
       "name": "invalid.illegal.escape.rwconfig"
     },
     "integer.valid": {
-      "match": "-?\\d+$",
+      "match": "-?\\d+(?=\\\\?$)",
       "name": "constant.numeric.rwconfig"
     },
     "integer.invalid": {
-      "match": "(?!-?\\d+$).+$",
+      "match": "(?!-?\\d+\\\\?$)(?:(?!\\\\$).)+(?=\\\\?$)",
       "name": "invalid.illegal.numeric.rwconfig"
     },
     "double.valid": {
-      "match": "-?(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?$",
+      "match": "-?(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?(?=\\\\?$)",
       "name": "constant.numeric.rwconfig"
     },
     "double.invalid": {
-      "match": "(?!-?(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?$).+$",
+      "match": "(?!-?(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?\\\\?$)(?:(?!\\\\$).)+(?=\\\\?$)",
       "name": "invalid.illegal.numeric.rwconfig"
     },
     "boolean.valid": {
-      "match": "(?i)(?:true|false|yes|no|on|off|1|0)$",
+      "match": "(?i)(?:true|false|yes|no|on|off|1|0)(?=\\\\?$)",
       "name": "constant.language.boolean.rwconfig"
     },
     "boolean.invalid": {
-      "match": "(?i)(?!(?:true|false|yes|no|on|off|1|0)$).+$",
+      "match": "(?i)(?!(?:true|false|yes|no|on|off|1|0)\\\\?$)(?:(?!\\\\$).)+(?=\\\\?$)",
       "name": "invalid.illegal.boolean.rwconfig"
     }
   },
   "patterns": [
     {
-      "comment": "comment",
-      "match": "^\\s*[#!].*$",
+      "comment": "comment. a comment that ends with a backslash swallows the next line, just like it does in the parser",
+      "begin": "^\\s*[#!]",
+      "end": "(?<![\\\\\\n])$",
       "name": "comment.line.number-sign.rwconfig"
+    },
+    {
+      "comment": "a trailing backslash anywhere else on a declaration line",
+      "include": "#continuation"
     },
     {
       "comment": "type",
@@ -69,13 +83,13 @@
       "name": "invalid.illegal.type-name.rwconfig"
     },
     {
-      "comment": "property name",
-      "match": "(?<=^[^\\[=]*\\[\\s*(?:\\\\.|[^\\]])*\\]\\s*|^\\s*[^\\s\\[=]+\\s+|^\\s*)[A-Za-z][\\w\\.\\\\-]*(?=\\s*=.*$|\\s*$)",
+      "comment": "property name. the allowed values list may have been opened on an earlier line, so the `[` is optional",
+      "match": "(?<=^(?:[^\\[=]*\\[\\s*)?(?:\\\\.|[^\\]])*\\]\\s*|^\\s*[^\\s\\[=]+\\s+|^\\s*)[A-Za-z][\\w\\.\\\\-]*(?=\\s*=.*$|\\s*$)",
       "name": "variable.other.property-name.rwconfig"
     },
     {
       "comment": "invalid property name",
-      "match": "(?<=^[^\\[=]*\\[(?:\\\\.|[^\\]])*\\]\\s*|^\\s*[^\\s\\[=]+\\s+|^\\s*)[^\\s\\[=]+(?=\\s*=.*$|\\s*$)",
+      "match": "(?<=^(?:[^\\[=]*\\[)?(?:\\\\.|[^\\]])*\\]\\s*|^\\s*[^\\s\\[=]+\\s+|^\\s*)[^\\s\\[=]+(?=\\s*=.*$|\\s*$)",
       "name": "invalid.illegal.property-name.rwconfig"
     },
     {
@@ -87,307 +101,301 @@
 
     {
       "comment": "integer",
-      "match": "(?<=^\\s*(?i:int|long)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
-      "captures": {
-        "1": {
-          "patterns": [
-            { "include": "#integer.valid"},
-            { "include": "#integer.invalid"}
-          ]
-        }
-      }
+      "begin": "(?<=^\\s*(?i:int|long)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+      "end": "(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation.indent"},
+        { "include": "#continuation"},
+        { "include": "#integer.valid"},
+        { "include": "#integer.invalid"}
+      ]
     },
     {
       "comment": "integer list",
-      "match": "(?<=^\\s*(?i:intList|longList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
-      "captures": {
-        "1":{
-          "patterns": [
-            {
-              "comment": "number",
-              "match": "([^,\\]\\s]+)",
-              "captures": {
-                "1":{
-                  "patterns": [
-                    { "include": "#integer.valid"},
-                    { "include": "#integer.invalid"}
-                  ]
-                }
-              }
+      "begin": "(?<=^\\s*(?i:intList|longList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+      "end": "(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation.indent"},
+        { "include": "#continuation"},
+        {
+          "comment": "number",
+          "match": "((?:(?!\\\\$)[^,\\]\\s])+)",
+          "captures": {
+            "1":{
+              "patterns": [
+                { "include": "#integer.valid"},
+                { "include": "#integer.invalid"}
+              ]
             }
-          ]
+          }
         }
-      }
+      ]
     },
     {
       "comment": "integer range",
-      "match": "(?<=^\\s*(?i:int|intList|long|longList)\\s*\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
-      "captures": {
-        "1":{
-          "patterns": [
-            {
-              "comment": "range",
-              "match": "([^,\\]]+)",
-              "captures": {
-                "1":{
-                  "patterns": [
-                    {
-                      "comment": "integer",
-                      "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
-                      "captures": {
-                        "1":{
-                          "patterns": [
-                            { "include": "#integer.valid"},
-                            { "include": "#integer.invalid"}
-                          ]
-                        },
-                        "2":{
-                          "patterns": [
-                            { "include": "#integer.valid"},
-                            { "include": "#integer.invalid"}
-                          ]
-                        }
-                      }
+      "begin": "(?<=^\\s*(?i:int|intList|long|longList)\\s*)\\[[ \\t]*",
+      "end": "\\]|(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation"},
+        {
+          "comment": "range",
+          "match": "((?:(?!\\\\$)[^,\\]\\n])+)",
+          "captures": {
+            "1":{
+              "patterns": [
+                {
+                  "comment": "integer",
+                  "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
+                  "captures": {
+                    "1":{
+                      "patterns": [
+                        { "include": "#integer.valid"},
+                        { "include": "#integer.invalid"}
+                      ]
+                    },
+                    "2":{
+                      "patterns": [
+                        { "include": "#integer.valid"},
+                        { "include": "#integer.invalid"}
+                      ]
                     }
-                  ]
+                  }
                 }
-              }
+              ]
             }
-          ]
+          }
         }
-      }
+      ]
     },
 
 
     {
       "comment": "double",
-      "match": "(?<=^\\s*(?i:double)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
-      "captures": {
-        "1": {
-          "patterns": [
-            { "include": "#double.valid"},
-            { "include": "#double.invalid"}
-          ]
-        }
-      }
+      "begin": "(?<=^\\s*(?i:double)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+      "end": "(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation.indent"},
+        { "include": "#continuation"},
+        { "include": "#double.valid"},
+        { "include": "#double.invalid"}
+      ]
     },
     {
       "comment": "double list",
-      "match": "(?<=^\\s*(?i:doubleList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
-      "captures": {
-        "1":{
-          "patterns": [
-            {
-              "comment": "double",
-              "match": "([^,\\]\\s]+)",
-              "captures": {
-                "1":{
-                  "patterns": [
-                    { "include": "#double.valid"},
-                    { "include": "#double.invalid"}
-                  ]
-                }
-              }
+      "begin": "(?<=^\\s*(?i:doubleList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+      "end": "(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation.indent"},
+        { "include": "#continuation"},
+        {
+          "comment": "double",
+          "match": "((?:(?!\\\\$)[^,\\]\\s])+)",
+          "captures": {
+            "1":{
+              "patterns": [
+                { "include": "#double.valid"},
+                { "include": "#double.invalid"}
+              ]
             }
-          ]
+          }
         }
-      }
+      ]
     },
     {
       "comment": "double range",
-      "match": "(?<=^\\s*(?i:double|doubleList)\\s*\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
-      "captures": {
-        "1":{
-          "patterns": [
-            {
-              "comment": "range",
-              "match": "([^,\\]]+)",
-              "captures": {
-                "1":{
-                  "patterns": [
-                    {
-                      "comment": "double",
-                      "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
-                      "captures": {
-                        "1":{
-                          "patterns": [
-                            { "include": "#double.valid"},
-                            { "include": "#double.invalid"}
-                          ]
-                        },
-                        "2":{
-                          "patterns": [
-                            { "include": "#double.valid"},
-                            { "include": "#double.invalid"}
-                          ]
-                        }
-                      }
+      "begin": "(?<=^\\s*(?i:double|doubleList)\\s*)\\[[ \\t]*",
+      "end": "\\]|(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation"},
+        {
+          "comment": "range",
+          "match": "((?:(?!\\\\$)[^,\\]\\n])+)",
+          "captures": {
+            "1":{
+              "patterns": [
+                {
+                  "comment": "double",
+                  "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
+                  "captures": {
+                    "1":{
+                      "patterns": [
+                        { "include": "#double.valid"},
+                        { "include": "#double.invalid"}
+                      ]
+                    },
+                    "2":{
+                      "patterns": [
+                        { "include": "#double.valid"},
+                        { "include": "#double.invalid"}
+                      ]
                     }
-                  ]
+                  }
                 }
-              }
+              ]
             }
-          ]
+          }
         }
-      }
+      ]
     },
 
 
     {
       "comment": "boolean",
-      "match": "(?<=^\\s*(?i:boolean)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
-      "captures": {
-        "1": {
-          "patterns": [
-            { "include": "#boolean.valid"},
-            { "include": "#boolean.invalid"}
-          ]
-        }
-      }
+      "begin": "(?<=^\\s*(?i:boolean)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+      "end": "(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation.indent"},
+        { "include": "#continuation"},
+        { "include": "#boolean.valid"},
+        { "include": "#boolean.invalid"}
+      ]
     },
     {
       "comment": "boolean list",
-      "match": "(?<=^\\s*(?i:booleanList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
-      "captures": {
-        "1":{
-          "patterns": [
-            {
-              "comment": "boolean",
-              "match": "([^,\\]\\s]+)",
-              "captures": {
-                "1":{
-                  "patterns": [
-                    { "include": "#boolean.valid"},
-                    { "include": "#boolean.invalid"}
-                  ]
-                }
-              }
+      "begin": "(?<=^\\s*(?i:booleanList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+      "end": "(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation.indent"},
+        { "include": "#continuation"},
+        {
+          "comment": "boolean",
+          "match": "((?:(?!\\\\$)[^,\\]\\s])+)",
+          "captures": {
+            "1":{
+              "patterns": [
+                { "include": "#boolean.valid"},
+                { "include": "#boolean.invalid"}
+              ]
             }
-          ]
+          }
         }
-      }
+      ]
     },
     {
       "comment": "boolean range",
-      "match": "(?<=^\\s*(?i:boolean|booleanList)\\s*\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
-      "captures": {
-        "1":{
-          "patterns": [
-            {
-              "comment": "range",
-              "match": "([^,\\]]+)",
-              "captures": {
-                "1":{
-                  "patterns": [
-                    {
-                      "comment": "boolean",
-                      "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
-                      "captures": {
-                        "1":{
-                          "patterns": [
-                            { "include": "#boolean.valid"},
-                            { "include": "#boolean.invalid"}
-                          ]
-                        },
-                        "2":{
-                          "patterns": [
-                            { "include": "#boolean.valid"},
-                            { "include": "#boolean.invalid"}
-                          ]
-                        }
-                      }
+      "begin": "(?<=^\\s*(?i:boolean|booleanList)\\s*)\\[[ \\t]*",
+      "end": "\\]|(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation"},
+        {
+          "comment": "range",
+          "match": "((?:(?!\\\\$)[^,\\]\\n])+)",
+          "captures": {
+            "1":{
+              "patterns": [
+                {
+                  "comment": "boolean",
+                  "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
+                  "captures": {
+                    "1":{
+                      "patterns": [
+                        { "include": "#boolean.valid"},
+                        { "include": "#boolean.invalid"}
+                      ]
+                    },
+                    "2":{
+                      "patterns": [
+                        { "include": "#boolean.valid"},
+                        { "include": "#boolean.invalid"}
+                      ]
                     }
-                  ]
+                  }
                 }
-              }
+              ]
             }
-          ]
+          }
         }
-      }
+      ]
     },
 
 
     {
       "comment": "string",
-      "match": "(?<=^\\s*(?i:string\\s*)?(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
-      "captures": {
-        "1": {
-          "name": "string.unquoted.rwconfig",
-          "patterns": [
-            { "include": "#escape.string.valid"},
-            { "include": "#escape.invalid"},
-            { "include": "#backreference"}
-          ]
-        }
-      }
+      "begin": "(?<=^\\s*(?i:string\\s*)?(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+      "end": "(?<![\\\\\\n])$",
+      "contentName": "string.unquoted.rwconfig",
+      "patterns": [
+        { "include": "#continuation"},
+        { "include": "#escape.string.valid"},
+        { "include": "#escape.invalid"},
+        { "include": "#backreference"}
+      ]
     },
     {
       "comment": "string list",
-      "match": "(?<=^\\s*(?i:stringList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*=\\s*)\\s*(.*)",
-      "captures": {
-        "1":{
-          "patterns": [
-            {
-              "comment": "string",
-              "match": "((?:\\\\.|[^,\\s])+)",
-              "captures": {
-                "1":{
-                  "name": "string.unquoted.rwconfig",
-                  "patterns": [
-                    { "include": "#escape.string.list.valid"},
-                    { "include": "#escape.string.valid"},
-                    { "include": "#escape.invalid"}
-                  ]
-                }
-              }
+      "begin": "(?<=^\\s*(?i:stringList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+      "end": "(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation.indent"},
+        { "include": "#continuation"},
+        {
+          "comment": "string",
+          "match": "((?:\\\\.|(?!\\\\$)[^,\\s])+)",
+          "captures": {
+            "1":{
+              "name": "string.unquoted.rwconfig",
+              "patterns": [
+                { "include": "#escape.string.list.valid"},
+                { "include": "#escape.string.valid"},
+                { "include": "#escape.invalid"}
+              ]
             }
-          ]
+          }
         }
-      }
+      ]
     },
     {
       "comment": "string range",
-      "match": "(?<=^\\s*(?i:string\\s*|stringList\\s*)?\\[\\s*)((?:\\\\.|[^\\]])*)(?=\\].*$)",
-      "captures": {
-        "1":{
-          "patterns": [
-            {
-              "comment": "range",
-              "match": "((?:\\\\.|[^,\\]])+)",
-              "captures": {
-                "1":{
-                  "patterns": [
-                    {
-                      "comment": "string",
-                      "match": "((?:\\\\.|[^,\\]\\s:])+)\\s*(?::\\s*((?:\\\\.|[^,\\]\\s])+))?",
-                      "captures": {
-                        "1":{
-                          "name": "string.unquoted.rwconfig",
-                          "patterns": [
-                            { "include": "#escape.string.list.valid"},
-                            { "include": "#escape.string.range.valid"},
-                            { "include": "#escape.string.valid"},
-                            { "include": "#escape.invalid"}
-                          ]
-                        },
-                        "2":{
-                          "name": "string.unquoted.rwconfig",
-                          "patterns": [
-                            { "include": "#escape.string.list.valid"},
-                            { "include": "#escape.string.range.valid"},
-                            { "include": "#escape.string.valid"},
-                            { "include": "#escape.invalid"}
-                          ]
-                        }
-                      }
+      "begin": "(?<=^\\s*(?i:string\\s*|stringList\\s*)?)\\[[ \\t]*",
+      "end": "\\]|(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation"},
+        {
+          "comment": "range",
+          "match": "((?:\\\\.|(?!\\\\$)[^,\\]\\n])+)",
+          "captures": {
+            "1":{
+              "patterns": [
+                {
+                  "comment": "string",
+                  "match": "((?:\\\\.|[^,\\]\\s:])+)\\s*(?::\\s*((?:\\\\.|[^,\\]\\s])+))?",
+                  "captures": {
+                    "1":{
+                      "name": "string.unquoted.rwconfig",
+                      "patterns": [
+                        { "include": "#escape.string.list.valid"},
+                        { "include": "#escape.string.range.valid"},
+                        { "include": "#escape.string.valid"},
+                        { "include": "#escape.invalid"}
+                      ]
+                    },
+                    "2":{
+                      "name": "string.unquoted.rwconfig",
+                      "patterns": [
+                        { "include": "#escape.string.list.valid"},
+                        { "include": "#escape.string.range.valid"},
+                        { "include": "#escape.string.valid"},
+                        { "include": "#escape.invalid"}
+                      ]
                     }
-                  ]
+                  }
                 }
-              }
+              ]
             }
-          ]
+          }
         }
-      }
+      ]
+    },
+
+
+    {
+      "comment": "value of a property whose allowed values list was opened on an earlier line. the type is not on this line, so the value cannot be validated, but it still has to be joined with any lines that follow it",
+      "begin": "(?<=^(?:\\\\.|[^\\]])*\\]\\s*[^\\s\\[=]+\\s*)=[ \\t]*",
+      "end": "(?<![\\\\\\n])$",
+      "patterns": [
+        { "include": "#continuation.indent"},
+        { "include": "#continuation"}
+      ]
     }
   ]
 }

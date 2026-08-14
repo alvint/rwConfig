@@ -377,7 +377,23 @@ public class ConfigFactory {
         if (SimpleConfigSourcePlugin.isSupportedLocation(location)) { // valid location
             // load the config file from the location
             try {
-                return SimpleConfigSourcePlugin.loadResource(location).lines().toList();
+                List<String> lines = SimpleConfigSourcePlugin.loadResource(location).lines().toList();
+                // join lines that end with a backslash with the next line, and
+                // remove the backslash
+                List<String> joinedLines = new LinkedList<>();
+                StringBuilder currentLine = new StringBuilder();
+                for (String line : lines) {
+                    boolean continues = line.endsWith("\\");
+                    currentLine.append(continues ? line.substring(0, line.length() - 1) : line);
+                    if (!continues) {
+                        joinedLines.add(currentLine.toString());
+                        currentLine.setLength(0);
+                    }
+                }
+                if (currentLine.length() > 0) {
+                    joinedLines.add(currentLine.toString());
+                }
+                return joinedLines;
             } catch (Exception e) {
                 throw new ConfigException("error loading config file from location: " + location, e);
             }
