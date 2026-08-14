@@ -1,6 +1,5 @@
 package net.rabbitware.config;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -366,30 +365,25 @@ public class ConfigFactory {
 
     private static List<String> loadConfigFile(String[] commandLineArgs) throws ConfigException {
         String configFilePath = getConfigFilePath(commandLineArgs);
+        return loadConfigFile(configFilePath);
+    }
 
-        // load the config file
-        Path path = Path.of(configFilePath);
-        if (Files.exists(path)) { // try to load the config file from the filesystem
+    private static List<String> loadConfigFile(String location) throws ConfigException {
+        // check if the config file path is a valid location
+        if (SimpleConfigSourcePlugin.isSupportedLocation(location)) { // valid location
+            // load the config file from the location
             try {
-                logger.debug("loading config file from filesystem: {}", configFilePath);
-                return Files.readAllLines(path, StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                throw new ConfigException("error reading configuration file: " + configFilePath, e);
+                return SimpleConfigSourcePlugin.loadResource(location).lines().toList();
+            } catch (Exception e) {
+                throw new ConfigException("error loading config file from location: " + location, e);
             }
-        } else { // try to load the config file from the classpath
-            try (
-                InputStream inputStream = Thread.currentThread().getContextClassLoader()
-                .getResourceAsStream(configFilePath)
-            ) {
-                if (inputStream != null) {
-                    logger.debug("loading config file from classpath: {}", configFilePath);
-                    return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8).lines().toList();
-                }
-            } catch (IOException e) {
-                throw new ConfigException("error reading configuration file from classpath: " + configFilePath, e);
-            }
+        } else { // not a valid location
+            // try to load the config file from the classpath first, then the
+            // filesystem
+            try { return loadConfigFile("classpath:" + location); } catch (Exception e) {}
+            try { return loadConfigFile("file:" + location); } catch (Exception e) {}
+            throw new ConfigException("config file path is not a valid location: " + location);
         }
-        throw new ConfigException("configuration file not found: " + configFilePath);
     }
 
     private static String getConfigFilePath(String[] commandLineArgs) {
