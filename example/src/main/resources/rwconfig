@@ -35,7 +35,7 @@
 #
 # `config.<sourceName>.<attribute>=<value>`.
  
-config.sources = args, system, environment, local, app, prefix, directory, json, xml, yaml, db
+config.sources = args, system, environment, local, organization, app, prefix, directory, json, xml, yaml, db
 
 # All config sources must have a `type` attribute that declares the type of the
 # config source. The type determines how the config system will load the source,
@@ -113,8 +113,8 @@ config.system.type = systemProperties
 config.environment.type = environmentVariables
 config.local.type = properties
 config.local.location = file:app.properties
-# config.organization.type = properties
-# config.organization.url = https://my-org.com/app.properties
+config.organization.type = properties
+config.organization.location = http://localhost:1520/web-test.properties
 config.app.type = properties
 config.app.location = classpath:app.properties
 config.prefix.type = prefix.plugin
@@ -357,3 +357,5 @@ intList server\limits
 server\endpoints\1\path
 # database plugin test cases
 databaseGreeting
+# http server test cases
+webTestGreeting

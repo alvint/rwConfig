@@ -1,4 +1,8 @@
 package net.rabbitware.config.example;
+import java.net.InetSocketAddress;
+import java.nio.file.Path;
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.SimpleFileServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config;
@@ -8,6 +12,7 @@ public class Test {
     private static final Logger logger = LoggerFactory.getLogger(Test.class);
 
     public static void main(String[] args) throws Exception {
+        createWebServer();
         createDatabase();
         Config config = ConfigFactory.create(args);
 
@@ -47,6 +52,25 @@ public class Test {
                 }
             }
         });
+    }
+
+
+    private static void createWebServer() {
+        HttpServer server = null;
+        try {
+            server = SimpleFileServer.createFileServer(
+                new InetSocketAddress(1520),
+                Path.of("web-test").toAbsolutePath(),
+                SimpleFileServer.OutputLevel.INFO
+            );
+            server.start();
+            logger.info("web server started on port 1520");
+        } catch (Exception e) {
+            logger.error("failed to start web server", e);
+            if (server != null) {
+                server.stop(0);
+            }
+        }
     }
 
     private static void createDatabase() throws Exception {
