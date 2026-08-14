@@ -13,10 +13,10 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * It requires two properties to be set in the {@code rwconfig} file:
  * <ul>
  * <li>
- * {@code config.<sourceName>.connectionString} - the JDBC connection string.
+ * {@code rwc.<sourceName>.connectionString} - the JDBC connection string.
  * </li>
  * <li>
- * {@code config.<sourceName>.query} - the SQL query to execute. The query must
+ * {@code rwc.<sourceName>.query} - the SQL query to execute. The query must
  * return at least two columns: the first column is the property key, and the
  * second column is the property value.
  * </li>
@@ -26,10 +26,10 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * file:
  * <ul>
  * <li>
- * {@code config.<sourceName>.username} - the username for the JDBC connection.
+ * {@code rwc.<sourceName>.username} - the username for the JDBC connection.
  * </li>
  * <li>
- * {@code config.<sourceName>.password} - the password for the JDBC connection.
+ * {@code rwc.<sourceName>.password} - the password for the JDBC connection.
  * </li>
  * </ul>
  */

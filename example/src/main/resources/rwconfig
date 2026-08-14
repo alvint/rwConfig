@@ -18,7 +18,7 @@
 
 
 #
-# Config setup section. Any property that starts with `config.` is used to
+# Config setup section. Any property that starts with `rwc.` is used to
 # configure the config system itself, and uses a syntax similar to a standard
 # java properties file. This means that all values in this section are strings.
 #
@@ -33,9 +33,9 @@
 # Information about each of the config sources (including how to load them) is
 # declared below this line, using this syntax:
 #
-# `config.<sourceName>.<attribute>=<value>`.
+# `rwc.<sourceName>.<attribute>=<value>`.
  
-config.sources = args, system, environment, local, organization, app, prefix, directory, json, xml, yaml, db
+rwc.sources = args, system, environment, local, organization, app, prefix, directory, json, xml, yaml, db
 
 # All config sources must have a `type` attribute that declares the type of the
 # config source. The type determines how the config system will load the source,
@@ -56,7 +56,7 @@ config.sources = args, system, environment, local, organization, app, prefix, di
 #      - dots and camel case letters are replaced with underscores, and then all
 #        remaining letters are uppercased
 # 4. properties: load configuration properties from a `.properties` file
-#    - The attribute `config.<sourceName>.location` must be declared for this
+#    - The attribute `rwc.<sourceName>.location` must be declared for this
 #     source type, and it must be a valid URL to a Java properties file.
 #     - Examples of valid URLs include:
 #       - `file:path/to/file.properties` - can be a relative or absolute path
@@ -65,7 +65,7 @@ config.sources = args, system, environment, local, organization, app, prefix, di
 #       - `https://my-org.com/app.properties`
 #       - `http://my-org.com/app.properties`
 # 5. directory: properties from all files in a directory
-#    - The attribute `config.<sourceName>.path` must be declared for this source
+#    - The attribute `rwc.<sourceName>.path` must be declared for this source
 #      type, and it must be a valid path to a directory on the filesystem.
 #    - The directory is seen as a single config source. The names of any regular
 #      files (or symlinks to regular files) inside the directory are used as the
@@ -79,20 +79,20 @@ config.sources = args, system, environment, local, organization, app, prefix, di
 #      - An exception will be thrown during initialization if any of the files in
 #        the directory cannot be read.
 # 6. yaml.plugin: load configuration properties from a YAML file
-#    - The attribute `config.<sourceName>.location` must be declared for this
+#    - The attribute `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to a YAML file.
 #      - see the `properties` section above for examples of valid URLs
 # 7. json.plugin: load configuration properties from a JSON file
-#    - The attribute `config.<sourceName>.location` must be declared for this
+#    - The attribute `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to a JSON file.
 #      - see the `properties` section above for examples of valid URLs
 # 8. xml.plugin: load configuration properties from an XML file
-#    - The attribute `config.<sourceName>.location` must be declared for this
+#    - The attribute `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to an XML file.
 #      - see the `properties` section above for examples of valid URLs
 # 9. prefix.plugin: load configuration properties from a properties file, and
 #    add a prefix to each property name.
-#    - The attribute `config.<sourceName>.location` must be declared for this
+#    - The attribute `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to a properties file.
 #      - see the `properties` section above for examples of valid URLs
 #
@@ -108,34 +108,34 @@ config.sources = args, system, environment, local, organization, app, prefix, di
 # declared in this file will cause an exception during initialization. This
 # behavior is on by default to help catch typos in property names.
 
-config.args.type = commandLineArguments
-config.system.type = systemProperties
-config.environment.type = environmentVariables
-config.local.type = properties
-config.local.location = file:app.properties
-config.organization.type = properties
-config.organization.location = http://localhost:1520/web-test.properties
-config.app.type = properties
-config.app.location = classpath:app.properties
-config.prefix.type = prefix.plugin
-config.prefix.mediaType = properties
-config.prefix.location = file:prefix-test.properties
-config.directory.type = directory
-config.directory.path = test-directory-source
-config.json.type = json.plugin
-config.json.location = file:test.json
-config.json.ignoreUnknownProperties = true
-config.xml.type = xml.plugin
-config.xml.location = file:pom.xml
-config.xml.ignoreUnknownProperties = true
-config.yaml.type = yaml.plugin
-config.yaml.location = file:test.yaml
-config.yaml.ignoreUnknownProperties = true
-config.yaml.resolveMergeKeys = on
-config.db.type = jdbc.plugin
-config.db.connectionString = jdbc:h2:mem:test-db
-config.db.query = SELECT * FROM config_properties
-config.db.username = admin
+rwc.args.type = commandLineArguments
+rwc.system.type = systemProperties
+rwc.environment.type = environmentVariables
+rwc.local.type = properties
+rwc.local.location = file:app.properties
+rwc.organization.type = properties
+rwc.organization.location = http://localhost:1520/web-test.properties
+rwc.app.type = properties
+rwc.app.location = classpath:app.properties
+rwc.prefix.type = prefix.plugin
+rwc.prefix.mediaType = properties
+rwc.prefix.location = file:prefix-test.properties
+rwc.directory.type = directory
+rwc.directory.path = test-directory-source
+rwc.json.type = json.plugin
+rwc.json.location = file:test.json
+rwc.json.ignoreUnknownProperties = true
+rwc.xml.type = xml.plugin
+rwc.xml.location = file:pom.xml
+rwc.xml.ignoreUnknownProperties = true
+rwc.yaml.type = yaml.plugin
+rwc.yaml.location = file:test.yaml
+rwc.yaml.ignoreUnknownProperties = true
+rwc.yaml.resolveMergeKeys = on
+rwc.db.type = jdbc.plugin
+rwc.db.connectionString = jdbc:h2:mem:test-db
+rwc.db.query = SELECT * FROM config_properties
+rwc.db.username = admin
 # You can use `<<` as a stand-in value in configuration properties to indicate
 # that the *actual* value for this property is located in another configuration
 # source. This is useful for sensitive sensitive information like passwords. The
@@ -148,9 +148,9 @@ config.db.username = admin
 # do not need to set the `ignoreUnknownProperties` flag to `true`.
 #
 # In this case, a higher-priority configuration source must contain the property
-# `config.db.password=mySecretPassword` or an exception will be thrown during
+# `rwc.db.password=mySecretPassword` or an exception will be thrown during
 # initialization.
-config.db.password = <<
+rwc.db.password = <<
 
 
 #

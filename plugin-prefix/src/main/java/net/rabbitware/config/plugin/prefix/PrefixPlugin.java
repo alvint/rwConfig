@@ -16,11 +16,11 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * It requires two properties to be set in the {@code rwconfig} file:
  * <ul>
  * <li>
- * {@code config.<sourceName>.mediaType} - the media type of the source.
+ * {@code rwc.<sourceName>.mediaType} - the media type of the source.
  * Currently, the only supported media type is {@code properties}.
  * </li>
  * <li>
- * {@code config.<sourceName>.location} - the location of the source.
+ * {@code rwc.<sourceName>.location} - the location of the source.
  * </li>
  * </ul>
  */

@@ -118,10 +118,10 @@ the Java system property `rw.config.path`, or adding the command line argument
 
 ```
 # sample config setup
-config.sources = args, system, environment
-config.args.type = commandLineArguments
-config.system.type = systemProperties
-config.environment.type = environmentVariables
+rwc.sources = args, system, environment
+rwc.args.type = commandLineArguments
+rwc.system.type = systemProperties
+rwc.environment.type = environmentVariables
 
 # example properties; your properties can be anything you want
 int[80, 1024:65535] port = 8000
@@ -136,7 +136,7 @@ going on:
 
 # Declare the names and priorities (highest to lowest) of any additional sources
 # to check for configuration properties.
-config.sources = args, system, environment
+rwc.sources = args, system, environment
 
 # Declare information about those sources. The type of the source is always
 # required. Other information may be needed as well, depending on the source
@@ -145,9 +145,9 @@ config.sources = args, system, environment
 # For more information on all of the built-in source types--as well as how to
 # create a custom source type plugin--see the `rwconfig` file in the example
 # project's `resources` folder
-config.args.type = commandLineArguments
-config.system.type = systemProperties
-config.environment.type = environmentVariables
+rwc.args.type = commandLineArguments
+rwc.system.type = systemProperties
+rwc.environment.type = environmentVariables
 
 
 #

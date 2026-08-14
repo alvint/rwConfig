@@ -15,7 +15,7 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * The plugin requires one property to be set in the {@code rwconfig} file:
  * <ul>
  * <li>
- * {@code config.<sourceName>.location} - the location of the source.
+ * {@code rwc.<sourceName>.location} - the location of the source.
  * </li>
  * </ul>
  */

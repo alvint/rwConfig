@@ -204,7 +204,7 @@ public interface SimpleConfigSourcePlugin {
     /**
      * Return the list of required plugin property names. Each property will be
      * retrieved from the {@code rwconfig} file using the key
-     * {@code config.<sourceName>.propertyName}. If a key is not found, the
+     * {@code rwc.<sourceName>.propertyName}. If a key is not found, the
      * config library will throw an exception and initialization will fail.
      * 
      * @return
@@ -215,7 +215,7 @@ public interface SimpleConfigSourcePlugin {
     /**
      * Return the list of optional plugin property names. Each property will be
      * retrieved from the {@code rwconfig} file using the key
-     * {@code config.<sourceName>.propertyName}. If a key is not found, the
+     * {@code rwc.<sourceName>.propertyName}. If a key is not found, the
      * value will be set to {@code null} and the plugin will continue to
      * initialize.
      * 

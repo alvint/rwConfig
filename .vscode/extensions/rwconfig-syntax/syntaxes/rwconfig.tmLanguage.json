@@ -4,7 +4,7 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "repository": {
     "backreference": {
-      "match": "(?<=^\\s*config\\.[^=]+=\\s*)<<(?=\\s*$)",
+      "match": "(?<=^\\s*rwc\\.[^=]+=\\s*)<<(?=\\s*$)",
       "name": "markup.bold"
     },
     "string.valid": {
