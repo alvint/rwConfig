@@ -45,11 +45,10 @@ interface for value retrieval.
 - support for multiple configuration sources
   - built-in support for Java `.properties` files and directory-based
     configuration
-  - support for YAML, JSON and XML using the supplied plugins
+  - support for loading app properties from YAML, JSON, XML, and databases using
+    the supplied plugins
   - built-in support for loading configuration files from the filesystem,
     a `jar` file on the filesystem, http(s), or the classpath
-    - support for loading configuration info from a database (using a plugin) is
-      coming
   - support for command line arguments, environment variables, and JVM system
     properties
   - simple plugin API for creating custom configuration sources
