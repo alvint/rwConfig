@@ -21,8 +21,69 @@
       "name": "string.unquoted.rwconfig"
     },
     "escape.string.valid": {
-      "match": "\\\\[\\\\ enrt]",
+      "comment": "`\\ ` is handled separately, since it is only valid at the start of a value",
+      "match": "\\\\[\\\\enrt]",
       "name": "constant.character.escape.rwconfig"
+    },
+    "escape.space.value.valid": {
+      "comment": "`\\ ` only means anything as the first non-whitespace character of a value. anywhere else it is an error",
+      "match": "(?<=^[ \\t]*|=[ \\t]*)\\\\ ",
+      "name": "constant.character.escape.rwconfig"
+    },
+    "escape.space.item.valid": {
+      "comment": "as `escape.space.value.valid`, but each item of a list is its own value",
+      "match": "(?<=^[ \\t]*|[=,][ \\t]*)\\\\ ",
+      "name": "constant.character.escape.rwconfig"
+    },
+    "escape.space.range.valid": {
+      "comment": "as `escape.space.value.valid`, but each allowed value and range bound is its own value",
+      "match": "(?<=^[ \\t]*|[\\[,:][ \\t]*)\\\\ ",
+      "name": "constant.character.escape.rwconfig"
+    },
+    "range.invalid": {
+      "comment": "an allowed value is either a single value (no colons) or `<min>:<max>` (one unescaped colon with a value on each side of it). anything else is a malformed range",
+      "match": "(?<=[\\[,][ \\t]*|^[ \\t]*)(?!(?:[ \\t]*|(?![ \\t]*(?::|$))(?:\\\\.|[^\\\\:])*(?::(?![ \\t]*$)(?:\\\\.|[^\\\\:])*)?)$).+$",
+      "name": "invalid.illegal.range.rwconfig"
+    },
+    "empty.list.item": {
+      "comment": "only string lists allow blank values, so an empty item in any other list is an error. the comma that opens the empty item is flagged, since the item itself has no characters to flag",
+      "patterns": [
+        {
+          "comment": "empty first item",
+          "match": "(?<==[ \\t]*),",
+          "name": "invalid.illegal.empty-value.rwconfig"
+        },
+        {
+          "comment": "empty item between two other items",
+          "match": ",[ \\t]*(?=,)",
+          "name": "invalid.illegal.empty-value.rwconfig"
+        },
+        {
+          "comment": "empty last item. a line that is continued is skipped, since the item may be on one of the lines that follow",
+          "match": ",[ \\t]*(?=$)",
+          "name": "invalid.illegal.empty-value.rwconfig"
+        }
+      ]
+    },
+    "empty.allowed.value": {
+      "comment": "as `empty.list.item`, but for the allowed values of a non-string type",
+      "patterns": [
+        {
+          "comment": "empty first allowed value",
+          "match": "(?<=\\[[ \\t]*),",
+          "name": "invalid.illegal.empty-value.rwconfig"
+        },
+        {
+          "comment": "empty allowed value between two others",
+          "match": ",[ \\t]*(?=,)",
+          "name": "invalid.illegal.empty-value.rwconfig"
+        },
+        {
+          "comment": "empty last allowed value",
+          "match": ",[ \\t]*(?=\\])",
+          "name": "invalid.illegal.empty-value.rwconfig"
+        }
+      ]
     },
     "escape.string.list.valid": {
       "match": "\\\\,",
@@ -117,6 +178,7 @@
       "patterns": [
         { "include": "#continuation.indent"},
         { "include": "#continuation"},
+        { "include": "#empty.list.item"},
         {
           "comment": "number",
           "match": "((?:(?!\\\\$)[^,\\]\\s])+)",
@@ -137,12 +199,14 @@
       "end": "\\]|(?<![\\\\\\n])$",
       "patterns": [
         { "include": "#continuation"},
+        { "include": "#empty.allowed.value"},
         {
           "comment": "range",
           "match": "((?:(?!\\\\$)[^,\\]\\n])+)",
           "captures": {
             "1":{
               "patterns": [
+                { "include": "#range.invalid"},
                 {
                   "comment": "integer",
                   "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
@@ -187,6 +251,7 @@
       "patterns": [
         { "include": "#continuation.indent"},
         { "include": "#continuation"},
+        { "include": "#empty.list.item"},
         {
           "comment": "double",
           "match": "((?:(?!\\\\$)[^,\\]\\s])+)",
@@ -207,12 +272,14 @@
       "end": "\\]|(?<![\\\\\\n])$",
       "patterns": [
         { "include": "#continuation"},
+        { "include": "#empty.allowed.value"},
         {
           "comment": "range",
           "match": "((?:(?!\\\\$)[^,\\]\\n])+)",
           "captures": {
             "1":{
               "patterns": [
+                { "include": "#range.invalid"},
                 {
                   "comment": "double",
                   "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
@@ -257,6 +324,7 @@
       "patterns": [
         { "include": "#continuation.indent"},
         { "include": "#continuation"},
+        { "include": "#empty.list.item"},
         {
           "comment": "boolean",
           "match": "((?:(?!\\\\$)[^,\\]\\s])+)",
@@ -277,12 +345,14 @@
       "end": "\\]|(?<![\\\\\\n])$",
       "patterns": [
         { "include": "#continuation"},
+        { "include": "#empty.allowed.value"},
         {
           "comment": "range",
           "match": "((?:(?!\\\\$)[^,\\]\\n])+)",
           "captures": {
             "1":{
               "patterns": [
+                { "include": "#range.invalid"},
                 {
                   "comment": "boolean",
                   "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
@@ -316,6 +386,7 @@
       "contentName": "string.unquoted.rwconfig",
       "patterns": [
         { "include": "#continuation"},
+        { "include": "#escape.space.value.valid"},
         { "include": "#escape.string.valid"},
         { "include": "#escape.invalid"},
         { "include": "#backreference"}
@@ -336,6 +407,7 @@
               "name": "string.unquoted.rwconfig",
               "patterns": [
                 { "include": "#escape.string.list.valid"},
+                { "include": "#escape.space.item.valid"},
                 { "include": "#escape.string.valid"},
                 { "include": "#escape.invalid"}
               ]
@@ -356,6 +428,7 @@
           "captures": {
             "1":{
               "patterns": [
+                { "include": "#range.invalid"},
                 {
                   "comment": "string",
                   "match": "((?:\\\\.|[^,\\]\\s:])+)\\s*(?::\\s*((?:\\\\.|[^,\\]\\s])+))?",
@@ -365,6 +438,7 @@
                       "patterns": [
                         { "include": "#escape.string.list.valid"},
                         { "include": "#escape.string.range.valid"},
+                        { "include": "#escape.space.range.valid"},
                         { "include": "#escape.string.valid"},
                         { "include": "#escape.invalid"}
                       ]
@@ -374,6 +448,7 @@
                       "patterns": [
                         { "include": "#escape.string.list.valid"},
                         { "include": "#escape.string.range.valid"},
+                        { "include": "#escape.space.range.valid"},
                         { "include": "#escape.string.valid"},
                         { "include": "#escape.invalid"}
                       ]
