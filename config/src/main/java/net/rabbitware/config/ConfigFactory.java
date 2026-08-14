@@ -131,7 +131,7 @@ public class ConfigFactory {
                 if (configProperties.containsKey(name) || propertyInfoMap.containsKey(name)) {
                     throw new ConfigException("duplicate config line for property: " + name);
                 }
-                if (name.startsWith(configRoot) || name.equalsIgnoreCase(CONFIG_ROOT_PROPERTY)) { // config setup line
+                if (name.startsWith(configRoot) || name.equals(CONFIG_ROOT_PROPERTY)) { // config setup line
                     if (type != null && !type.isEmpty()) {
                         throw new ConfigException("invalid config line (config setup lines cannot have a type): " + s);
                     }
