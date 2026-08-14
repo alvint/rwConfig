@@ -8,6 +8,13 @@
     "vscode": "^1.85.0"
   },
   "categories": ["Programming Languages"],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
+  },
   "contributes": {
     "languages": [
       {
