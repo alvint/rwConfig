@@ -254,31 +254,28 @@ public class ConfigFactory {
                             if (dirPath == null || dirPath.isEmpty()) {
                                 throw new ConfigException("missing config property: config." + sourceName + ".path");
                             }
-                            Map<String, String> properties = new HashMap<>();
-                            Stream<Path> files;
-                            try {
-                                files = Files.list(Path.of(dirPath));
+                            try (Stream<Path> files = Files.list(Path.of(dirPath))) {
+                                Map<String, String> properties = new HashMap<>();
+                                files
+                                    .filter(Files::isRegularFile)
+                                    .forEach(path -> {
+                                        try {
+                                            String fileName = path.getFileName().toString();
+                                            String content = Files.readString(path, StandardCharsets.UTF_8);
+                                            properties.put(fileName, content);
+                                        } catch (IOException e) {
+                                            throw new ConfigException(
+                                                "error reading config source file from directory for `" + sourceName + "`: " + path, e
+                                            );
+                                        }
+                                    });
+                                configSources.put(sourceName, properties);
+                                logger.debug("config source `{}` loaded from directory: {}", sourceName, dirPath);
                             } catch (IOException e) {
                                 throw new ConfigException(
                                     "error reading directory contents for `" + sourceName + "`: " + dirPath, e
                                 );
                             }
-                            files
-                                .filter(Files::isRegularFile)
-                                .forEach(path -> {
-                                    try {
-                                        String fileName = path.getFileName().toString();
-                                        String content = Files.readString(path, StandardCharsets.UTF_8);
-                                        properties.put(fileName, content);
-                                    } catch (IOException e) {
-                                        throw new ConfigException(
-                                            "error reading config source file from directory for `" + sourceName + "`: " + path, e
-                                        );
-                                    }
-                                });
-                            files.close();
-                            configSources.put(sourceName, properties);
-                            logger.debug("config source `{}` loaded from directory: {}", sourceName, dirPath);
                         }
                     }
                 }
