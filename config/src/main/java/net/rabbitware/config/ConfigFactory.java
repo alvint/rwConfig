@@ -27,6 +27,12 @@ public class ConfigFactory {
     public static final String CONFIG_FILE_PATH_PROPERTY = "rw.config.path";
     public static final String DEFAULT_CONFIG_FILE_PATH = "rwconfig";
 
+    /**
+     * This special value tells the library to look for the real value of this
+     * property in a previously loaded config source.
+     */
+    public static final String BACKREFERENCE_VALUE = "<<";
+
     private static final Logger logger = LoggerFactory.getLogger(ConfigFactory.class);
 
     public static Config create() throws ConfigException {
@@ -141,10 +147,7 @@ public class ConfigFactory {
                     throw new ConfigException("duplicate config source name: " + sourceName);
                 }
                 logger.debug("loading config source: {}", sourceName);
-                String type = configProperties.get("config." + sourceName + ".type");
-                if (type == null || type.isEmpty()) {
-                    throw new ConfigException("missing config property: config." + sourceName + ".type");
-                }
+                String type = getPluginProperty(configProperties, configSources, sourceName, "type", true);
                 if (type.indexOf('.') != -1) { // sourceType is a plugin
                     SimpleConfigSourcePlugin plugin = loadPluginByModule(type);
                     String pluginVersion = plugin.getPluginVersion();
@@ -153,30 +156,24 @@ public class ConfigFactory {
                         plugin.getClass().getName(), pluginVersion, sourceName
                     );
                     plugin.setSourceName(sourceName);
-                    // get the required and optional properties for the
-                    // plugin
+                    // get the required and optional properties for the plugin
                     Set<String> requiredProperties = Set.copyOf(plugin.getRequiredPluginPropertyNames());
                     Set<String> optionalProperties = Set.copyOf(plugin.getOptionalPluginPropertyNames());
-                    // get the properties for the plugin from the config
-                    // file
+                    // get the properties for the plugin from the config file
                     Map<String, String> properties = new HashMap<>();
                     requiredProperties.stream()
                         .forEach(propertyName -> {
-                            String propertyValue = configProperties.get("config." + sourceName + "." + propertyName);
-                            if (propertyValue == null || propertyValue.isEmpty()) {
-                                throw new ConfigException(
-                                    "missing required config property for config source `" + sourceName
-                                    + "` of type `" + type + "`: config." + sourceName + "." + propertyName
-                                );
-                            }
+                            String propertyValue = getPluginProperty(
+                                configProperties, configSources, sourceName, propertyName, true
+                            );
                             properties.put(propertyName, propertyValue);
                         });
                     optionalProperties.stream()
                         .forEach(propertyName -> {
-                            String propertyValue = configProperties.get("config." + sourceName + "." + propertyName);
-                            if (propertyValue != null && !propertyValue.isEmpty()) {
-                                properties.put(propertyName, propertyValue);
-                            }
+                            String propertyValue = getPluginProperty(
+                                configProperties, configSources, sourceName, propertyName, false
+                            );
+                            properties.put(propertyName, propertyValue);
                         });
                     // set the properties for the plugin
                     try {
@@ -225,10 +222,7 @@ public class ConfigFactory {
                             logger.debug("config source `{}` loaded from environment variables", sourceName);
                         }
                         case PROPERTIES -> {
-                            String location = configProperties.get("config." + sourceName + ".location");
-                            if (location == null || location.isEmpty()) {
-                                throw new ConfigException("missing config property: config." + sourceName + ".location");
-                            }
+                            String location = getPluginProperty(configProperties, configSources, sourceName, "location", true);
                             logger.info("setting plugin properties: location={}", location);
                             if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
                                 throw new ConfigException("unsupported location: " + location);
@@ -250,10 +244,7 @@ public class ConfigFactory {
                             }
                         }
                         case DIRECTORY -> {
-                            String dirPath = configProperties.get("config." + sourceName + ".path");
-                            if (dirPath == null || dirPath.isEmpty()) {
-                                throw new ConfigException("missing config property: config." + sourceName + ".path");
-                            }
+                            String dirPath = getPluginProperty(configProperties, configSources, sourceName, "path", true);
                             try (Stream<Path> files = Files.list(Path.of(dirPath))) {
                                 Map<String, String> properties = new HashMap<>();
                                 files
@@ -294,7 +285,7 @@ public class ConfigFactory {
                     .filter(s -> !config.has(s))
                     .forEach(name -> {
                         String valueString = properties.get(name);
-                        if (!propertyInfoMap.containsKey(name)) {
+                        if (!propertyInfoMap.containsKey(name) && !configProperties.containsKey(name)) {
                             if (!ignoreUnknownProperties) {
                                 throw new ConfigException(
                                     "property `"
@@ -310,7 +301,7 @@ public class ConfigFactory {
                                     name, sourceName
                                 );
                             }
-                        } else {
+                        } else if(!configProperties.containsKey(name)) {
                             PropertyInfo propertyInfo = propertyInfoMap.get(name);
                             Value value = parseValue(
                                 sourceName, name, valueString, propertyInfo.propertyType, propertyInfo.allowedValues
@@ -763,6 +754,40 @@ public class ConfigFactory {
                 "no module that provides `SimpleConfigSourcePlugin` was found by that name: " + moduleName)
             );
     }
+
+    private static String getPluginProperty(
+        Map<String, String> configProperties,
+        Map<String, Map<String, String>> configSources,
+        String sourceName,
+        String propertyName,
+        boolean required
+    ) {
+        String fullPropertyName = "config." + sourceName + "." + propertyName;
+        String propertyValue = configProperties.get(fullPropertyName);
+        if (required && (propertyValue == null || propertyValue.isEmpty())) {
+            throw new ConfigException("missing required config property:" + fullPropertyName);
+        }
+        // Check for the special value to indicate that the property should be
+        // retrieved from another config source that was loaded before this one.
+        // This is useful for sensitive information such as passwords, which
+        // should not be stored in the config file. The name searched for in the
+        // previously loaded config sources is the same as the fully qualified
+        // name of the property here. For example, if the property name here is
+        // `config.jdbc.password`, the plugin will look for this same property
+        // name in the previously loaded config sources.
+        if (BACKREFERENCE_VALUE.equals(propertyValue)) {
+            propertyValue = configSources.values().stream()
+                .filter(map -> map.containsKey(fullPropertyName))
+                .findFirst()
+                .map(map -> map.get(fullPropertyName))
+                .orElseThrow(() -> new ConfigException(
+                    "config property `" + fullPropertyName + "` is set to the special backreference value `"
+                    + BACKREFERENCE_VALUE + "`, but no previously loaded config source contains this property"
+                ));
+        }
+        return propertyValue;
+    }
+
 
 
     //
