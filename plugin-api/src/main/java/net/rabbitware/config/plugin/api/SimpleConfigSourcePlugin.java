@@ -2,6 +2,7 @@ package net.rabbitware.config.plugin.api;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -65,6 +66,19 @@ import java.util.Set;
  */
 public interface SimpleConfigSourcePlugin {
     /**
+     * How long {@link #loadResource(String)} will wait to connect to a remote
+     * resource before giving up, in milliseconds.
+     */
+    public static final int CONNECT_TIMEOUT_MILLIS = 10_000;
+
+    /**
+     * How long {@link #loadResource(String)} will wait for a remote resource to
+     * send data before giving up, in milliseconds. This is the timeout that
+     * matters when a server accepts the connection but never answers.
+     */
+    public static final int READ_TIMEOUT_MILLIS = 10_000;
+
+    /**
      * Load the content of a resource from the specified location. The location
      * must start with one of the following prefixes:
      * <ul>
@@ -125,7 +139,15 @@ public interface SimpleConfigSourcePlugin {
                 throw new IllegalArgumentException("location is not a valid URL: " + location);
             }
         }
-        try (InputStream in = url.openStream()) {
+        // Read through a connection rather than `url.openStream()` so that the
+        // timeouts below apply. Without them, an `http:` source whose server
+        // accepts the connection and then never answers would block startup
+        // forever, with nothing logged. Protocols that have no notion of a
+        // timeout (`classpath:`, `file:`, `jar:`) ignore these.
+        URLConnection connection = url.openConnection();
+        connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
+        connection.setReadTimeout(READ_TIMEOUT_MILLIS);
+        try (InputStream in = connection.getInputStream()) {
             // check if the resource is readable
             if (in == null) {
                 throw new IllegalArgumentException("resource is not readable: " + location);
