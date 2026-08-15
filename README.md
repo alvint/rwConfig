@@ -9,10 +9,10 @@ the same property in Source B if needed, and presents a small, unified, _fast_
 interface for value retrieval.
 
 How Fast is it? `getInt` and its primitive siblings are _literally faster than a
-HashMap_, and within 0.6 ns of a bare field read. That means caching a value in
-a local variable for use in a speed-critical loop is generally not worth the
-effort. These speed gains over the gold standard are possible because the
-library avoids boxing and unboxing of primitives.
+HashMap_, and within 0.6 ns of a bare field read. That means caching a value for
+use in a speed-critical loop is generally not worth the effort. These speed
+gains over the gold standard are possible because the library avoids boxing and
+unboxing of primitives.
 
 ## Features
 - fast reads
