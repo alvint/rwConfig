@@ -15,7 +15,7 @@ up-front cost for a reduced cost at retrieval time. And that cost is spent only
 once--not on every read of a property. If you're creating a long-lived app that
 may ultimately do a lot of reads, this definitely doesn't hurt.
 
-As a bonus, reads times are consistent no matter what you're reading or where
+As a bonus, read times are consistent no matter what you're reading or where
 you're getting it from.
 
 Don't take my word for it. [Run the benchmarks yourself!](benchmark) Or just look
@@ -31,8 +31,8 @@ is up to snuff at app start (when you're in the office), than to find out at 3am
 - fast reads
   - reading and parsing of configuration sources and property values happens at
     startup only
-  - after initialization, it's essentially just a flat, unmodifiable HashMap of
-    String keys to values
+  - after initialization, a read is a lookup in a flat HashMap of String keys to
+    already-parsed values
     - see the "Design Choices" section for more details
 - simple interface for property retrieval
   - since the library does the work of determining property types, allowed
@@ -122,7 +122,17 @@ me some feedback. See [Choosing a Configuration Library](docs/comparison.md).
 
 ## Quick Start
 ### 1. Jar Installation (via Maven)
-Add this to your project's pom.xml:
+rwConfig isn't on Maven Central yet--that's waiting on a version stable enough
+to call `1.0.0`. Until then, clone the repo and install it into your local Maven
+repository:
+
+```
+git clone https://github.com/alvint/config.git
+cd config
+mvn install
+```
+
+Then add this to your project's pom.xml:
 
 ```xml
 <dependencies>
@@ -137,10 +147,13 @@ Add this to your project's pom.xml:
 
 ### 2. Create a File Called `rwconfig`
 Place this file in the working directory where your app will run, or in the
-`resources` folder of your Maven project. You can optionally define a custom
-path to this file by setting the environment variable `RW_CONFIG_PATH`, setting
-the Java system property `rw.config.path`, or adding the command line argument
-`rw.config.path=/path/to/rwconfig`:
+`resources` folder of your Maven project. Either works; if you have both, the
+`resources` copy wins, since the classpath is checked first. You can optionally
+define a custom path to this file by setting the environment variable
+`RW_CONFIG_PATH`, setting the Java system property `rw.config.path`, or adding
+the command line argument `rw.config.path=/path/to/rwconfig`. If you set more
+than one, the command line wins, then the system property, then the environment
+variable:
 
 ```
 # sample config setup
