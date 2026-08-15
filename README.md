@@ -317,6 +317,8 @@ not working as the developer intended from that point on.
   your own
 - [Error Messages](docs/errors.md) - what each startup error means and how to
   fix it
+- [Choosing a Configuration Library](docs/comparison.md) - how rwConfig
+  compares with the alternatives, and when to use one of them instead
 - [Plugins](PLUGINS.md) - the YAML, JSON, XML, JDBC and prefix plugins that
   ship with the project
 

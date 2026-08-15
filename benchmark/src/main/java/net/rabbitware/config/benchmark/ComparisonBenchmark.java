@@ -44,7 +44,8 @@ import net.rabbitware.config.Config;
  * <li><b>Owner</b> reads through a dynamic proxy and converts on each call.</li>
  * <li><b>Archaius</b> is read through a handle obtained once and held, which is
  *     the idiom its documentation recommends. Reading the handle is close to a
- *     field access.</li>
+ *     field access. Both the legacy 1.x line and the current 2.x line are
+ *     measured, in both idioms.</li>
  * <li><b>Jackson</b> stands in for binding configuration into a record once and
  *     reading fields afterwards, so its "read" is a field access. The
  *     interesting number for that approach is the bind, under loading.</li>
@@ -254,7 +255,7 @@ public class ComparisonBenchmark {
     }
 
     @State(Scope.Benchmark)
-    public static class ArchaiusState {
+    public static class Archaius1State {
         com.netflix.config.DynamicIntProperty intProperty;
         com.netflix.config.DynamicStringProperty stringProperty;
 
@@ -264,6 +265,26 @@ public class ComparisonBenchmark {
             var factory = com.netflix.config.DynamicPropertyFactory.getInstance();
             intProperty = factory.getIntProperty(INT_NAME, -1);
             stringProperty = factory.getStringProperty(STRING_NAME, "");
+        }
+    }
+
+    /**
+     * Archaius 2, the current line. It offers the same two idioms as 1.x: a
+     * {@code Property} handle obtained once and held, or a direct lookup on
+     * the {@code Config}.
+     */
+    @State(Scope.Benchmark)
+    public static class Archaius2State {
+        com.netflix.archaius.api.Config config;
+        com.netflix.archaius.api.Property<Integer> intProperty;
+        com.netflix.archaius.api.Property<String> stringProperty;
+
+        @Setup(Level.Trial)
+        public void setUp() {
+            config = com.netflix.archaius.config.MapConfig.builder().putAll(asMap()).build();
+            var factory = com.netflix.archaius.DefaultPropertyFactory.from(config);
+            intProperty = factory.get(INT_NAME, Integer.class);
+            stringProperty = factory.get(STRING_NAME, String.class);
         }
     }
 
@@ -339,13 +360,24 @@ public class ComparisonBenchmark {
     }
 
     @Benchmark
-    public int archaiusInt(ArchaiusState state) {
+    public int archaius1Int(Archaius1State state) {
         return state.intProperty.get();
     }
 
     @Benchmark
     public int avajeInt(AvajeState state) {
         return io.avaje.config.Config.getInt(INT_NAME);
+    }
+
+    @Benchmark
+    public int archaius2Int(Archaius2State state) {
+        return state.intProperty.get();
+    }
+
+    /** Archaius 2 asked by name on each read, rather than through a handle. */
+    @Benchmark
+    public int archaius2IntByName(Archaius2State state) {
+        return state.config.getInteger(INT_NAME);
     }
 
     /** Reading a field of an already-bound record - effectively the floor. */
@@ -361,7 +393,7 @@ public class ComparisonBenchmark {
      * on every call.
      */
     @Benchmark
-    public int archaiusIntByName(ArchaiusState state) {
+    public int archaius1IntByName(Archaius1State state) {
         return com.netflix.config.DynamicPropertyFactory.getInstance()
             .getIntProperty(INT_NAME, -1).get();
     }
@@ -407,7 +439,12 @@ public class ComparisonBenchmark {
     }
 
     @Benchmark
-    public String archaiusString(ArchaiusState state) {
+    public String archaius1String(Archaius1State state) {
+        return state.stringProperty.get();
+    }
+
+    @Benchmark
+    public String archaius2String(Archaius2State state) {
         return state.stringProperty.get();
     }
 

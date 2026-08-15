@@ -78,6 +78,12 @@
             <version>0.7.7</version>
         </dependency>
         <dependency>
+            <!-- the current Archaius line, benchmarked alongside 1.x -->
+            <groupId>com.netflix.archaius</groupId>
+            <artifactId>archaius2-core</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+        <dependency>
             <groupId>io.avaje</groupId>
             <artifactId>avaje-config</artifactId>
             <version>4.0</version>

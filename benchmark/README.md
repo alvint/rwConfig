@@ -145,7 +145,12 @@ StartupBenchmark.createConfigWithEscapes             1000  avgt   10  2.140 ± 0
 
 ## Comparison with other config libraries
 
-`ComparisonBenchmark` reads the same configuration through ten libraries.
+For strengths, weaknesses and when to choose each of these, see
+[Choosing a Configuration Library](../docs/comparison.md) - this section is
+only about speed.
+
+`ComparisonBenchmark` reads the same configuration through ten libraries, and
+Archaius in both its 1.x and 2.x lines.
 Before reading the numbers, know what is being compared - they are not doing
 the same amount of work, and almost all of the spread is a design choice rather
 than one implementation being better written than another.
@@ -153,7 +158,7 @@ than one implementation being better written than another.
 | library | a read is | looks up a name? | values parsed |
 |---|---|---|---|
 | Jackson (bound record) | a field access | **no** - chosen at bind | once, at bind |
-| Archaius | reading a handle you hold | **no** - chosen when the handle is taken | once, at load; handle updated on change |
+| Archaius (1.x and 2.x) | reading a handle you hold | **no** - chosen when the handle is taken | once, at load; handle updated on change |
 | rwConfig | a map lookup of a typed value | yes | once, at load, against a declared type |
 | avaje-config | a map lookup, converted | yes | on read |
 | `java.util.Properties` | a map lookup, then your own parse | yes | never - you parse |
@@ -164,14 +169,19 @@ than one implementation being better written than another.
 | Owner | a dynamic proxy call, converted | yes (behind the proxy) | on read |
 
 Each library is used the way its own documentation recommends. That matters
-most for Archaius, whose idiom is to obtain a `DynamicIntProperty` once and
-hold it, and for Jackson, which stands in for "bind the config into a record at
+most for Archaius, whose idiom is to obtain a `DynamicIntProperty` (1.x) or a
+`Property<Integer>` (2.x) once and hold it, and for Jackson, which stands in for "bind the config into a record at
 startup and read fields afterwards".
 
 Versions: rwConfig 1.0.0-SNAPSHOT, Typesafe Config 1.4.3, Commons
 Configuration 2.11.0, Owner 1.0.12, Spring 6.1.14, SmallRye Config 3.10.2,
-Archaius 0.7.7, avaje-config 4.0, Jackson 2.18.2. JDK 26, Apple M-series
-laptop, 2 forks, 5 warmup and 5 measurement iterations.
+Archaius 0.7.7 and 2.7.0, avaje-config 4.0, Jackson 2.18.2. JDK 26, Apple
+M-series laptop, 2 forks, 5 warmup and 5 measurement iterations.
+
+> Absolute numbers move with the machine's thermal state - a rerun of the whole
+> set on a warmer laptop shifted every library up by 15-45% while leaving the
+> ordering and the ratios intact. Every figure below is from one run, and that
+> is the only way they should be read.
 
 > **Every library has its own `@State` class, and that matters.** An earlier
 > version of this benchmark built all ten in one shared state. Because JMH runs
@@ -188,40 +198,43 @@ laptop, 2 forks, 5 warmup and 5 measurement iterations.
 
 ```
 READ AN INT                                                lower is better
-  Jackson (bound record)  # 0.4 ns
-  Archaius (held handle)  # 1.5 ns
-  rwConfig                # 2.5 ns
-  avaje-config            # 3.7 ns
-  java.util.Properties    # 5.0 ns
-  SmallRye Config         ## 8.9 ns
-  Typesafe Config         #### 16.2 ns
-  Spring Environment      ######### 32.4 ns
-  Commons Configuration   ########## 37.0 ns
-  Owner                   ############################################## 168.9 ns
+  Jackson (bound record)  # 0.5 ns
+  Archaius 1.x (handle)   # 1.5 ns
+  Archaius 2.x (handle)   # 1.6 ns
+  rwConfig                # 3.3 ns
+  avaje-config            # 4.1 ns
+  java.util.Properties    # 7.3 ns
+  SmallRye Config         ## 10.2 ns
+  Typesafe Config         ### 16.5 ns
+  Spring Environment      ####### 35.1 ns
+  Commons Configuration   ######## 44.1 ns
+  Owner                   ############################################## 248.2 ns
 
 READ A STRING                                    (bar capped, Owner is off-scale)
-  Jackson (bound record)  # 0.5 ns
-  Archaius (held handle)  ## 1.3 ns
-  rwConfig                ### 2.4 ns
-  java.util.Properties    ### 2.5 ns
-  avaje-config            ### 2.6 ns
-  SmallRye Config         ####### 5.4 ns
-  Spring Environment      ############### 11.8 ns
-  Typesafe Config         ################### 15.6 ns
-  Commons Configuration   ##################################### 29.5 ns
-  Owner                   ##############################################> 4,978.2 ns
+  Jackson (bound record)  # 0.6 ns
+  Archaius 1.x (handle)   ## 1.4 ns
+  Archaius 2.x (handle)   ## 1.6 ns
+  rwConfig                ### 2.7 ns
+  avaje-config            ### 2.7 ns
+  java.util.Properties    #### 3.4 ns
+  SmallRye Config         ####### 6.3 ns
+  Spring Environment      ############## 12.2 ns
+  Typesafe Config         ############## 12.4 ns
+  Commons Configuration   ##################################### 33.4 ns
+  Owner                   ##############################################> 7,379.9 ns
 ```
 
 The ordering follows the design, in three bands:
 
-1. **No lookup at read time at all (0.4-1.5 ns).** Jackson hands you a record
-   and Archaius hands you a handle, so a read is a field access. **They are not
+1. **No lookup at read time at all (0.5-1.6 ns).** Jackson hands you a record
+   and Archaius hands you a handle, so a read is a field access. Both Archaius
+   lines land in the same place, within 0.05 ns of each other. **They are not
    answering the same question as the rest of the table** - see below.
-2. **A map lookup (2.4-5.0 ns).** rwConfig, avaje-config and plain
-   `Properties`. rwConfig leads this group, but on strings the three are within
-   0.2 ns of each other, which is not a difference worth choosing a library
-   over.
-3. **A lookup plus conversion or path parsing (5-37 ns), or a proxy (169 ns).**
+2. **A map lookup (2.7-7.3 ns).** rwConfig, avaje-config and plain
+   `Properties`. rwConfig leads this group, but on strings it and avaje-config
+   are within 0.01 ns of each other, which is not a difference worth choosing a
+   library over.
+3. **A lookup plus conversion or path parsing (6-44 ns), or a proxy (248 ns).**
    Everything else. Converting on read is what buys those libraries the ability
    to change values without rebuilding anything.
 
@@ -239,12 +252,17 @@ known ahead of time. Asking Archaius for a property by name on each read, which
 is the question the others are answering:
 
 ```
-  Archaius, handle held once      1.51 ns
-  Archaius, looked up by name     8.84 ns      <- same library, same value
-  rwConfig                        2.58 ns
+  Archaius 1.x, handle held once      1.54 ns
+  Archaius 1.x, looked up by name     9.85 ns      <- same library, same value
+  Archaius 2.x, handle held once      1.58 ns
+  Archaius 2.x, looked up by name    25.92 ns      <- same library, same value
+  rwConfig                            3.31 ns
 ```
 
-Nearly 6x its own handle read, and slower than every library in band 2. Jackson
+Between 6x and 16x its own handle read, and slower than every library in band
+2. The two lines are worth separating here: **holding the handle costs the same
+in 1.x and 2.x, but going by name is about 2.6x more expensive in 2.x** - so
+the newer line is the one where using the idiom actually matters. Jackson
 cannot be measured this way at all: a bound record has no way to answer "the
 property named `s`" without reflection, because the names became fields at
 compile time.
@@ -262,25 +280,25 @@ having to name every property in advance.
 
 ```
 LOAD 100 PROPERTIES                                        lower is better
-  Jackson bind (from a map)         2.67 us
-  SmallRye Config (from a map)      3.39 us
-  java.util.Properties (from file) 16.22 us
-  Typesafe Config (from file)      69.42 us
-  Commons Configuration (file)     75.19 us
-  rwConfig (from file)            169.51 us
+  Jackson bind (from a map)         3.24 us
+  SmallRye Config (from a map)      3.82 us
+  java.util.Properties (from file) 23.12 us
+  Typesafe Config (from file)      62.14 us
+  Commons Configuration (file)     84.29 us
+  rwConfig (from file)            208.90 us
 ```
 
 > Jackson and SmallRye are building from an already-parsed `Map`, with no file
 > reading or format parsing. They are not comparable to the four that read and
 > parse a file; they are shown to size the binding step itself.
 
-Among the file-based four, **rwConfig is the slowest to load - about 10x plain
-`Properties` and 2.4x Typesafe Config.** That is the other half of the same
+Among the file-based four, **rwConfig is the slowest to load - about 9x plain
+`Properties` and 3.4x Typesafe Config.** That is the other half of the same
 trade: it is reading a schema, resolving sources in priority order, and parsing
 and validating every value against a declared type and its allowed values. The
 others do less, and the convert-on-read ones defer what they do.
 
-**You pay roughly 170 microseconds once to save 2-35 nanoseconds per read and
+**You pay roughly 200 microseconds once to save 3-45 nanoseconds per read and
 to have misconfiguration fail at startup.** For a long-running service that is
 the right way round. For a short-lived command reading three values it is not,
 and the load cost is the number to look at rather than the read.
@@ -288,8 +306,8 @@ and the load cost is the number to look at rather than the read.
 ### A quirk worth knowing about Typesafe Config
 
 ```
-  rwConfig     getInt("alphaValue")     2.5 ns      getInt("prop50")     2.3 ns
-  Typesafe     getInt("alphaValue")    16.2 ns      getInt("prop50")   228.4 ns
+  rwConfig     getInt("alphaValue")     3.3 ns      getInt("prop50")     2.9 ns
+  Typesafe     getInt("alphaValue")    16.5 ns      getInt("prop50")   227.6 ns
 ```
 
 Typesafe Config parses the path on every read, and is roughly **10x slower when
@@ -300,8 +318,8 @@ common, so this is not a contrived case. The cause is in
 `_`, `-` and `.` but not digits, so a digit disables the fast path.
 
 This is why the benchmarks above use digit-free key names. An earlier draft
-read `prop50`, which made Typesafe Config look about 70x slower than rwConfig
-instead of roughly 6x. If you benchmark config libraries yourself, check that
+read `prop50`, which made Typesafe Config look about 79x slower than rwConfig
+instead of roughly 5x. If you benchmark config libraries yourself, check that
 your key names are not doing the measuring for you.
 
 ## Adding a benchmark
