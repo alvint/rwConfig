@@ -19,6 +19,7 @@
     <modules>
         <module>config</module>
         <module>example</module>
+        <module>benchmark</module>
         <module>plugin-api</module>
         <module>plugin-prefix</module>
         <module>plugin-json</module>
