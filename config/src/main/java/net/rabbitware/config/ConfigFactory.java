@@ -78,6 +78,11 @@ public class ConfigFactory {
         // 1. the type of the property (optional)
         //    - if the type is not specified, it defaults to `string`
         //    - leading and trailing whitespace is ignored
+        //    - a type only counts as a type if whitespace or a `[` follows it,
+        //      which is what the lookahead after the type is for. without it a
+        //      property name that starts with the name of a type would have
+        //      that prefix taken as its type - `longitude = 1` would declare a
+        //      property named `itude` of type `long`
         // 2. the allowed values of the property (optional)
         //    - if the allowed values are not specified, any value is allowed
         //    - leading whitespace is ignored, but trailing whitespace is kept
@@ -113,7 +118,7 @@ public class ConfigFactory {
             .reduce((a, b) -> a + "|" + b)
             .orElse("");
         var pattern = Pattern.compile(
-"^[^\\S\\n\\r]*((?i:{types}))?[^\\S\\n\\r]*(?:\\[\\s*((?:(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*)(?::\\s*(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*))?)(?:,\\s*(?:(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*)(?::\\s*(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*))?))*)\\])?\\s*([A-Za-z][\\w\\.\\\\-]*)\\s*(?:=[^\\S\\n\\r]*([^\\n\\r]*))?$"
+"^[^\\S\\n\\r]*((?i:{types})(?=[^\\S\\n\\r]|\\[))?[^\\S\\n\\r]*(?:\\[\\s*((?:(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*)(?::\\s*(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*))?)(?:,\\s*(?:(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*)(?::\\s*(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*))?))*)\\])?\\s*([A-Za-z][\\w\\.\\\\-]*)\\s*(?:=[^\\S\\n\\r]*([^\\n\\r]*))?$"
             .replace("{types}", types)
         );
         configFile.stream()

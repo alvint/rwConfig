@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -639,6 +640,85 @@ class ConfigFileTest {
                 e.getMessage().contains("duplicate config line"),
                 "expected a `duplicate config line` error, but got: " + e.getMessage()
             );
+        }
+    }
+
+
+    //
+    // a type is only a type when something separates it from the name
+    //
+
+    @Nested
+    @DisplayName("a name that starts with the name of a type is still just a name")
+    class NamesThatLookLikeTypes {
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "boolean", "int", "long", "double", "string",
+            "booleanList", "intList", "longList", "doubleList", "stringList",
+        })
+        @DisplayName("<type>Suffix is a string property named <type>Suffix, not a typed property named Suffix")
+        void aNameBeginningWithATypeName(String type) throws IOException {
+            String name = type + "Suffix";
+            Config config = config(name + " = a value");
+            assertEquals(Set.of(name), Set.copyOf(config.getPropertyNames()));
+            assertEquals(Config.PropertyType.STRING, config.getType(name));
+            assertEquals("a value", config.gets(name));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "longitude", "intervalSeconds", "stringify", "booleanFlag", "doubleClickMs", "intranet",
+        })
+        @DisplayName("names people actually write, which used to lose their leading characters")
+        void realisticNames(String name) throws IOException {
+            Config config = config(name + " = 1");
+            assertEquals(Set.of(name), Set.copyOf(config.getPropertyNames()));
+            assertEquals("1", config.gets(name));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "boolean myProp = true", "int myProp = 1", "long myProp = 1", "double myProp = 1.5",
+            "string myProp = a", "booleanList myProp = true", "intList myProp = 1",
+            "longList myProp = 1", "doubleList myProp = 1.5", "stringList myProp = a",
+        })
+        @DisplayName("a type separated from the name by a space is still a type")
+        void aTypeFollowedByASpace(String line) throws IOException {
+            assertEquals(Set.of("myProp"), Set.copyOf(config(line).getPropertyNames()));
+        }
+
+        @Test
+        @DisplayName("a type followed directly by an allowed values list is still a type")
+        void aTypeFollowedByABracket() throws IOException {
+            Config config = config("int[0:100] myProp = 90");
+            assertEquals(Config.PropertyType.INT, config.getType("myProp"));
+            assertEquals(90, config.geti("myProp"));
+        }
+
+        @Test
+        @DisplayName("a type that starts with the name of another type resolves to the longer one")
+        void aTypeThatStartsWithAnotherType() throws IOException {
+            Config config = config("intList myPorts = 1, 2", "longList myLongs = 3");
+            assertEquals(Config.PropertyType.INT_LIST, config.getType("myPorts"));
+            assertEquals(Config.PropertyType.LONG_LIST, config.getType("myLongs"));
+            assertEquals(List.of(1, 2), config.getil("myPorts"));
+        }
+
+        @Test
+        @DisplayName("the list examples in PLUGINS.md can be declared - they could not before")
+        void theNamesUsedInTheDocumentation() throws IOException {
+            Config config = config("stringList strings = a, b, c", "intList ints = 1, 2, 3");
+            assertEquals(List.of("a", "b", "c"), config.getsl("strings"));
+            assertEquals(List.of(1, 2, 3), config.getil("ints"));
+        }
+
+        @Test
+        @DisplayName("a property may be named exactly after a type")
+        void aNameThatIsExactlyATypeName() throws IOException {
+            Config config = config("string = a value");
+            assertEquals(Set.of("string"), Set.copyOf(config.getPropertyNames()));
+            assertEquals("a value", config.gets("string"));
         }
     }
 }
