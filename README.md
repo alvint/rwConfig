@@ -10,7 +10,7 @@ interface for value retrieval.
 
 ## How Fast Is It?
 For arbitrary reads it's already faster than the other popular config libraries
-tested. The reason is the library validates everything up front; it trades
+tested. The reason is this library validates everything up front; it trades
 up-front cost for a vastly reduced cost at retrieval time. And that cost is spent
 only once--not on every read of a property. If you're creating a long-lived app
 that may ultimately do a lot of reads, this is the way to go.
