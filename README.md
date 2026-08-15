@@ -301,5 +301,20 @@ not working as the developer intended from that point on.
   - no need to search through the code to find out where a value came from
 
 ## Documentation
-TODO - see the sample `rwconfig` file in the example project's `resources`
-folder for more details
+- [Getting Started](docs/getting-started.md) - what the library is for, and a
+  working configuration in a few minutes
+- [The `rwconfig` File](docs/config-file.md) - the file format in full: types,
+  allowed values, ranges, escapes, and splitting long lines
+- [Config Sources](docs/config-sources.md) - the built-in source types, how
+  precedence works, and how to keep secrets out of shared files
+- [The Java API](docs/java-api.md) - everything on the `Config` object
+- [Writing a Plugin](docs/writing-a-plugin.md) - adding a config source type of
+  your own
+- [Error Messages](docs/errors.md) - what each startup error means and how to
+  fix it
+- [Plugins](PLUGINS.md) - the YAML, JSON, XML, JDBC and prefix plugins that
+  ship with the project
+
+There is also a heavily commented [sample `rwconfig`
+file](example/src/main/resources/rwconfig) that exercises nearly every feature,
+and a [runnable example application](example) that loads it.
