@@ -21,6 +21,12 @@ you're getting it from.
 Don't take my word for it. [Run the benchmarks yourself!](benchmark) Or just look
 at the [takeaway](benchmark/README.md).
 
+## Does It Matter How Fast A Config System Is?
+Not really. But some people like numbers. What _really_ matters is the design
+ideology. It's better to define up-front what your config properties should look
+like and how they should be loaded. And it's _much_ better to test if a property
+is up to snuff at app start (when you're in the office), than to find out at 3am.
+
 ## Features
 - fast reads
   - reading and parsing of configuration sources and property values happens at
