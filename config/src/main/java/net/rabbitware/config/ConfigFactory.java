@@ -367,6 +367,9 @@ public class ConfigFactory {
                     );
                 }
             });
+        // every property has been added by this point, so the config can take
+        // its final set of property names
+        configImpl.freeze();
         logger.debug("Config instance created successfully");
         return configImpl;
     }

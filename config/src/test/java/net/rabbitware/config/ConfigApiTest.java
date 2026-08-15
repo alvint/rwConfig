@@ -2,6 +2,7 @@ package net.rabbitware.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -209,15 +210,28 @@ class ConfigApiTest {
         }
 
         @Test
-        @DisplayName("the set of property names is a copy, so changing it cannot change the config")
-        void theSetOfPropertyNamesIsACopy() {
+        @DisplayName("the set of property names cannot be modified")
+        void theSetOfPropertyNamesCannotBeModified() {
             Set<String> names = config.getPropertyNames();
-            names.add("somethingNew");
-            names.remove("myInt");
-            assertFalse(config.has("somethingNew"), "adding to the returned set must not add a property");
-            assertTrue(config.has("myInt"), "removing from the returned set must not remove a property");
-            assertTrue(config.getPropertyNames().contains("myInt"));
-            assertFalse(config.getPropertyNames().contains("somethingNew"));
+            assertThrows(UnsupportedOperationException.class, () -> names.add("somethingNew"));
+            assertThrows(UnsupportedOperationException.class, () -> names.remove("myInt"));
+            assertThrows(UnsupportedOperationException.class, () -> names.clear());
+            // and the config is unchanged by the attempts
+            assertTrue(config.has("myInt"));
+            assertFalse(config.has("somethingNew"));
+        }
+
+        @Test
+        @DisplayName("the property names are sorted, which is the order callers iterate them in")
+        void thePropertyNamesAreSorted() {
+            List<String> names = List.copyOf(config.getPropertyNames());
+            assertEquals(names.stream().sorted().toList(), names);
+        }
+
+        @Test
+        @DisplayName("the same set is handed out each time rather than rebuilt")
+        void theSetOfPropertyNamesIsStable() {
+            assertSame(config.getPropertyNames(), config.getPropertyNames());
         }
 
         @Test

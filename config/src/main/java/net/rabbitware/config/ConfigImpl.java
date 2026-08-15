@@ -1,5 +1,6 @@
 package net.rabbitware.config;
 import java.util.TreeSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,9 +22,17 @@ public class ConfigImpl implements Config {
     private final Map<String, List<Double>> doubleListValues = new HashMap<>();
     private final Map<String, List<String>> stringListValues = new HashMap<>();
 
+    /**
+     * The property names, in order, set once the config has been fully built.
+     * Holding this rather than building it on demand keeps
+     * {@link #getPropertyNames()} from rebuilding a sorted set on every call,
+     * and lets it hand out something that cannot be modified.
+     */
+    private Set<String> propertyNames = Set.of();
+
     @Override
     public Set<String> getPropertyNames() {
-        return new TreeSet<>(types.keySet());
+        return propertyNames;
     }
 
     @Override
@@ -204,6 +213,19 @@ public class ConfigImpl implements Config {
     //
     // package-private stuff
     //
+
+    /**
+     * Take the final set of property names. Properties are added one at a
+     * time, so this cannot be worked out until the config has been fully
+     * built - the factory calls this once it is done adding them.
+     * <p>
+     * The names are sorted, which is the order callers see when they iterate
+     * them, and the set handed out is unmodifiable.
+     */
+    void freeze() {
+        propertyNames = Collections.unmodifiableSortedSet(new TreeSet<>(types.keySet()));
+        logger.debug("config frozen with {} properties", propertyNames.size());
+    }
 
     void add(String name, Value value) {
         switch (value) {
