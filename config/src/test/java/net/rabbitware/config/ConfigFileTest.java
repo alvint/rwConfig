@@ -721,4 +721,50 @@ class ConfigFileTest {
             assertEquals("a value", config.gets("string"));
         }
     }
+
+
+    //
+    // comments and whitespace
+    //
+
+    @Nested
+    @DisplayName("comments and whitespace")
+    class CommentsAndWhitespace {
+
+        @Test
+        @DisplayName("a comment line may start with a # or a !")
+        void bothCommentCharacters() throws IOException {
+            Config config = config("# a hash comment", "! a bang comment", "myProp = a");
+            assertEquals(Set.of("myProp"), Set.copyOf(config.getPropertyNames()));
+        }
+
+        @Test
+        void aCommentMayBeIndented() throws IOException {
+            assertEquals(Set.of("myProp"), Set.copyOf(config("    # indented", "myProp = a").getPropertyNames()));
+        }
+
+        @Test
+        @DisplayName("a # that is not at the start of a line is part of the value")
+        void aHashInsideAValue() throws IOException {
+            assertEquals("a # b", config("myProp = a # b").gets("myProp"));
+        }
+
+        @Test
+        void blankLinesAreIgnored() throws IOException {
+            Config config = config("", "   ", "myProp = a", "", "myOther = b");
+            assertEquals(Set.of("myProp", "myOther"), Set.copyOf(config.getPropertyNames()));
+        }
+
+        @Test
+        @DisplayName("a declaration may be indented, and space around the `=` is ignored")
+        void surroundingWhitespaceIsIgnored() throws IOException {
+            assertEquals("a", config("    int myInt = 1", "   string myProp   =   a").gets("myProp"));
+        }
+
+        @Test
+        @DisplayName("trailing whitespace in a value is kept, leading whitespace is not")
+        void whitespaceAroundAValue() throws IOException {
+            assertEquals("a  ", config("string myProp =    a  ").gets("myProp"));
+        }
+    }
 }

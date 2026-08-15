@@ -166,6 +166,32 @@ class JsonPluginTest {
     }
 
 
+    @Nested
+    @DisplayName("keys are renamed so that flattening cannot produce a conflict")
+    class KeyNaming {
+
+        @Test
+        @DisplayName("a literal backslash in a key is escaped, so a nested key and a literal one differ")
+        void backslashesInKeysAreEscaped() throws Exception {
+            // PLUGINS.md: {"a": {"b": "wazoo"}, "a\\b": "..."} -> a\b and a\\b
+            Map<String, String> properties = load("{\"a\": {\"b\": \"wazoo\"}, \"a\\\\b\": \"literal\"}");
+            assertEquals("wazoo", properties.get("a\\b"));
+            assertEquals("literal", properties.get("a\\\\b"));
+        }
+
+        @Test
+        @DisplayName("an empty key is renamed to `empty\\key`")
+        void emptyKeysAreRenamed() throws Exception {
+            assertEquals("value", load("{\"a\": {\"\": \"value\"}}").get("a\\empty\\key"));
+        }
+
+        @Test
+        void anEmptyKeyAtTheTopLevel() throws Exception {
+            assertEquals("value", load("{\"\": \"value\"}").get("empty\\key"));
+        }
+    }
+
+
     @Test
     @DisplayName("the example from PLUGINS.md produces the properties it documents")
     void theDocumentedExample() throws Exception {

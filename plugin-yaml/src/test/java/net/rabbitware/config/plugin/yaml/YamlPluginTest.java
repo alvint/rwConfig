@@ -2,6 +2,7 @@ package net.rabbitware.config.plugin.yaml;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -150,6 +151,83 @@ class YamlPluginTest {
         @Test
         void booleansMixedWithStrings() throws Exception {
             assertNull(loadSequence("[true, a]").get("x"));
+        }
+    }
+
+
+    @Nested
+    @DisplayName("keys are renamed so that flattening cannot produce a conflict")
+    class KeyNaming {
+
+        @Test
+        @DisplayName("a literal backslash in a key is escaped, so a nested key and a literal one differ")
+        void backslashesInKeysAreEscaped() throws Exception {
+            Map<String, String> properties = load("a:\n  b: wazoo\n\"a\\\\b\": literal\n");
+            assertEquals("wazoo", properties.get("a\\b"));
+            assertEquals("literal", properties.get("a\\\\b"));
+        }
+
+        @Test
+        @DisplayName("an empty key is renamed to `empty\\key`")
+        void emptyKeysAreRenamed() throws Exception {
+            assertEquals("value", load("a:\n  \"\": value\n").get("a\\empty\\key"));
+        }
+
+        @Test
+        @DisplayName("a null key is renamed to `null\\key`")
+        void nullKeysAreRenamed() throws Exception {
+            assertEquals("value", load("a:\n  ?\n  : value\n").get("a\\null\\key"));
+        }
+    }
+
+
+    @Nested
+    @DisplayName("merge keys")
+    class MergeKeys {
+
+        private static final String MERGE_YAML = """
+            defaults: &defaults
+              retries: 3
+              timeout-seconds: 10
+            mergeKeyTest:
+              <<: *defaults
+              queue: jobs
+            """;
+
+        @Test
+        @DisplayName("are resolved by default, so the `<<` does not appear in property names")
+        void areResolvedByDefault() throws Exception {
+            Map<String, String> properties = load(MERGE_YAML);
+            assertEquals("jobs", properties.get("mergeKeyTest\\queue"));
+            assertEquals("3", properties.get("mergeKeyTest\\retries"));
+            assertEquals("10", properties.get("mergeKeyTest\\timeout-seconds"));
+            assertNull(properties.get("mergeKeyTest\\<<\\retries"));
+        }
+
+        @Test
+        @DisplayName("can be left in the graph, which is closer to the YAML 1.2 spec")
+        void canBeLeftUnresolved() throws Exception {
+            Path file = tempDir.resolve("source.yaml");
+            Files.writeString(file, MERGE_YAML);
+            YamlPlugin plugin = new YamlPlugin();
+            plugin.setSourceName("test");
+            plugin.setPluginProperties(Map.of("location", "file:" + file, "resolveMergeKeys", "false"));
+            Map<String, String> properties = plugin.getConfigSourceProperties();
+            assertEquals("jobs", properties.get("mergeKeyTest\\queue"));
+            assertEquals("3", properties.get("mergeKeyTest\\<<\\retries"));
+            assertNull(properties.get("mergeKeyTest\\retries"));
+        }
+
+        @Test
+        void anInvalidResolveMergeKeysValueIsRejected() throws Exception {
+            Path file = tempDir.resolve("source.yaml");
+            Files.writeString(file, "a: 1\n");
+            YamlPlugin plugin = new YamlPlugin();
+            plugin.setSourceName("test");
+            assertThrows(
+                Exception.class,
+                () -> plugin.setPluginProperties(Map.of("location", "file:" + file, "resolveMergeKeys", "maybe"))
+            );
         }
     }
 

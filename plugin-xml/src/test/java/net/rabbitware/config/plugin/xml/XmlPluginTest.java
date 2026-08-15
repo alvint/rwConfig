@@ -151,6 +151,40 @@ class XmlPluginTest {
     }
 
     @Test
+    @DisplayName("the nested-document example from PLUGINS.md, including repeated elements and xmlns")
+    void theDocumentedNestedExample() throws Exception {
+        Map<String, String> properties = load("""
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+                <groupId>com.foo</groupId>
+                <artifactId>example</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-simple</artifactId>
+                    </dependency>
+                </dependencies>
+            </project>
+            """);
+        assertEquals("http://maven.apache.org/POM/4.0.0", properties.get("project\\xmlns"));
+        assertEquals("com.foo", properties.get("project\\groupId"));
+        assertEquals("example", properties.get("project\\artifactId"));
+        assertEquals("org.slf4j", properties.get("project\\dependencies\\dependency\\0\\groupId"));
+        assertEquals("slf4j-api", properties.get("project\\dependencies\\dependency\\0\\artifactId"));
+        assertEquals("org.slf4j", properties.get("project\\dependencies\\dependency\\1\\groupId"));
+        assertEquals("slf4j-simple", properties.get("project\\dependencies\\dependency\\1\\artifactId"));
+    }
+
+    @Test
+    @DisplayName("an empty element is an empty value rather than a missing one")
+    void emptyElements() throws Exception {
+        assertEquals("", load("<root><a></a></root>").get("root\\a"));
+    }
+
+    @Test
     void attributesBecomeProperties() throws Exception {
         Map<String, String> properties = load("<root a=\"1\"><b>2</b></root>");
         assertEquals("1", properties.get("root\\a"));

@@ -1,6 +1,7 @@
 package net.rabbitware.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -17,6 +18,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 
@@ -62,6 +65,58 @@ class LoadResourceTest {
             IllegalArgumentException.class,
             () -> SimpleConfigSourcePlugin.loadResource("just-a-path")
         );
+    }
+
+    @Test
+    @DisplayName("a jar: location reads an entry from inside a jar file")
+    void aJarLocationIsRead() throws Exception {
+        Path classes = tempDir.resolve("classes");
+        Files.createDirectories(classes);
+        Files.writeString(classes.resolve("inner.properties"), "greeting=from inside a jar");
+        Path jar = tempDir.resolve("bundle.jar");
+        try (var out = new java.util.jar.JarOutputStream(Files.newOutputStream(jar))) {
+            out.putNextEntry(new java.util.zip.ZipEntry("inner.properties"));
+            out.write(Files.readAllBytes(classes.resolve("inner.properties")));
+            out.closeEntry();
+        }
+        assertEquals(
+            "greeting=from inside a jar",
+            SimpleConfigSourcePlugin.loadResource("jar:file:" + jar + "!/inner.properties")
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "classpath:a.properties",
+        "file:a.properties",
+        "file:/tmp/a.properties",
+        "jar:file:/tmp/a.jar!/a.properties",
+        "http://example.com/a.properties",
+        "https://example.com/a.properties",
+    })
+    @DisplayName("the location prefixes the documentation lists are supported")
+    void supportedLocations(String location) {
+        assertTrue(
+            SimpleConfigSourcePlugin.isSupportedLocation(location),
+            location + " should be a supported location"
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"a.properties", "/tmp/a.properties", "ftp://example.com/a", "", "   "})
+    @DisplayName("anything without a supported prefix is not a location")
+    void unsupportedLocations(String location) {
+        assertFalse(
+            SimpleConfigSourcePlugin.isSupportedLocation(location),
+            location + " should not be a supported location"
+        );
+    }
+
+    @Test
+    @DisplayName("a location prefix is recognized regardless of case or surrounding space")
+    void locationPrefixesAreCaseInsensitive() {
+        assertTrue(SimpleConfigSourcePlugin.isSupportedLocation("FILE:a.properties"));
+        assertTrue(SimpleConfigSourcePlugin.isSupportedLocation("  https://example.com/a  "));
     }
 
     @Test
