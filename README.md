@@ -1,12 +1,13 @@
-# rwConfig
-rwConfig is a simple, lightweight library that provides a unified interface for
-reading static configuration information in your projects.
+# What is rwConfig?
+rwConfig is a simple, lightweight library that provides a unified and _fast_
+interface for reading static configuration information from a wide range of
+configuration sources.
 
-rwConfig retrieves properties from any number of configuration sources,
-validates that all properties are set and contain appropriate values,
-prioritizes configuration sources so that a property from Source A can override
-the same property in Source B if needed, and presents a small, unified, _fast_
-interface for value retrieval.
+What distinguishes rwConfig from the pack is its design philosophy: define
+what you need and what it should look like ahead of time, and _validate that
+you have what you need_ on startup. This means that you can rest easier knowing
+that you won't be surprised by configuration issues when it's too late to do
+something about it.
 
 ## How Fast Is It?
 For arbitrary reads it's already faster than the other popular config libraries
