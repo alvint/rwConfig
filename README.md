@@ -4,8 +4,8 @@ interface for reading static configuration information from a wide range of
 configuration sources.
 
 What distinguishes rwConfig from the pack is its design philosophy: define
-what you need and what it should look like ahead of time, and _validate that
-you have what you need_ on startup. This means that you can rest easier knowing
+what you need and what it should look like ahead of time, and validate that
+you have what you need on startup. This means that you can rest easier knowing
 that you won't be surprised by configuration issues when it's too late to do
 something about it.
 
