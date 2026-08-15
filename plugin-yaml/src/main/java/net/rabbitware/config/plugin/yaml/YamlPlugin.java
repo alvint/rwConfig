@@ -137,12 +137,7 @@ public class YamlPlugin implements SimpleConfigSourcePlugin {
             }
             case List<?> list -> {
                 // treat uniform primitive arrays as a list
-                if (
-                    arrayContainsOnly(list, Byte.class, Short.class, Integer.class, Long.class)
-                    || arrayContainsOnly(list, Float.class, Double.class)
-                    || arrayContainsOnly(list, String.class)
-                    || arrayContainsOnly(list, Boolean.class)
-                ) { // treat as a list
+                if (arrayIsPrimitiveAndUniform(list)) { // treat as a list
                     StringBuilder sb = new StringBuilder();
                     for (int index = 0; index < list.size(); index++) {
                         if (index > 0) {
@@ -170,42 +165,36 @@ public class YamlPlugin implements SimpleConfigSourcePlugin {
         }
     }
 
-    // returns true if the given JSONArray contains only elements of the
-    // specified class
-    private boolean arrayContainsOnly(List<?> a, Class<?> c1) {
-        return arrayContainsOnly(a, c1, null, null, null);
-    }
-        
-    // returns true if the given JSONArray contains only elements of the
-    // specified classes
-    private boolean arrayContainsOnly(List<?> a, Class<?> c1, Class<?> c2) {
-        return arrayContainsOnly(a, c1, c2, null, null);
-    }
 
-    // returns true if the given JSONArray contains only elements of the
-    // specified classes
-    private boolean arrayContainsOnly(List<?> a, Class<?> c1, Class<?> c2, Class<?> c3, Class<?> c4) {
-        if (c2 == null) {
-            c2 = c1;
-        }
-        if (c3 == null) {
-            c3 = c1;
-        }
-        if (c4 == null) {
-            c4 = c1;
-        }
-        if (a.isEmpty()) {
-            return true; // empty array is considered homogeneous
-        }
-        for (Object element : a) {
-            if (
-                !(c1.isInstance(element) || c2.isInstance(element) || c3.isInstance(element) || c4.isInstance(element))
-            ) {
-                return false;
+    // returns true if the given JSONArray contains only primitive elements of
+    // the same type
+    private boolean arrayIsPrimitiveAndUniform(List<?> a) {
+        int hasString = 0;
+        int hasIntegers = 0;
+        int hasFloats = 0;
+        int hasBooleans = 0;
+        for (int i = 0; i < a.size(); i++) {
+            switch (a.get(i)) {
+                case String s -> hasString = 1;
+                case Boolean b -> hasBooleans = 1;
+                case Number n -> {
+                    String number = n.toString();
+                    if (number.matches("[+-]?\\d+")) {
+                        hasIntegers = 1;
+                    } else if (number.matches("[+-]?(?:\\d+\\.\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?|[+-]?\\d+[eE][+-]?\\d+")) {
+                        hasFloats = 1;
+                    } else {
+                        return false;
+                    }
+                }
+                case null -> hasString = 1; // treat null as a string for uniformity
+                default -> {
+                    return false;
+                }
             }
         }
-        return true;
-    }
+        return hasString + hasIntegers + hasFloats + hasBooleans <= 1;
+    }        
 
     private void add(Map<String, String> map, String key, Object value) {
         if (map.containsKey(key)) {
