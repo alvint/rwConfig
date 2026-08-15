@@ -15,8 +15,6 @@ interface for value retrieval.
   - after initialization, it's essentially just a flat, unmodifiable HashMap of
     String keys to values
     - see the "Design Choices" section for more details
-  - specific value classes are preferred over generics to (hopefully) improve
-    performance by avoiding boxing and unboxing
 - simple interface for property retrieval
   - since the library does the work of determining property types, allowed
     values, and default values at initialization, the API side doesn't need to
