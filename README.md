@@ -8,6 +8,18 @@ prioritizes configuration sources so that a property from Source A can override
 the same property in Source B if needed, and presents a small, unified, _fast_
 interface for value retrieval.
 
+## How Fast Is It?
+For arbitrary reads it's already faster than the other popular config libraries
+tested. The reason is the library validates everything up front; it trades
+up-front cost for a vastly reduced cost at retrieval time. If you're creating a
+long-lived service that may ultimately do a lot of reads, this is the way to go.
+
+As a bonus, reads are consistent no matter what you're reading or where you're
+getting it from.
+
+Don't take my word for it. [Run the benchmarks yourself!](benchmark) Or just look at the
+[takeaway](benchmark/README.md).
+
 ## Features
 - fast reads
   - reading and parsing of configuration sources and property values happens at
