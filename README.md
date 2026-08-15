@@ -105,6 +105,15 @@ at the [takeaway](benchmark/README.md).
 - anything that would greatly increase size, or add dependencies to this project
   outside of Java Base
 
+## Should I Rip Out My Old Config System And Use It?
+The short answer is "probably not". The more accurate answer is "it depends,
+but probably not". It's generally not worth the effort to make that kind of
+change in an existing project, frameworks normally have their own "blessed"
+config systems and it's best not to swim against the tide, and if you recommend
+an immature library for a new production-level project people build will correctly
+think you're crazy. Maybe just play around with it on your home projects and give
+me some feedback. See [Choosing a Configuration Library](docs/comparison.md).
+
 ## Quick Start
 ### 1. Jar Installation (via Maven)
 Add this to your project's pom.xml:
@@ -254,14 +263,6 @@ property declarations, default values, and value types at startup. This means:
 These errors are treated as unchecked exceptions because (a) they are avoidable
 at coding time, and (b) encountering them at runtime guarantees that the code is
 not working as the developer intended from that point on.
-
-## Should I Rip Out My Old Config System And Use It?
-The short answer is "probably not". The more accurate answer is "it depends,
-but probably not". It's generally not worth the effort to make that kind of
-change in an existing project, and if you recommend an immature library for a new
-production-level project people build will correctly think you're crazy. Maybe
-play around with it on your home project for a while and give me some feedback.
-See [Choosing a Configuration Library](docs/comparison.md).
 
 ## TODOs
 - IDE/Maven support to detect missing properties and incorrect property types at
