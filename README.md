@@ -110,7 +110,7 @@ The short answer is "probably not". The more accurate answer is "it depends,
 but probably not". It's generally not worth the effort to make that kind of
 change in an existing project, frameworks normally have their own "blessed"
 config systems and it's best not to swim against the tide, and if you recommend
-an immature library for a new production-level project people build will correctly
+an immature library for a new production-level project people will correctly
 think you're crazy. Maybe just play around with it on your home projects and give
 me some feedback. See [Choosing a Configuration Library](docs/comparison.md).
 
