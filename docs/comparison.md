@@ -78,7 +78,9 @@ and fallbacks are excellent; hierarchical config is first class.
 **Weaknesses:** no schema, so a typo in a key is only found when something asks
 for it; reads parse the path every time, and are roughly 10x slower when a key
 contains a digit, because a digit disables its fast path for parsing a path
-(measured in [the benchmark](../benchmark/README.md)); no built-in reload.
+(measured in [the benchmark](../benchmark/README.md), and reported upstream as
+[lightbend/config#857](https://github.com/lightbend/config/issues/857)); no
+built-in reload.
 
 **Choose it when** you want a rich file format, you are in the Akka/Pekko/Play
 world, or you want the option with the largest community.

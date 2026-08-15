@@ -317,6 +317,11 @@ common, so this is not a contrived case. The cause is in
 `PathParser.looksUnsafeForFastParser`, whose character loop accepts letters,
 `_`, `-` and `.` but not digits, so a digit disables the fast path.
 
+This is reported upstream as
+[lightbend/config#857](https://github.com/lightbend/config/issues/857), open at
+the time of writing. If it has been fixed since, the Typesafe figures in this
+section are stale - check the issue before quoting them.
+
 This is why the benchmarks above use digit-free key names. An earlier draft
 read `prop50`, which made Typesafe Config look about 79x slower than rwConfig
 instead of roughly 5x. If you benchmark config libraries yourself, check that
