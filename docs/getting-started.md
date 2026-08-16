@@ -23,6 +23,18 @@ Two things follow from that, and they are the point of the library:
 
 ## Install
 
+rwConfig isn't on Maven Central yet - that's waiting on a version stable enough
+to call `1.0.0`. Until then, clone the repo and install it into your local Maven
+repository:
+
+```
+git clone https://github.com/alvint/config.git
+cd config
+mvn install
+```
+
+Then add the dependency to your project:
+
 ```xml
 <dependency>
     <groupId>net.rabbitware.config</groupId>
