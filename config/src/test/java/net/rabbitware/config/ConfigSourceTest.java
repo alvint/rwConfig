@@ -363,11 +363,32 @@ class ConfigSourceTest {
     class SourceDeclarations {
 
         @Test
-        void theSourcesPropertyIsRequired() throws IOException {
-            ConfigException e = rejected("myProp = a");
+        @DisplayName("a file with no sources at all is valid - every value is a default")
+        void theSourcesSettingIsOptional() throws IOException {
+            // the smallest useful `rwconfig` file: one declaration, no library
+            // settings whatsoever
+            Config config = config("int port = 8000");
+            assertEquals(8000, config.geti("port"));
+        }
+
+        @Test
+        @DisplayName("without sources, a property with no default still fails at startup")
+        void withoutSourcesAPropertyStillNeedsAValue() throws IOException {
+            // nothing can supply it, so the usual requirement still bites
+            ConfigException e = rejected("int port = 8000", "DBPassword");
             assertTrue(
-                e.getMessage().contains("missing library setting: ") && e.getMessage().contains("sources"),
-                "expected a `missing library setting` error naming `sources`, but got: " + e.getMessage()
+                e.getMessage().contains("DBPassword"),
+                "the error should name the property, but got: " + e.getMessage()
+            );
+        }
+
+        @Test
+        @DisplayName("without sources, declared values are still validated")
+        void withoutSourcesValuesAreStillValidated() throws IOException {
+            ConfigException e = rejected("int[80, 1024:65535] port = 500");
+            assertTrue(
+                e.getMessage().contains("not allowed"),
+                "expected an allowed-values error, but got: " + e.getMessage()
             );
         }
 

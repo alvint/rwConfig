@@ -1,0 +1,36 @@
+# A minimal `rwconfig` file. The one next to this - `rwconfig` - is the full
+# reference that exercises nearly every feature; this one is the other end of
+# the scale, and is close to the smallest file worth writing.
+#
+# Everything here is optional except the property declarations themselves. A
+# file containing nothing but `int port = 8000` is valid: with no config
+# sources, every property simply takes the default declared here.
+
+
+# --- library settings ---------------------------------------------------
+#
+# Where to look for values, highest precedence first. A value found in `args`
+# wins over the same property from `environment`, which wins over the default
+# declared below. Omit this line entirely and there are no sources at all.
+rwc.sources = args, environment
+
+# Every source declares its type. These two need nothing else.
+rwc.args.type = commandLineArguments
+rwc.environment.type = environmentVariables
+
+
+# --- property declarations ----------------------------------------------
+#
+# `<type>[<allowed values>] <name> = <default>`, where the type, the allowed
+# values and the default are all optional.
+
+# an int, restricted to 80 or anything from 1024 to 65535, defaulting to 8000
+int[80, 1024:65535] port = 8000
+
+# no type means `string`, and no `=` means no default - so this one must be
+# supplied by a source, or startup fails. Set it with `DBPassword=secret` on
+# the command line, or the environment variable `DB_PASSWORD`.
+DBPassword
+
+# a list. Items are comma-separated, and the type applies to each item.
+stringList allowedHosts = localhost, 127.0.0.1

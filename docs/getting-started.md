@@ -53,7 +53,34 @@ Then add the dependency to your project:
 ## A first `rwconfig` file
 
 Create a file named `rwconfig` in your working directory, or in
-`src/main/resources`:
+`src/main/resources`. The smallest one that works is a single line:
+
+```
+int port = 8080
+```
+
+That is a complete, valid configuration. It declares one property, `port`, of
+type `int`, defaulting to `8080` - and with no config sources declared, the
+default is simply the value.
+
+Declarations get more precise from there:
+
+```
+int[80, 1024:65535] port = 8080
+string greeting = Hello
+dbPassword
+```
+
+- `port` may now only be `80` or anything from `1024` to `65535`. A value
+  outside that fails at startup rather than at bind time.
+- `greeting` is a `string` defaulting to `Hello`. No type is written, and
+  `string` is the default type.
+- `dbPassword` is a `string` with **no default**, so something has to provide
+  it or the application will not start. That is deliberate - it is how you say
+  "this must be configured, and I am not putting it in a shared file."
+
+That last one needs somewhere for the value to come from, which is what config
+sources are for. Add them above the declarations:
 
 ```
 # Where to look for values, best source first.
@@ -68,18 +95,17 @@ string greeting = Hello
 dbPassword
 ```
 
-That declares three properties:
+Now `dbPassword` can be set with `dbPassword=secret` on the command line or the
+environment variable `DB_PASSWORD`, and either will override a default.
 
-- `port` is an `int`. It may be `80` or anything from `1024` to `65535`. If
-  nothing sets it, it is `8080`.
-- `greeting` is a `string` defaulting to `Hello`. No type is written, and
-  `string` is the default type.
-- `dbPassword` is a `string` with **no default**, so one of the sources has to
-  provide it or the application will not start. That is deliberate - it is how
-  you say "this must be configured, and I am not putting it in a shared file."
+Both ends of this are in the example project: a [minimal
+`rwconfig`](../example/src/main/resources/rwconfig-minimal), and a [heavily
+commented one](../example/src/main/resources/rwconfig) exercising nearly every
+feature.
 
-Lines starting with `#` or `!` are comments. Anything starting with `rwc.` is
-configuration *for the library itself* rather than a property of your app.
+Lines starting with `#` or `!` are comments. Anything starting with `rwc.` is a
+library setting - configuration *for the library itself* rather than a property
+of your application - and it is entirely optional.
 
 ## Reading values
 

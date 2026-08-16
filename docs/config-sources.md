@@ -25,6 +25,11 @@ precedence, best first.** Each name then gets its own settings under
 Source names are yours to choose - `local`, `args`, `secrets`, `db`. They are
 only labels tying `rwc.sources` to the settings below it.
 
+`rwc.sources` itself is optional. Leave it out and there are no config sources
+at all: every property takes the default declared for it in the `rwconfig`
+file, and a property with no default fails at startup because nothing can
+supply it. A file of nothing but declarations is a complete configuration.
+
 ## Precedence
 
 The first source that has a value for a property wins. Anything the sources do

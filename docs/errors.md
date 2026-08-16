@@ -107,10 +107,6 @@ legitimately carries extra things, set
 
 ## Config sources
 
-**`missing library setting: rwc.sources`**
-
-No `rwc.sources` line. It is always required.
-
 **``missing library setting for config source `<name>`: rwc.<source>.<property>``**
 
 A source is missing something it needs - every source needs `type`, a

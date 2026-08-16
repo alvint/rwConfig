@@ -15,17 +15,29 @@ that you won't be surprised by configuration issues when it's too late to do
 something about it.
 
 ## In A Nutshell
-Declare what your app needs, in one file:
+Declare what your app needs, in one file. This is a complete, working
+`rwconfig`:
 
 ```
+int[80, 1024:65535] port = 8000
+```
+
+`port` is an `int`, it may only be 80 or a value from 1024 to 65535, and it
+defaults to 8000.
+
+Add a line to say where values may come from, and a property that must be
+supplied rather than defaulted:
+
+```
+rwc.sources = environment
+rwc.environment.type = environmentVariables
+
 int[80, 1024:65535] port = 8000
 DBPassword
 ```
 
-That says: `port` is an `int`, it may only be 80 or a value from 1024 to 65535,
-and it defaults to 8000. `DBPassword` is required, and deliberately has no value
-here--it comes from the environment, the command line, a database, or a file you
-don't commit.
+`DBPassword` deliberately has no value here--it comes from the environment, the
+command line, a database, or a file you don't commit.
 
 Read it with no ceremony:
 
@@ -134,6 +146,17 @@ the command line argument `rw.config.path=/path/to/rwconfig`. If you set more
 than one, the command line wins, then the system property, then the environment
 variable:
 
+A file of nothing but declarations is valid - every property then takes the
+default declared for it:
+
+```
+# a complete rwconfig file
+int[80, 1024:65535] port = 8000
+```
+
+Declare config sources when you want values to come from somewhere else. They
+are listed highest precedence first, and each one says what type it is:
+
 ```
 # sample rwconfig file
 rwc.sources = args, system, environment
@@ -146,9 +169,12 @@ int[80, 1024:65535] port = 8000
 DBPassword
 ```
 
-For a heavily commented version of this file that explains every part of the
-syntax, see [The `rwconfig` File](docs/config-file.md), or the [sample
-`rwconfig`](example/src/main/resources/rwconfig) in the example project.
+Two files in the example project sit at either end of the scale: a
+[minimal `rwconfig`](example/src/main/resources/rwconfig-minimal) that is close
+to the smallest one worth writing, and a [heavily commented
+`rwconfig`](example/src/main/resources/rwconfig) that exercises nearly every
+feature. The format is documented in full in
+[The `rwconfig` File](docs/config-file.md).
 
 ### 3. Basic Usage
 **Creating the Config Object**
@@ -321,6 +347,7 @@ is up to snuff at app start (when you're in the office), than to find out at 3am
 - [Plugins](PLUGINS.md) - the YAML, JSON, XML, JDBC and prefix plugins that
   ship with the project
 
-There is also a heavily commented [sample `rwconfig`
+There is also a [minimal `rwconfig`](example/src/main/resources/rwconfig-minimal)
+and a heavily commented [sample `rwconfig`
 file](example/src/main/resources/rwconfig) that exercises nearly every feature,
-and a [runnable example application](example) that loads it.
+plus a [runnable example application](example) that loads it.
