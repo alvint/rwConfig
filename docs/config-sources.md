@@ -175,8 +175,8 @@ hanging it forever.
 
 ## Keeping secrets out of shared files
 
-A source setting's value can be `<<`, meaning "the real value is in a source
-that was loaded before this one":
+A source setting's value can be `<<` - a **deferred value**, meaning "the real
+value is in a config source that was loaded before this one":
 
 ```
 rwc.sources = secrets, db
@@ -203,8 +203,14 @@ Two things worth knowing:
   application. It never appears in `getPropertyNames()`, and the source it came
   from does not need `ignoreUnknownProperties` on its account.
 
-If nothing supplies it, startup fails saying so - a `<<` that resolves to
-nothing is never silently empty.
+If nothing supplies it, startup fails saying so - a deferred value that
+resolves to nothing is never silently empty. The error names the source, so you
+know how far back the search went:
+
+```
+library setting `rwc.db.password` is set to `<<`, but no config source loaded
+before `db` contains this property
+```
 
 ## Changing the `rwc.` prefix
 

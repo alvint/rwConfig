@@ -275,8 +275,8 @@ class ConfigSourceTest {
                 "myProp = a"
             );
             assertTrue(
-                e.getMessage().contains("backreference"),
-                "expected a `backreference` error, but got: " + e.getMessage()
+                e.getMessage().contains("is set to `<<`") && e.getMessage().contains("no config source loaded before"),
+                "expected an unresolved `<<` error, but got: " + e.getMessage()
             );
         }
     }
@@ -290,8 +290,8 @@ class ConfigSourceTest {
         void theSourcesPropertyIsRequired() throws IOException {
             ConfigException e = rejected("myProp = a");
             assertTrue(
-                e.getMessage().contains("missing config property"),
-                "expected a `missing config property` error, but got: " + e.getMessage()
+                e.getMessage().contains("missing library setting: ") && e.getMessage().contains("sources"),
+                "expected a `missing library setting` error naming `sources`, but got: " + e.getMessage()
             );
         }
 
@@ -299,8 +299,8 @@ class ConfigSourceTest {
         void aSourceMustDeclareItsType() throws IOException {
             ConfigException e = rejected("rwc.sources = only", "myProp = a");
             assertTrue(
-                e.getMessage().contains("missing required config property"),
-                "expected a `missing required` error, but got: " + e.getMessage()
+                e.getMessage().contains("missing library setting") && e.getMessage().contains("rwc.only.type"),
+                "expected a `missing library setting` error naming `rwc.only.type`, but got: " + e.getMessage()
             );
         }
 
@@ -318,8 +318,8 @@ class ConfigSourceTest {
                 "myProp = a"
             );
             assertTrue(
-                e.getMessage().contains("missing required config property"),
-                "expected a `missing required` error, but got: " + e.getMessage()
+                e.getMessage().contains("missing library setting") && e.getMessage().contains("rwc.only.location"),
+                "expected a `missing library setting` error naming `rwc.only.location`, but got: " + e.getMessage()
             );
         }
 

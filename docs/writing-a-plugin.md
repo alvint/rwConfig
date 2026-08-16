@@ -115,12 +115,12 @@ module com.example.config.plugin.consul {
 ```
 
 The `provides` clause is what makes the plugin discoverable. Without it the
-library will not find the class no matter what the config file says.
+library will not find the class no matter what the `rwconfig` file says.
 
 ### 3. Naming, and how the library finds it
 
 Plugins are located **by module name**, through `ServiceLoader`. A type in the
-config file is resolved one of two ways:
+`rwconfig` file is resolved one of two ways:
 
 | in `rwconfig` | module the library looks for |
 |---|---|
@@ -221,7 +221,7 @@ module declaration and naming are right.
 
 - [ ] implements every method of `SimpleConfigSourcePlugin`
 - [ ] `provides ... with ...` in `module-info.java`
-- [ ] module named so the config file can reach it
+- [ ] module named so the `rwconfig` file can reach it
 - [ ] required properties listed, and checked in `setPluginProperties`
 - [ ] optional properties handled when absent (they arrive as `null`)
 - [ ] failures throw, with a message saying what was being attempted

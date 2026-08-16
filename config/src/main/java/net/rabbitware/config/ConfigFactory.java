@@ -33,7 +33,7 @@ public class ConfigFactory {
      * This special value tells the library to look for the real value of this
      * property in a previously loaded config source.
      */
-    public static final String BACKREFERENCE_VALUE = "<<";
+    public static final String DEFERRED_VALUE = "<<";
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigFactory.class);
 
@@ -58,7 +58,7 @@ public class ConfigFactory {
             .map(parts -> parts[1].trim())
             .findFirst()
             .orElse(DEFAULT_CONFIG_ROOT);
-        // parse the config setup and property info from the config file
+        // parse the library settings and property info from the `rwconfig` file
         Map<String, String> configProperties = new HashMap<>();
         Map<String, PropertyInfo> propertyInfoMap = new HashMap<>();
 
@@ -136,13 +136,13 @@ public class ConfigFactory {
                 if (configProperties.containsKey(name) || propertyInfoMap.containsKey(name)) {
                     throw new ConfigException("duplicate config line for property: " + name);
                 }
-                if (name.startsWith(configRoot) || name.equals(CONFIG_ROOT_PROPERTY)) { // config setup line
+                if (name.startsWith(configRoot) || name.equals(CONFIG_ROOT_PROPERTY)) { // library setting
                     if (type != null && !type.isEmpty()) {
-                        throw new ConfigException("invalid config line (config setup lines cannot have a type): " + s);
+                        throw new ConfigException("invalid config line (library settings cannot have a type): " + s);
                     }
                     if (allowedValues != null && !allowedValues.isEmpty()) {
                         throw new ConfigException(
-                            "invalid config line (config setup lines cannot have allowed values): " + s
+                            "invalid config line (library settings cannot have allowed values): " + s
                         );
                     }
                     if (defaultValue == null || defaultValue.isEmpty()) {
@@ -159,7 +159,7 @@ public class ConfigFactory {
                 }
             });
         logger.debug(
-            "rwconfig file loaded successfully with {} config setup lines and {} property info lines",
+            "`rwconfig` file loaded successfully with {} library settings and {} property declarations",
             configProperties.size(), propertyInfoMap.size())
         ;
 
@@ -167,7 +167,7 @@ public class ConfigFactory {
         Map<String, Map<String, String>> configSources = new LinkedHashMap<>();
         String sourceNames = configProperties.get(configRoot + "sources");
         if (sourceNames == null || sourceNames.isEmpty()) {
-            throw new ConfigException("missing config property: " + configRoot + "sources");
+            throw new ConfigException("missing library setting: " + configRoot + "sources");
         }
         Stream.of(sourceNames.trim().split("\\s*,\\s*", -1))
             .forEach(sourceName -> {
@@ -192,7 +192,7 @@ public class ConfigFactory {
                     // get the required and optional properties for the plugin
                     Set<String> requiredProperties = Set.copyOf(plugin.getRequiredPluginPropertyNames());
                     Set<String> optionalProperties = Set.copyOf(plugin.getOptionalPluginPropertyNames());
-                    // get the properties for the plugin from the config file
+                    // get the properties for the plugin from the `rwconfig` file
                     Map<String, String> properties = new HashMap<>();
                     requiredProperties.stream()
                         .forEach(propertyName -> {
@@ -348,9 +348,9 @@ public class ConfigFactory {
             });
 
         // set the default values for any properties that were not set by the
-        // config sources, but have a default value defined in the config file
+        // config sources, but have a default value defined in the `rwconfig` file
         //
-        // if a property has no default value defined in the config file, and is 
+        // if a property has no default value defined in the `rwconfig` file, and is 
         // not set by any config source, throw a ConfigException
         propertyInfoMap.entrySet().stream()
             .filter(entry -> !configImpl.has(entry.getKey()))
@@ -363,7 +363,7 @@ public class ConfigFactory {
                 } else {
                     throw new ConfigException(
                         "property `" + name
-                        + "` is not set by any config source, and has no default value defined in the config file"
+                        + "` is not set by any config source, and has no default value defined in the `rwconfig` file"
                     );
                 }
             });
@@ -395,7 +395,7 @@ public class ConfigFactory {
     private static List<String> loadConfigFile(String location) throws ConfigException {
         // check if the config file path is a valid location
         if (SimpleConfigSourcePlugin.isSupportedLocation(location)) { // valid location
-            // load the config file from the location
+            // load the `rwconfig` file from the location
             try {
                 List<String> lines = SimpleConfigSourcePlugin.loadResource(location).lines().toList();
                 // join lines that end with a backslash with the next line, and
@@ -418,7 +418,7 @@ public class ConfigFactory {
                 throw new ConfigException("error loading config file from location: " + location, e);
             }
         } else { // not a valid location
-            // try to load the config file from the classpath first, then the
+            // try to load the `rwconfig` file from the classpath first, then the
             // filesystem
             try { return loadConfigFile("classpath:" + location); } catch (Exception e) {}
             try { return loadConfigFile("file:" + location); } catch (Exception e) {}
@@ -538,7 +538,7 @@ public class ConfigFactory {
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.Boolean)range.min).b == value || ((Value.Boolean)range.max).b == value
                     )) {
-                        String source = sourceName != null ? "source `" + sourceName + "`" : "config file";
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
                             + unescapedValueString
@@ -557,7 +557,7 @@ public class ConfigFactory {
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.Integer)range.min).i <= value && value <= ((Value.Integer)range.max).i
                     )) {
-                        String source = sourceName != null ? "source `" + sourceName + "`" : "config file";
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
                             + unescapedValueString
@@ -576,7 +576,7 @@ public class ConfigFactory {
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
                     )) {
-                        String source = sourceName != null ? "source `" + sourceName + "`" : "config file";
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
                             + unescapedValueString
@@ -595,7 +595,7 @@ public class ConfigFactory {
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.Double)range.min).d <= value && value <= ((Value.Double)range.max).d
                     )) {
-                        String source = sourceName != null ? "source `" + sourceName + "`" : "config file";
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
                             + unescapedValueString
@@ -612,7 +612,7 @@ public class ConfigFactory {
                         ((Value.String)range.min).s.compareTo(unescapedValueString) <= 0 &&
                         ((Value.String)range.max).s.compareTo(unescapedValueString) >= 0
                     )) {
-                        String source = sourceName != null ? "source `" + sourceName + "`" : "config file";
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): \""
                             + unescapedValueString + "\""
@@ -674,7 +674,7 @@ public class ConfigFactory {
         } catch (ConfigException e) {
             throw e;
         } catch (Exception e) {
-            String source = sourceName != null ? "source `" + sourceName + "`" : "config file";
+            String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
             throw new ConfigException(
                 "error parsing the value of `" + propertyName + "` (in " + source + ") as type `"
                 + propertyType.name + "`: "+ valueString, e
@@ -769,7 +769,7 @@ public class ConfigFactory {
         if (escapedSpaceIndex != -1 && !value.substring(0, escapedSpaceIndex).isBlank()) {
             logger.warn(
                 "an escaped space is only meaningful at the start of a value, so it does nothing here (in {}): {}",
-                sourceName != null ? "source `" + sourceName + "`" : "config file",
+                sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file",
                 value.replace('\0', '\\')
             );
         }
@@ -835,24 +835,25 @@ public class ConfigFactory {
         String fullPropertyName = configRoot + sourceName + "." + propertyName;
         String propertyValue = configProperties.get(fullPropertyName);
         if (required && (propertyValue == null || propertyValue.isEmpty())) {
-            throw new ConfigException("missing required config property:" + fullPropertyName);
+            throw new ConfigException(
+                "missing library setting for config source `" + sourceName + "`: " + fullPropertyName
+            );
         }
-        // Check for the special value to indicate that the property should be
-        // retrieved from another config source that was loaded before this one.
-        // This is useful for sensitive information such as passwords, which
-        // should not be stored in the config file. The name searched for in the
-        // previously loaded config sources is the same as the fully qualified
-        // name of the property here. For example, if the property name here is
-        // `<configRoot>jdbc.password`, the plugin will look for this property
-        // name in the previously loaded config sources.
-        if (propertyValue != null && BACKREFERENCE_VALUE.equals(propertyValue.trim())) {
+        // A value of `<<` is a deferred value: the real value lives in a config
+        // source that was loaded before this one. This is useful for sensitive
+        // information such as passwords, which should not be stored in the
+        // `rwconfig` file. The name searched for is the same as the fully
+        // qualified name of the property here - for example, a setting named
+        // `<configRoot>jdbc.password` is looked up under that same name in the
+        // sources already loaded.
+        if (propertyValue != null && DEFERRED_VALUE.equals(propertyValue.trim())) {
             propertyValue = configSources.values().stream()
                 .filter(map -> map.containsKey(fullPropertyName))
                 .findFirst()
                 .map(map -> map.get(fullPropertyName))
                 .orElseThrow(() -> new ConfigException(
-                    "config property `" + fullPropertyName + "` is set to the special backreference value `"
-                    + BACKREFERENCE_VALUE + "`, but no previously loaded config source contains this property"
+                    "library setting `" + fullPropertyName + "` is set to `" + DEFERRED_VALUE
+                    + "`, but no config source loaded before `" + sourceName + "` contains this property"
                 ));
         }
         return propertyValue;

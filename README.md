@@ -6,7 +6,7 @@
 
 rwConfig is a simple, lightweight library that provides a unified and _fast_
 interface for reading static configuration information from a wide range of
-configuration sources.
+config sources.
 
 What distinguishes rwConfig from the pack is its design philosophy: define
 what you need and what it should look like ahead of time, and validate that
@@ -43,7 +43,7 @@ And when the configuration is wrong, you hear about it at startup--not at 3am:
 value is not allowed for property `port` (in source `args`): 500
 ```
 ```
-property `DBPassword` is not set by any config source, and has no default value defined in the config file
+property `DBPassword` is not set by any config source, and has no default value defined in the `rwconfig` file
 ```
 
 ## How Fast Is It?
@@ -89,7 +89,7 @@ at the [takeaway](benchmark/README.md).
   API side it's a similar API to `java.util.Map`, with types tacked on.
 - **Types and lists** - `boolean`, `int`, `long`, `double` and `string`, plus
   `booleanList`, `intList`, `longList`, `doubleList` and `stringList`.
-- **Layered sources, with priority you declare** - command line arguments,
+- **Layered sources, with precedence you declare** - command line arguments,
   environment variables, system properties, `.properties` files and
   directories, plus YAML, JSON, XML and databases via the bundled plugins. Load
   them from the filesystem, a `jar`, http(s), or the classpath. Add your own
@@ -97,7 +97,7 @@ at the [takeaway](benchmark/README.md).
 - **Nearly dependency-free** - the Java Base module and slf4j, which itself only
   requires Java Base.
 - **Secure by omission** - values your app never declared are not added to the
-  Config object, even when the configuration source contains them.
+  Config object, even when the config source contains them.
 
 ## Quick Start
 ### 1. Jar Installation (via Maven)
@@ -135,7 +135,7 @@ than one, the command line wins, then the system property, then the environment
 variable:
 
 ```
-# sample config setup
+# sample rwconfig file
 rwc.sources = args, system, environment
 rwc.args.type = commandLineArguments
 rwc.system.type = systemProperties
@@ -168,7 +168,7 @@ If you **don't** want to allow configuration properties to be overridden on the
 command line, use the below code to create the Config object instead.
 
 Note that the `rwconfig` example above defines the command-line arguments as a
-configuration source, so for that example to work you must use the above version
+config source, so for that example to work you must use the above version
  of `create`:
 
 ```java
@@ -195,7 +195,7 @@ System.out.println("value of `port`: " + port);
 There's no need to deal with `Optional`s here because the library handles
 property declarations, default values, and value types at startup. This means:
 
-- default values are declared in the config file--not in the code
+- default values are declared in the `rwconfig` file--not in the code
 - missing or incorrect property values are caught at startup
 - expecting an incorrect property type in Java code is always an error
 - requesting an unknown property in Java code is always an error
@@ -228,7 +228,7 @@ is up to snuff at app start (when you're in the office), than to find out at 3am
     a non-existent property or an incorrect property type
 - more secure
   - values that aren't expressly needed are not added to the Config object, even
-    if present in the configuration source
+    if present in the config source
 
 ## Project _Non_-goals
 - a "one-size fits all" approach
@@ -257,7 +257,7 @@ is up to snuff at app start (when you're in the office), than to find out at 3am
 ## TODOs
 - IDE/Maven support to detect missing properties and incorrect property types at
   compile time
-- in-app notification of changed configuration sources
+- in-app notification of changed config sources
 - APIs for other languages
 
 ## Design Choices and Miscellaneous Rants
@@ -294,13 +294,13 @@ is up to snuff at app start (when you're in the office), than to find out at 3am
 - no dependencies
 - compatibility with existing Java `.properties` files (some minor restrictions
   on property names)
-- simple, easy to learn config file syntax
+- simple, easy to learn `rwconfig` file syntax
 - declarative rather than code-based configuration
   - avoid `Optional`s and long method chains in the code by declaring types and
-    default values in the config file
+    default values in the `rwconfig` file
       - the use of `Optional` and `orElse` encourages the "magic number"
         anti-pattern
-  - avoid the need to recompile just to tweak a configuration source or change
+  - avoid the need to recompile just to tweak a config source or change
     a default value
   - no need to search through the code to find out where a value came from
 

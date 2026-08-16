@@ -5,7 +5,7 @@ start with [Getting Started](getting-started.md).
 
 The file looks like a Java `.properties` file with room for a type, a set of
 allowed values, and a default. Every line is one of three things: a comment, a
-line configuring the library, or a property declaration.
+a library setting, or a property declaration.
 
 ## Where the file is found
 
@@ -235,10 +235,10 @@ Two things to know:
   also continues, and leaves a trailing backslash behind, which is usually an
   invalid escape sequence.
 
-## Configuring the library
+## Library settings
 
-Lines beginning with `rwc.` configure the library rather than declaring
-properties of your application. They never appear in `getPropertyNames()` and
+Lines beginning with `rwc.` are *library settings*: they configure rwConfig
+itself rather than declaring properties of your application. They never appear in `getPropertyNames()` and
 your code cannot read them. They are covered in [Config
 sources](config-sources.md).
 
@@ -256,7 +256,7 @@ property name.
 ## A complete example
 
 ```
-# --- the library's own configuration ---
+# --- library settings ---
 rwc.sources = args, local, environment
 
 rwc.args.type = commandLineArguments

@@ -220,7 +220,7 @@ class, and one source is enough.
   `int`. No `Optional`, no cast, no default at the call site, no exception to
   handle.
 - **Layered sources are built in** - command line, environment, system
-  properties, files, directories, databases - with priority you declare, plus
+  properties, files, directories, databases - with precedence you declare, plus
   `<<` for keeping secrets out of shared files.
 - **Fastest of the libraries that look values up by name**, though the margin
   is small enough not to matter.
@@ -253,7 +253,7 @@ class, and one source is enough.
 - A long-running service, not in a framework that already solves this.
 - You want configuration errors to stop the process at startup rather than
   cause odd behaviour later.
-- You want the config file to be the documentation, so a new team member can
+- You want the `rwconfig` file to be the documentation, so a new team member can
   read one file and know every property the application takes.
 - You want layered sources without assembling them yourself.
 - You value a small dependency footprint.

@@ -6,7 +6,7 @@ starting rather than surface later as a strange value.
 
 Each message below is what you will see, followed by what causes it.
 
-## The config file itself
+## The `rwconfig` file itself
 
 **`config file path is not a valid location: <path>`**
 
@@ -38,8 +38,8 @@ The same property is declared twice.
 A `rwc.` line has no value. Library settings always need one - `rwc.root` on
 its own is not meaningful.
 
-**`invalid config line (config setup lines cannot have a type): <line>`**
-**`invalid config line (config setup lines cannot have allowed values): <line>`**
+**`invalid config line (library settings cannot have a type): <line>`**
+**`invalid config line (library settings cannot have allowed values): <line>`**
 
 A `rwc.` line was given a type or an allowed values list. Those settings are
 always strings.
@@ -73,8 +73,10 @@ treated as a plain space.
 **``error parsing the value of `<name>` (in <source>) as type `<type>`: <value>``**
 
 The value is not that type - `int myProp = 50.5`, or a source supplying
-`port=eighty`. The message names the source, so you know whether to look in the
-config file or somewhere else.
+`port=eighty`. The message names where the value came from, so you know where to
+look: `<source>` reads either ``source `<name>` `` for a declared config source,
+or ``the `rwconfig` file`` when the value was a default written in the file
+itself.
 
 For a list type this also appears when an item is blank. Only `stringList`
 allows blank items; `intList x = 1,,2` fails on the empty one.
@@ -89,7 +91,7 @@ should accept it, rather than reflexively widening the list.
 A range with more than one colon. A range is `<min>:<max>`; to use a literal
 colon inside a value, escape it as `\:`.
 
-**``property `<name>` is not set by any config source, and has no default value defined in the config file``**
+**``property `<name>` is not set by any config source, and has no default value defined in the `rwconfig` file``**
 
 A property was declared without a default value and nothing supplied one. Either
 give it a default value or set its value in a source. This is the intended way
@@ -105,11 +107,11 @@ legitimately carries extra things, set
 
 ## Config sources
 
-**`missing config property: rwc.sources`**
+**`missing library setting: rwc.sources`**
 
 No `rwc.sources` line. It is always required.
 
-**`missing required config property: rwc.<source>.<property>`**
+**``missing library setting for config source `<name>`: rwc.<source>.<property>``**
 
 A source is missing something it needs - every source needs `type`, a
 `properties` source needs `location`, a `directory` source needs `path`. See
@@ -142,16 +144,16 @@ A plugin could not be found. Almost always one of:
   `net.rabbitware.config.plugin.yaml`, and a plugin of your own should be named
   by its full module name
 
-**``config property `rwc.<source>.<property>` is set to the special backreference value `<<`, but no previously loaded config source contains this property``**
+**``library setting `rwc.<source>.<property>` is set to `<<`, but no config source loaded before `<name>` contains this property``**
 
-A `<<` did not resolve. The source holding the real value has to appear
-**earlier** in `rwc.sources` than the one referring to it, and the property
-name it provides must match exactly - including the `rwc.` prefix.
+A *deferred value* did not resolve. The source holding the real value has to
+appear **earlier** in `rwc.sources` than the one referring to it, and the
+property name it provides must match exactly - including the `rwc.` prefix.
 
 ## Errors from your own code
 
 These come from reading values, not from startup, and both mean the Java code
-and the config file disagree.
+and the `rwconfig` file disagree.
 
 **``property `<name>` not found``** - `PropertyNotFoundException`. The name is
 not declared. Usually a typo in the Java code.

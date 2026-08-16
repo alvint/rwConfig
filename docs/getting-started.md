@@ -21,6 +21,13 @@ Two things follow from that, and they are the point of the library:
   `Optional`, no casting, no default buried in the call. The library already
   knows the type and already checked the value.
 
+Three terms are used throughout these docs: the **`rwconfig` file** is where you
+**declare** your properties; a **config source** is a place values come from,
+listed in `rwc.sources`; and a **library setting** is an `rwc.` line that
+configures rwConfig itself rather than declaring anything. Declarations and
+library settings live side by side in the same file, so it is worth knowing
+which is which.
+
 ## Install
 
 rwConfig isn't on Maven Central yet - that's waiting on a version stable enough
@@ -43,7 +50,7 @@ Then add the dependency to your project:
 </dependency>
 ```
 
-## A first config file
+## A first `rwconfig` file
 
 Create a file named `rwconfig` in your working directory, or in
 `src/main/resources`:

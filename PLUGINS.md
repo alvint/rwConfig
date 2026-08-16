@@ -16,7 +16,7 @@ These plugins are currently available and are built with the project.
 > carry no `META-INF/services` fallback.
 
 ## Using a Plugin
-A plugin is just another configuration source. Name it in `rwc.sources`, give it
+A plugin is just another config source. Name it in `rwc.sources`, give it
 a `type`, and set whatever properties that type requires:
 
 ```
@@ -38,7 +38,7 @@ at startup. See [Config Sources](docs/config-sources.md) for the details.
 Several plugins read from a location, and they all accept it the same way.
 
 - `location`
-  - The prefixed location of the configuration source. Supported location
+  - The prefixed location of the config source. Supported location
     prefixes are `file:`, `classpath:`, `jar:`, `http:`, and `https:`.
     - `file:` prefixes can be relative or absolute. Relative prefixes resolve
       from the current working directory. For example, `file:my/file` is ok.
@@ -269,6 +269,10 @@ any case the data is still there; you just have to access it under a slightly
 tweaked name.
 
 #### Merge Keys
+> Note that YAML's `<<` is unrelated to the `<<` used as a *deferred value* in
+> library settings. This one is YAML's own merge key, and only has meaning
+> inside a YAML document.
+
 Merge keys have been popular and useful since YAML 1.1. It allows you to insert
 the properties of one object into another object. For example:
 ```yaml
@@ -398,10 +402,11 @@ JDBC driver of the database you're trying to connect to is on your classpath.
   - The username used to connect to the database.
 - `password`
   - The password used to connect to the database. It is recommended to **not**
-    put the password for your database directly in this file. Instead, set the
-    value of this property to the "back reference" symbol (`<<`) and place the
-    real value in a configuration source that gets loaded before this one. See
-    the `rwconfig` file documentation for more details.
+    put the password for your database directly in this file. Instead, set this
+    to a *deferred value* (`<<`) and place the real value in a config source
+    that gets loaded before this one. See
+    [Config Sources](docs/config-sources.md#keeping-secrets-out-of-shared-files)
+    for details.
 ### Details
 The plugin works as you would expect. It executes the supplied query and gathers
 the results to be used as properties.

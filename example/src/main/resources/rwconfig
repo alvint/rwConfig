@@ -1,4 +1,4 @@
-# Sample config setup. This file is used to configure the config system itself,
+# Sample `rwconfig` file. This file is used to configure rwConfig itself,
 # and to declare information about the properties that will be available to the
 # application.
 #
@@ -6,7 +6,7 @@
 # some areas to support property types and allowed values. See below for 
 # details.
 # 
-# When the config system is initialized it will search for this file in the
+# When rwConfig is initialized it will search for this file in the
 # following locations in order:
 # - the path specified by the command line argument `rw.config.path=<path>`
 # - the path specified by the system property `rw.config.path`
@@ -18,36 +18,36 @@
 
 
 #
-# Config setup section. Any property that starts with `rwc.` is used to
-# configure the config system itself, and uses a syntax similar to a standard
+# Library settings. Any property that starts with `rwc.` configures rwConfig
+# itself, and uses a syntax similar to a standard
 # java properties file. This means that all values in this section are strings.
 #
 
 # The config sources to read in order of highest precedence to lowest. Each
 # config source is either a standard java properties file, the command line
 # arguments, java system properties, environment variables, or a database of
-# some sort. The config system will read the config sources in the order listed
+# some sort. rwConfig will read the config sources in the order listed
 # here. Any property value defined in a higher precedence source will override
 # the value of the same property defined in a lower precedence source.
 #
 # Information about each of the config sources (including how to load them) is
 # declared below this line, using this syntax:
 #
-# `rwc.<sourceName>.<attribute>=<value>`.
+# `rwc.<sourceName>.<setting>=<value>`.
  
 rwc.sources = args, system, environment, local, organization, app, prefix, \
               directory, json, xml, yaml, db
 
-# All config sources must have a `type` attribute that declares the type of the
-# config source. The type determines how the config system will load the source,
-# and which other attributes are required.
+# All config sources must have a `type` setting that declares the type of the
+# config source. The type determines how rwConfig will load the source,
+# and which other settings are required.
 #
 # Current supported config source types are:
 # 1. commandLineArguments: load configuration properties from command line
 #    arguments passed to the application in the form `my.property=value`
 #    - In order for this source to be loaded you need to create the config
-#      system with `Config.create(args)`. If this is not done and this source
-#      type is used in your config setup, an exception will be thrown during
+#      system with `ConfigFactory.create(args)`. If this is not done and this source
+#      type is used in your library settings, an exception will be thrown during
 #      initialization.
 # 2. systemProperties: load configuration properties from JVM system properties
 # 3. environmentVariables: load configuration properties from environment
@@ -57,7 +57,7 @@ rwc.sources = args, system, environment, local, organization, app, prefix, \
 #      - dots and camel case letters are replaced with underscores, and then all
 #        remaining letters are uppercased
 # 4. properties: load configuration properties from a `.properties` file
-#    - The attribute `rwc.<sourceName>.location` must be declared for this
+#    - The setting `rwc.<sourceName>.location` must be declared for this
 #     source type, and it must be a valid URL to a Java properties file.
 #     - Examples of valid URLs include:
 #       - `file:path/to/file.properties` - can be a relative or absolute path
@@ -66,45 +66,45 @@ rwc.sources = args, system, environment, local, organization, app, prefix, \
 #       - `https://my-org.com/app.properties`
 #       - `http://my-org.com/app.properties`
 # 5. directory: properties from all files in a directory
-#    - The attribute `rwc.<sourceName>.path` must be declared for this source
+#    - The setting `rwc.<sourceName>.path` must be declared for this source
 #      type, and it must be a valid path to a directory on the filesystem.
 #    - The directory is seen as a single config source. The names of any regular
 #      files (or symlinks to regular files) inside the directory are used as the
 #      property names, and the file contents are used as the property values.
 #      For example, if a directory contains a file named `greeting` with the
 #      contents `Hello`, and a file named `name` with the contents `World`, then
-#      the config system will see two properties in the source: `greeting=Hello`
+#      rwConfig will see two properties in the source: `greeting=Hello`
 #      and `name=World`.
 #      - Leading and trailing whitespace in the file contents is preserved, and
 #        the file contents are read as a single string (including newlines).
 #      - An exception will be thrown during initialization if any of the files in
 #        the directory cannot be read.
 # 6. yaml.plugin: load configuration properties from a YAML file
-#    - The attribute `rwc.<sourceName>.location` must be declared for this
+#    - The setting `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to a YAML file.
 #      - see the `properties` section above for examples of valid URLs
 # 7. json.plugin: load configuration properties from a JSON file
-#    - The attribute `rwc.<sourceName>.location` must be declared for this
+#    - The setting `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to a JSON file.
 #      - see the `properties` section above for examples of valid URLs
 # 8. xml.plugin: load configuration properties from an XML file
-#    - The attribute `rwc.<sourceName>.location` must be declared for this
+#    - The setting `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to an XML file.
 #      - see the `properties` section above for examples of valid URLs
 # 9. prefix.plugin: load configuration properties from a properties file, and
 #    add a prefix to each property name.
-#    - The attribute `rwc.<sourceName>.location` must be declared for this
+#    - The setting `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to a properties file.
 #      - see the `properties` section above for examples of valid URLs
 #
-# You can also create your own custom configuration source types by implementing
+# You can also create your own custom config source types by implementing
 # the `SimpleConfigSourcePlugin` interface (in the `plugin-api` module). Check
 # out the `PrefixPlugin` class in the `plugin-prefix` module for an example of a
-# custom configuration source type.
+# custom config source type.
 
-# Config sources can optionally declare an `ignoreUnknownProperties` attribute.
-# If this attribute is set to `true`, any properties in the config source that
-# are not declared in this file will be ignored. If this attribute is set to
+# Config sources can optionally declare an `ignoreUnknownProperties` setting.
+# If this setting is set to `true`, any properties in the config source that
+# are not declared in this file will be ignored. If this setting is set to
 # `false` (or not declared), any properties in the config source that are not
 # declared in this file will cause an exception during initialization. This
 # behavior is on by default to help catch typos in property names.
@@ -137,18 +137,18 @@ rwc.db.type = jdbc.plugin
 rwc.db.connectionString = jdbc:h2:mem:test-db
 rwc.db.query = SELECT * FROM config_properties
 rwc.db.username = admin
-# You can use `<<` as a stand-in value in configuration properties to indicate
-# that the *actual* value for this property is located in another configuration
-# source. This is useful for sensitive sensitive information like passwords. The
-# config source that contains the actual value must have a higher priority than
-# the one being described here.
+# You can use `<<` as a *deferred value* in a library setting, to indicate that
+# the *actual* value for this property is located in another config source. This
+# is useful for sensitive information like passwords. The config source that
+# contains the actual value must have a higher precedence than the one being
+# described here.
 #
-# Even though the value for this property is present in an earlier configuration
+# Even though the value for this property is present in an earlier config
 # source, it is still considered to be configuration info and not an application
 # property. This means that it will not be available to the application, and you
 # do not need to set the `ignoreUnknownProperties` flag to `true`.
 #
-# In this case, a higher-priority configuration source must contain the property
+# In this case, a higher-precedence config source must contain the property
 # `rwc.db.password=mySecretPassword` or an exception will be thrown during
 # initialization.
 rwc.db.password = <<
@@ -184,7 +184,7 @@ rwc.db.password = <<
 #
 # This will declare a property named `propertyName` of type `string` with no
 # value. Properties with no value must be assigned a value in a config source,
-# or the config system will throw an exception during initialization.
+# or rwConfig will throw an exception during initialization.
 #
 # Properties must begin with a letter and can contain letters, numbers, periods,
 # and underscores.

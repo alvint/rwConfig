@@ -44,7 +44,7 @@ List<String>  hosts   = config.getStringList("hosts");
 ```
 
 No `Optional`, no default parameter, no cast. The type and the default were
-settled in the config file, and the value was validated at startup.
+settled in the `rwconfig` file, and the value was validated at startup.
 
 Every method has a short alias, if you prefer terse code at the call site:
 
@@ -72,12 +72,12 @@ Set<String> names = config.getPropertyNames();        // every declared name
 ```
 
 `getPropertyNames()` returns an unmodifiable, alphabetically sorted set. It
-contains only your application's properties - lines configuring the library
+contains only your application's properties - library settings
 itself are never included.
 
 `PropertyType` is an enum: `BOOLEAN`, `INT`, `LONG`, `DOUBLE`, `STRING`,
 `BOOLEAN_LIST`, `INT_LIST`, `LONG_LIST`, `DOUBLE_LIST`, `STRING_LIST`. Each has
-a `name` field holding the spelling used in the config file (`intList` and so
+a `name` field holding the spelling used in the `rwconfig` file (`intList` and so
 on).
 
 Iterating everything, which is what the [example
@@ -99,7 +99,7 @@ property that does not exist.
 
 | exception | when |
 |---|---|
-| `PropertyNotFoundException` | the name is not declared in the config file |
+| `PropertyNotFoundException` | the name is not declared in the `rwconfig` file |
 | `IncorrectTypeException` | the property exists but is a different type |
 | `ConfigException` | anything wrong during `create` |
 
@@ -109,7 +109,7 @@ config.getInt("appName");     // IncorrectTypeException - it is a string
 config.getIntList("port");    // IncorrectTypeException - it is a scalar
 ```
 
-The first two can only happen because the Java code and the config file
+The first two can only happen because the Java code and the `rwconfig` file
 disagree, which is why they are unchecked: the fix is to change one of them,
 not to catch anything.
 
