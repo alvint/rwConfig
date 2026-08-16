@@ -1,6 +1,11 @@
-# Sample `rwconfig` file. This file is used to configure rwConfig itself,
-# and to declare information about the properties that will be available to the
-# application.
+# Sample `rwconfig` file. This file declares the properties that will be
+# available to the application - their names, types, allowed values and
+# defaults - and optionally configures rwConfig itself.
+#
+# This one is the full reference and exercises nearly every feature, so it is
+# far larger than most. `rwconfig-minimal` next to it is closer to what a real
+# application writes. A file containing nothing but property declarations is
+# perfectly valid: every property then takes the default declared for it.
 #
 # The syntax for this file is similar to a java properties file, but extended in
 # some areas to support property types and allowed values. See below for 
@@ -108,6 +113,18 @@ rwc.sources = args, system, environment, local, organization, app, prefix, \
 # `false` (or not declared), any properties in the config source that are not
 # declared in this file will cause an exception during initialization. This
 # behavior is on by default to help catch typos in property names.
+#
+# This applies to sources that can be read in full - properties files,
+# directories, and anything loaded by a plugin - and to the command line, since
+# every argument there was typed deliberately for this application. It does
+# *not* apply to `systemProperties` or `environmentVariables`: those are looked
+# up one declared property at a time, so the many unrelated entries in them are
+# never seen, and the setting has no effect.
+#
+# Note that the `args` source below is left strict, so running this example with
+# an argument of the form `name=value` that no property declares will stop
+# startup. Arguments that are not assignments - `--verbose`, `input.txt` - are
+# ignored, as are the library's own, such as `rw.config.path=...`.
 
 rwc.args.type = commandLineArguments
 rwc.system.type = systemProperties

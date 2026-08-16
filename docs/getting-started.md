@@ -150,17 +150,19 @@ Everything below is an error at startup, before your code runs:
 
 A source that can be read in full - a properties file, a directory, anything
 loaded by a plugin - is also checked the other way round: a value in the source
-that no property declares is an error, because it is almost always a typo. When
-a source legitimately carries things your application does not care about, say
-so for that source:
+that no property declares is an error, because it is almost always a typo.
+Command line arguments are checked the same way, since every one of them was
+typed deliberately for this program: `prot=9000` when you declared `port` stops
+startup. When a source legitimately carries things your application does not
+care about, say so for that source:
 
 ```
 rwc.local.ignoreUnknownProperties = true
 ```
 
-This does not apply to command line arguments, environment variables or system
-properties. Those are looked up by name, one declared property at a time, so
-extra values in them are never seen. See [Config
+Environment variables and system properties are the exception. They are looked
+up by name, one declared property at a time, so the hundreds of unrelated
+entries in them are never seen - and neither would a typo be. See [Config
 sources](config-sources.md#unknown-properties).
 
 Mistakes in Java code are errors too. `config.getInt("prot")` throws

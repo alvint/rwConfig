@@ -148,7 +148,7 @@ define a custom path to this file by setting the environment variable
 `RW_CONFIG_PATH`, setting the Java system property `rw.config.path`, or adding
 the command line argument `rw.config.path=/path/to/rwconfig`. If you set more
 than one, the command line wins, then the system property, then the environment
-variable:
+variable.
 
 A file of nothing but declarations is valid - every property then takes the
 default declared for it:
