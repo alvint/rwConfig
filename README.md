@@ -101,7 +101,7 @@ at the [takeaway](benchmark/README.md).
 
 ## Quick Start
 ### 1. Jar Installation (via Maven)
-rwConfig isn't on Maven Central yet--that's waiting on a version stable enough
+rwConfig isn't on Maven Central yet - that's waiting on a version stable enough
 to call `1.0.0`. Until then, clone the repo and install it into your local Maven
 repository:
 
