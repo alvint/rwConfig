@@ -113,8 +113,8 @@ per element.
   "ints": [1, 2, 3, 4, 5],      ->  ints = 1,2,3,4,5
   "floats": [1.5, 2.5, 3.5],    ->  floats = 1.5,2.5,3.5
   "mixed": [1, 2.5, 3]          ->  mixed\0 = 1
-}                                    mixed\1 = 2.5
-                                     mixed\2 = 3
+}                                   mixed\1 = 2.5
+                                    mixed\2 = 3
 ```
 
 `mixed` falls back because it mixes integers and floating-point numbers, which
