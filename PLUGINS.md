@@ -86,12 +86,15 @@ contains is reachable - but there is no property whose value is "the accounts
 array".
 
 ### Why a backslash
-Property names may legally contain dots, so `a.b` is a perfectly good name for a
-single property. That makes a dot useless as a separator: `a.b` would be
-ambiguous between one name and two levels. A backslash is not idiomatic in
-property names, so it is the separator, and the rules under
-[Keys that would collide](#keys-that-would-collide) exist to keep it
-unambiguous.
+Keys in many nested formats (JSON, YAML, etc.)  may legally contain dots, and
+often do. So `a.b` is a perfectly good name for a single property. That makes a
+dot useless as a separator; `a.b` would be ambiguous between one name and two
+levels.
+
+While a backslash is technically legal in keys for some nested formats, it is
+much more rarely used. Combine this with the rules under [Keys that would
+collide](#keys-that-would-collide) and the library can now ingest any nested
+format and keep property names unambiguous.
 
 ### Lists
 There is one exception to the path rule. If an array holds a homogenous list of
