@@ -322,7 +322,7 @@ The plugin works as you would expect. It executes the supplied query and gathers
 the results to be used as properties.
 
 ## Prefix (`prefix.plugin`)
-This is a example plugin which prefixes the source name to all properties that it
+This is an example plugin which prefixes the source name to all properties that it
 loads.
 ### Required Properties
 - `mediaType`
