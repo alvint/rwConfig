@@ -1,19 +1,29 @@
 # Plugins
 These plugins are currently available and are built with the project.
 
-| plugin | type | reads | required properties |
-|---|---|---|---|
-| [JSON](#json-jsonplugin) | `json.plugin` | a JSON file | `location` |
-| [YAML](#yaml-yamlplugin) | `yaml.plugin` | a YAML file | `location` |
-| [XML](#xml-xmlplugin) | `xml.plugin` | an XML file | `location` |
-| [JDBC](#jdbc-jdbcplugin) | `jdbc.plugin` | a database | `connectionString`, `query` |
-| [Prefix](#prefix-prefixplugin) | `prefix.plugin` | a `.properties` file, prefixing the source name | `mediaType`, `location` |
+| plugin | type | artifact | brings in | required properties |
+|---|---|---|---|---|
+| [JSON](#json-jsonplugin) | `json.plugin` | `plugin-json` | `org.json:json` | `location` |
+| [YAML](#yaml-yamlplugin) | `yaml.plugin` | `plugin-yaml` | `org.snakeyaml:snakeyaml-engine` | `location` |
+| [XML](#xml-xmlplugin) | `xml.plugin` | `plugin-xml` | `org.json:json` | `location` |
+| [JDBC](#jdbc-jdbcplugin) | `jdbc.plugin` | `plugin-jdbc` | nothing - you supply the driver | `connectionString`, `query` |
+| [Prefix](#prefix-prefixplugin) | `prefix.plugin` | `plugin-prefix` | nothing | `mediaType`, `location` |
+
+All artifacts are in the `net.rabbitware.config` group.
+
+> **A plugin is a separate jar, and the `.plugin` suffix in the type is there to
+> remind you.** Each one has to be added to your build, and unlike rwConfig
+> itself - which depends on nothing but the Java Base module and slf4j - a
+> plugin may bring dependencies of its own. The "brings in" column is what each
+> costs you.
 
 > **Plugins must be on the module path.** They are located with `ServiceLoader`
 > and matched by module name, so a plugin jar on the classpath will not be
-> found--you'll get `no module that provides SimpleConfigSourcePlugin was found
-> by that name`. The plugin jars declare their service in `module-info`, and
-> carry no `META-INF/services` fallback.
+> found--you'll get `no plugin provides config source type ...`. The plugin jars
+> declare their service in `module-info` and carry no `META-INF/services`
+> fallback, so the classpath has nothing to find them by. The error lists the
+> plugins it did find, which tells you whether the jar is missing entirely or
+> merely on the wrong path.
 
 ## Using a Plugin
 A plugin is just another config source. Name it in `rwc.sources`, give it

@@ -133,16 +133,21 @@ The source was reached but failed while producing properties - a database query
 against a missing table, malformed JSON, unreadable YAML. The cause is chained;
 look at the exception below this one for the real reason.
 
-**``no module that provides `SimpleConfigSourcePlugin` was found by that name: <module>``**
+**``no plugin provides config source type `<type>```**
 
-A plugin could not be found. Almost always one of:
+A plugin could not be found. The message names the Maven artifact to add and
+lists the plugins it did find, which distinguishes the usual causes:
 
-- **the application is running on the classpath instead of the module path** -
-  plugins are found by module name, and classpath jars have none
-- the plugin jar is not present at all
-- the type name is wrong: `yaml.plugin` resolves to the module
-  `net.rabbitware.config.plugin.yaml`, and a plugin of your own should be named
-  by its full module name
+- **`plugins found: (none)`** - either no plugin jar is present, or the
+  application is running on the classpath instead of the module path. Plugins
+  are matched by module name and classpath jars have none, so every plugin is
+  invisible there.
+- **other plugins are listed** - the mechanism works, so this jar in particular
+  is missing, or the type name is wrong. `yaml.plugin` resolves to the module
+  `net.rabbitware.config.plugin.yaml`; a plugin of your own is named by its full
+  module name.
+
+See [Plugins](../PLUGINS.md) for the artifact each type needs.
 
 **``library setting `rwc.<source>.<property>` is set to `<<`, but no config source loaded before `<name>` contains this property``**
 

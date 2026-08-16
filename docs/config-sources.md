@@ -145,15 +145,31 @@ anything at all:
 | source | read by | unknown properties |
 |---|---|---|
 | `properties`, `directory`, all plugins | reading everything it has | **detected** - set the flag if that is not what you want |
-| `commandLineArguments`, `systemProperties`, `environmentVariables` | looking up each declared property by name | never seen, so the flag has no effect |
+| `commandLineArguments` | reading every argument that looks like `name=value` | **detected** - set the flag if that is not what you want |
+| `systemProperties`, `environmentVariables` | looking up each declared property by name | never seen, so the flag has no effect |
 
-The second group cannot report an unknown property even in principle - it only
-ever asks for names your `rwconfig` file declares. That is why an application
-using system properties does not drown in errors about the JVM's own, and why
-an unrecognized command line argument is ignored rather than rejected.
+The last group cannot report an unknown property even in principle - it only
+ever asks for names your `rwconfig` file declares. That is deliberate: an
+application using system properties should not drown in errors about the JVM's
+own, and the environment is full of variables that have nothing to do with your
+program.
 
-The practical consequence: a typo in a properties file is caught, and a typo on
-the command line is not. If that matters, put the values in a file.
+Command line arguments are different, and are checked. Every one of them was
+typed deliberately, for this program, so `prot=9000` when you declared `port` is
+far more likely to be a typo than a coincidence - exactly the mistake this
+library exists to catch:
+
+```
+property `prot` is not defined in the `rwconfig` file, and config source `args`
+does not allow unknown properties
+```
+
+An argument is only treated as a property assignment when its name is a legal
+[property name](config-file.md#names), which begins with a letter. Your
+application's own flags and positional arguments - `--verbose`, `-n=3`,
+`--filter=foo`, `input.txt` - are left alone, as are the library's own
+arguments. If your application does take bare `name=value` arguments of its own,
+set `ignoreUnknownProperties` on the source.
 
 ## Locations
 

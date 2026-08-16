@@ -35,6 +35,20 @@ public class ConfigFactory {
      */
     public static final String DEFERRED_VALUE = "<<";
 
+    /**
+     * A command line argument of the form `name=value`, where `name` is a
+     * legal property name. Names begin with a letter, so an application's own
+     * flags are never mistaken for property assignments.
+     */
+    /** The suffix that marks a source type as a plugin rather than a built-in. */
+    private static final String PLUGIN_TYPE_SUFFIX = ".plugin";
+
+    /** Plugin module names are this prefix followed by the plugin's short name. */
+    private static final String PLUGIN_MODULE_PREFIX = "net.rabbitware.config.plugin.";
+
+    private static final Pattern COMMAND_LINE_ASSIGNMENT =
+        Pattern.compile("^\\s*([A-Za-z][\\w.\\\\-]*)\\s*=\\s*(.*)$");
+
     private static final Logger logger = LoggerFactory.getLogger(ConfigFactory.class);
 
     public static Config create() throws ConfigException {
@@ -165,11 +179,14 @@ public class ConfigFactory {
 
         // get all of the config sources
         Map<String, Map<String, String>> configSources = new LinkedHashMap<>();
-        String sourceNames = configProperties.get(configRoot + "sources");
-        if (sourceNames == null || sourceNames.isEmpty()) {
-            throw new ConfigException("missing library setting: " + configRoot + "sources");
-        }
+        // `sources` is optional. Without it there are no config sources, and
+        // every property takes the default value declared in the `rwconfig`
+        // file - which is a complete, if static, configuration, and is the
+        // smallest useful file anyone can write. A property with no default
+        // still fails at startup, since nothing can supply it.
+        String sourceNames = configProperties.getOrDefault(configRoot + "sources", "");
         Stream.of(sourceNames.trim().split("\\s*,\\s*", -1))
+            .filter(sourceName -> !sourceNames.trim().isEmpty())
             .forEach(sourceName -> {
                 if (sourceName.isEmpty()) {
                     throw new ConfigException(
@@ -243,7 +260,7 @@ public class ConfigFactory {
                                     + "but no command line arguments were provided to the config system"
                                 );
                             }
-                            configSources.put(sourceName, new CommandLineProperties(commandLineArgs, propertyInfoMap));
+                            configSources.put(sourceName, new CommandLineProperties(commandLineArgs, configRoot));
                             logger.debug("config source `{}` loaded from command line arguments", sourceName);
                         }
                         case SYSTEM_PROPERTIES -> {
@@ -806,22 +823,61 @@ public class ConfigFactory {
     }
 
     private static SimpleConfigSourcePlugin loadPluginByModule(String name) {
-        String moduleName;
-        if (name.endsWith(".plugin")) {
-            moduleName = "net.rabbitware.config.plugin." + name.substring(0, name.length() - 7);
-        } else {
-            moduleName = name;
-        }
-        return ServiceLoader.load(SimpleConfigSourcePlugin.class).stream()
-            .filter(provider -> {
-                Module m = provider.type().getModule();
-                return m.isNamed() && moduleName.equals(m.getName());
-            })
+        String shortName = name.endsWith(PLUGIN_TYPE_SUFFIX)
+            ? name.substring(0, name.length() - PLUGIN_TYPE_SUFFIX.length())
+            : null;
+        String moduleName = shortName != null ? PLUGIN_MODULE_PREFIX + shortName : name;
+        List<ServiceLoader.Provider<SimpleConfigSourcePlugin>> providers =
+            ServiceLoader.load(SimpleConfigSourcePlugin.class).stream()
+                .filter(provider -> provider.type().getModule().isNamed())
+                .toList();
+        return providers.stream()
+            .filter(provider -> moduleName.equals(provider.type().getModule().getName()))
             .findFirst()
             .map(ServiceLoader.Provider::get)
-            .orElseThrow(() -> new ConfigException(
-                "no module that provides `SimpleConfigSourcePlugin` was found by that name: " + moduleName)
-            );
+            .orElseThrow(() -> new ConfigException(unknownSourceTypeMessage(name, shortName, providers)));
+    }
+
+    /**
+     * Explain a source type that resolved to nothing. Forgetting the plugin's
+     * jar, or putting it on the class path instead of the module path, are the
+     * two ways this normally happens, and neither is obvious from the fact that
+     * a module was not found - so the message says what to do about it, and
+     * lists what was found, which separates "no plugins at all" from "every
+     * plugin but this one".
+     */
+    private static String unknownSourceTypeMessage(
+        String type, String shortName, List<ServiceLoader.Provider<SimpleConfigSourcePlugin>> found
+    ) {
+        StringBuilder message = new StringBuilder("no plugin provides config source type `" + type + "`");
+        if (shortName != null) {
+            message
+                .append("\n\n`").append(type).append("` is a plugin, not a built-in source type, so it needs its")
+                .append(" own jar:\n\n")
+                .append("    <dependency>\n")
+                .append("        <groupId>net.rabbitware.config</groupId>\n")
+                .append("        <artifactId>plugin-").append(shortName).append("</artifactId>\n")
+                // deliberately not the real version - a hard-coded one here
+                // would go stale, and a plugin always tracks the core version
+                .append("        <version>(same version as rwConfig)</version>\n")
+                .append("    </dependency>\n\n")
+                .append("and the jar has to be on the module path - plugins are not found on the class path.");
+        }
+        message.append("\n\nplugins found: ").append(
+            found.isEmpty()
+                ? "(none)"
+                : found.stream()
+                    .map(provider -> provider.type().getModule().getName())
+                    .map(m -> m.startsWith(PLUGIN_MODULE_PREFIX)
+                        ? m.substring(PLUGIN_MODULE_PREFIX.length()) + PLUGIN_TYPE_SUFFIX
+                        : m)
+                    .sorted()
+                    .collect(Collectors.joining(", "))
+        );
+        message.append("\nbuilt-in source types: ").append(
+            Stream.of(SourceType.values()).map(sourceType -> sourceType.name).collect(Collectors.joining(", "))
+        );
+        return message.toString();
     }
 
     private static String getPluginProperty(
@@ -868,17 +924,42 @@ public class ConfigFactory {
     private static final class CommandLineProperties implements Map<String, String> {
         private final Map<String, String> map = new HashMap<>();
 
-        private CommandLineProperties(String[] args, Map<String, PropertyInfo> propertyInfoMap) {
+        /**
+         * Every argument that looks like a property assignment is collected,
+         * not just the ones that were declared. Unlike the environment or the
+         * system properties - which are full of entries that have nothing to do
+         * with this application - every command line argument was typed
+         * deliberately, for this program, so an argument that matches no
+         * declaration is far more likely to be a typo than a coincidence.
+         * Collecting them all lets the usual unknown-property check see them,
+         * which means `ignoreUnknownProperties` turns this off in the same way
+         * it does for every other config source.
+         *
+         * <p>An argument only counts as an assignment if its name is a legal
+         * property name, so an application's own flags and positional arguments
+         * (`--verbose`, `input.txt`, `-n=3`) are left alone. The library's own
+         * arguments are skipped too.
+         */
+        private CommandLineProperties(String[] args, String configRoot) {
             if (args == null) { // if no args were provided, just return an empty map
                 return;
             }
-            propertyInfoMap.keySet().stream()
-                .forEach(name -> {
-                    String value = getCommandLineArgument(name, args);
-                    if (value != null) {
-                        map.put(name, value);
-                    }
-                });
+            for (String arg : args) {
+                if (arg == null) {
+                    continue;
+                }
+                Matcher matcher = COMMAND_LINE_ASSIGNMENT.matcher(arg);
+                if (!matcher.matches()) { // not a property assignment - leave it for the application
+                    continue;
+                }
+                String name = matcher.group(1);
+                // the library's own arguments are not application properties
+                if (name.equals(CONFIG_FILE_PATH_PROPERTY) || name.startsWith(configRoot)) {
+                    continue;
+                }
+                // first occurrence wins, matching `getCommandLineArgument`
+                map.putIfAbsent(name, matcher.group(2));
+            }
         }
 
         @Override public String get(Object key) { return key instanceof String name ? map.get(name) : null; }

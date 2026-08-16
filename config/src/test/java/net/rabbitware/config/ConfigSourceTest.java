@@ -16,6 +16,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import net.rabbitware.config.Config.ConfigException;
 
@@ -139,6 +141,80 @@ class ConfigSourceTest {
             // the docs promise that surrounding whitespace in the file is kept
             assertEquals("Hello, ", config.gets("greeting"));
             assertEquals("World", config.gets("name"));
+        }
+
+        @Test
+        @DisplayName("a command line argument that matches no declaration is rejected")
+        void anUndeclaredCommandLineArgumentIsRejected() throws IOException {
+            // every command line argument was typed deliberately for this
+            // program, so one that matches no declaration is almost certainly a
+            // typo - unlike the environment, which is full of unrelated entries
+            ConfigException e = assertThrows(ConfigException.class, () -> config(
+                new String[] {"prot=9000"},
+                "rwc.sources = args",
+                "rwc.args.type = commandLineArguments",
+                "int port = 8000"
+            ));
+            assertTrue(
+                e.getMessage().contains("prot"),
+                "the error should name the offending argument, but got: " + e.getMessage()
+            );
+        }
+
+        @Test
+        @DisplayName("`ignoreUnknownProperties` allows undeclared command line arguments")
+        void undeclaredCommandLineArgumentsCanBeAllowed() throws IOException {
+            Config config = config(
+                new String[] {"prot=9000", "port=1024"},
+                "rwc.sources = args",
+                "rwc.args.type = commandLineArguments",
+                "rwc.args.ignoreUnknownProperties = true",
+                "int port = 8000"
+            );
+            assertEquals(1024, config.geti("port"));
+        }
+
+        @ParameterizedTest
+        @DisplayName("an application's own arguments are not mistaken for properties")
+        @ValueSource(strings = {"--verbose", "-n=3", "--filter=foo", "input.txt", "/a/path", ""})
+        void applicationArgumentsAreLeftAlone(String appArg) throws IOException {
+            // a property name has to begin with a letter, so flags and
+            // positional arguments never look like an assignment
+            Config config = config(
+                new String[] {appArg, "port=1024"},
+                "rwc.sources = args",
+                "rwc.args.type = commandLineArguments",
+                "int port = 8000"
+            );
+            assertEquals(1024, config.geti("port"));
+        }
+
+        @Test
+        @DisplayName("the library's own arguments are not mistaken for properties")
+        void librarysOwnArgumentsAreLeftAlone() throws IOException {
+            Config config = config(
+                new String[] {
+                    ConfigFactory.CONFIG_FILE_PATH_PROPERTY + "=file:/nowhere",
+                    "rwc.somethingElse=x",
+                    "port=1024"
+                },
+                "rwc.sources = args",
+                "rwc.args.type = commandLineArguments",
+                "int port = 8000"
+            );
+            assertEquals(1024, config.geti("port"));
+        }
+
+        @Test
+        @DisplayName("the first of a repeated command line argument wins")
+        void theFirstRepeatedArgumentWins() throws IOException {
+            Config config = config(
+                new String[] {"port=1111", "port=2222"},
+                "rwc.sources = args",
+                "rwc.args.type = commandLineArguments",
+                "int port = 8000"
+            );
+            assertEquals(1111, config.geti("port"));
         }
 
         @Test
@@ -305,8 +381,34 @@ class ConfigSourceTest {
         }
 
         @Test
+        @DisplayName("an unknown source type lists the types that do exist")
         void anUnknownSourceTypeIsRejected() throws IOException {
-            rejected("rwc.sources = only", "rwc.only.type = notARealType", "myProp = a");
+            // the error is the only documentation a reader has at that moment,
+            // so it has to say what the valid types are
+            ConfigException e = rejected("rwc.sources = only", "rwc.only.type = commandLineArgument", "myProp = a");
+            assertTrue(
+                e.getMessage().contains("commandLineArguments")
+                    && e.getMessage().contains("environmentVariables")
+                    && e.getMessage().contains("directory"),
+                "the error should list the built-in source types, but got: " + e.getMessage()
+            );
+        }
+
+        @Test
+        @DisplayName("a missing plugin names its artifact and the module path")
+        void aMissingPluginExplainsItself() throws IOException {
+            // forgetting the jar, or putting it on the class path, are the two
+            // ways this happens - neither is obvious from "module not found"
+            ConfigException e = rejected(
+                "rwc.sources = only",
+                "rwc.only.type = json.plugin",
+                "rwc.only.location = file:nowhere.json",
+                "myProp = a"
+            );
+            String m = e.getMessage();
+            assertTrue(m.contains("plugin-json"), "should name the Maven artifact, but got: " + m);
+            assertTrue(m.contains("module path"), "should mention the module path, but got: " + m);
+            assertTrue(m.contains("plugins found:"), "should list the plugins found, but got: " + m);
         }
 
         @Test
