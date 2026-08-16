@@ -28,12 +28,13 @@
 # java properties file. This means that all values in this section are strings.
 #
 
-# The config sources to read in order of highest precedence to lowest. Each
-# config source is either a standard java properties file, the command line
-# arguments, java system properties, environment variables, or a database of
-# some sort. rwConfig will read the config sources in the order listed
-# here. Any property value defined in a higher precedence source will override
-# the value of the same property defined in a lower precedence source.
+# The config sources to read in order of highest precedence to lowest. Built-in
+# config sources are can be a standard java properties file, a directory, the
+#command line arguments, java system properties, or environment variables.
+#Plugins are available for YAML, JSON, XML, or a database of some sort. rwConfig
+# will read the config sources in the order listed here. Any property value
+# defined in a higher precedence source will override he value of the same
+# property defined in a lower precedence source.
 #
 # Information about each of the config sources (including how to load them) is
 # declared below this line, using this syntax:
