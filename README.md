@@ -25,8 +25,8 @@ int[80, 1024:65535] port = 8000
 `port` is an `int`, it may only be 80 or a value from 1024 to 65535, and it
 defaults to 8000.
 
-Add a line to say where values may come from, and a property that must be
-supplied rather than defaulted:
+Add a couple of lines to say where values may come from, and a property that
+must be supplied rather than defaulted:
 
 ```
 rwc.sources = environment
