@@ -120,7 +120,7 @@ rwc.settings.location = file:settings.yaml
 ```
 
 The bundled plugins are `yaml.plugin`, `json.plugin`, `xml.plugin`,
-`jdbc.plugin` and `prefix.plugin` - see [PLUGINS.md](../PLUGINS.md) for what
+`jdbc.plugin`, and `prefix.plugin` - see [PLUGINS.md](../PLUGINS.md) for what
 each one needs. To write your own, see [Writing a
 plugin](writing-a-plugin.md).
 

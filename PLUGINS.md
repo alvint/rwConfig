@@ -40,7 +40,7 @@ The type is the plugin's short name followed by `.plugin`. You can also give the
 plugin's full module name (`net.rabbitware.config.plugin.json`) if you prefer.
 
 `ignoreUnknownProperties` isn't specific to plugins, but it matters more here
-than elsewhere: JSON, YAML and XML sources usually contain far more properties
+than elsewhere: JSON, YAML, and XML sources usually contain far more properties
 than your app declares, and without it those undeclared properties are an error
 at startup. See [Config Sources](docs/config-sources.md) for the details.
 

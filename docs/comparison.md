@@ -11,7 +11,7 @@ else is judgement, and is marked as such.
 **The short version:** if you already use a framework with configuration built
 in, use that. If your configuration is a document that maps to a class, bind it
 with Jackson. rwConfig is worth considering when you want every property
-declared, typed and validated in one file, and misconfiguration to stop the
+declared, typed, and validated in one file, and misconfiguration to stop the
 application at startup rather than surprise you later.
 
 ## Start here
@@ -20,12 +20,12 @@ application at startup rather than surprise you later.
 |---|---|
 | you use Spring or Spring Boot | Spring's `Environment` and `@ConfigurationProperties` |
 | you use Quarkus, or want the MicroProfile standard | SmallRye Config |
-| you use Akka, Pekko or Play | Typesafe Config - it is already there |
+| you use Akka, Pekko, or Play | Typesafe Config - it is already there |
 | your config is a YAML or JSON document mapping to a class | Jackson (or your framework's binder) |
 | values must change while the application runs | Archaius 2, or Commons Configuration's reloading |
-| you must read INI, plist, XML or other legacy formats | Commons Configuration |
+| you must read INI, plist, XML, or other legacy formats | Commons Configuration |
 | you have a handful of values and want zero dependencies | `java.util.Properties` |
-| you want one file that declares, types and validates every property, and fails fast | **rwConfig** |
+| you want one file that declares, types, and validates every property, and fails fast | **rwConfig** |
 | you want something small and modern without a framework | avaje-config, or rwConfig |
 
 Most of these are not close calls. Fighting a framework's own configuration
@@ -70,7 +70,7 @@ reflection.
 
 The closest thing the JVM has to a default. HOCON is a genuinely good format -
 comments, includes, substitutions, and merging of several files into one view.
-The library is mature, well documented and everywhere.
+The library is mature, well documented, and everywhere.
 
 **Strengths:** the format; wide adoption, so people already know it; merging
 and fallbacks are excellent; hierarchical config is first class.
@@ -150,7 +150,7 @@ feature flags, tuning knobs in a long-running service. Prefer 2.x for new work.
 
 ### avaje-config
 
-Small, modern and quick, without a framework attached.
+Small, modern, and quick, without a framework attached.
 
 **Strengths:** easy to learn; good performance; supports properties and YAML;
 layered sources and reloading; actively maintained.
@@ -169,7 +169,7 @@ Ergonomically this is lovely - the API *is* your config, with IDE completion
 and compile-time names.
 
 **Strengths:** the nicest declaration model here; almost no learning curve;
-defaults, key names and converters are all annotations.
+defaults, key names, and converters are all annotations.
 
 **Weaknesses:** by far the slowest reads measured - 248 ns for an `int` and
 about 7 microseconds for a `String`, through the dynamic proxy; last release
@@ -183,7 +183,7 @@ numbers.
 
 **Strengths:** no dependency, no learning curve, universally understood.
 
-**Weaknesses:** strings only; no types, lists, defaults, validation, layering
+**Weaknesses:** strings only; no types, lists, defaults, validation, layering,
 or structure. Everything above that, you write and maintain yourself.
 
 **Choose it when** you have a handful of values, or a dependency would cost
@@ -195,7 +195,7 @@ Not a configuration library - a serialization library used as one, which is
 extremely common.
 
 **Strengths:** your config becomes a typed object; reads are field accesses;
-IDE completion and safe refactoring; JSON, YAML and TOML via dataformat
+IDE completion and safe refactoring; JSON, YAML, and TOML via dataformat
 modules; JSR-380 validation if you want it.
 
 **Weaknesses:** none of the *configuration* parts - no layered sources, no
@@ -210,7 +210,7 @@ class, and one source is enough.
 
 ### Strengths
 
-- **One file describes everything.** Names, types, allowed values, defaults and
+- **One file describes everything.** Names, types, allowed values, defaults, and
   where values come from, all in one place. Nothing is spread between a
   properties file and a constants class.
 - **Misconfiguration fails at startup**, naming the property. A missing value,
@@ -237,13 +237,13 @@ class, and one source is enough.
 - **No runtime reload.** The plugin API has the hooks and the README plans it,
   but nothing implements it. If values must change without a restart, this is
   the wrong library today.
-- **No framework integration.** Nothing binds it to Spring, Quarkus, Micronaut
+- **No framework integration.** Nothing binds it to Spring, Quarkus, Micronaut,
   or anything else.
 - **No binding to a class.** Reads are by name, so you get neither compile-time
   property names nor IDE completion.
 - **A bespoke file format to learn.** Small, and close to `.properties`, but it
   is one more thing, and only this project's editor extension understands it.
-- **Limited types.** No durations, sizes, enums or `URI`. `int timeoutSeconds`
+- **Limited types.** No durations, sizes, enums, or `URI`. `int timeoutSeconds`
   works but is not what most people want to write.
 - **Plugins require the module path**, which is a real constraint for
   applications still on the classpath.
@@ -260,7 +260,7 @@ class, and one source is enough.
 
 ### When to pick something else
 
-- **You use Spring, Quarkus, Micronaut, Akka or Play.** Use what is there.
+- **You use Spring, Quarkus, Micronaut, Akka, or Play.** Use what is there.
 - **Values must change without a restart.** Archaius 2, or Commons
   Configuration.
 - **You cannot take a risk on a young library.** Entirely reasonable - take

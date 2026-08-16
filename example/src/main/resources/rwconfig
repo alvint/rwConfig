@@ -1,5 +1,5 @@
 # Sample `rwconfig` file. This file declares the properties that will be
-# available to the application - their names, types, allowed values and
+# available to the application - their names, types, allowed values, and
 # defaults - and optionally configures rwConfig itself.
 #
 # This one is the full reference and exercises nearly every feature, so it is

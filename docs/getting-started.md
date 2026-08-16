@@ -180,7 +180,7 @@ rather than conditions you handle.
 - **[Writing a plugin](writing-a-plugin.md)** - adding a source type of your
   own.
 - **[Error messages](errors.md)** - what each startup error means.
-- **[Bundled plugins](../PLUGINS.md)** - YAML, JSON, XML, JDBC and prefix.
+- **[Bundled plugins](../PLUGINS.md)** - YAML, JSON, XML, JDBC, and prefix.
 
 There is also a heavily commented [example `rwconfig`
 file](../example/src/main/resources/rwconfig) that exercises nearly every

@@ -49,7 +49,7 @@ always strings.
 **``invalid escape sequence `\q` in value: <value>``**
 
 A backslash followed by something that is not an escape. The valid ones are
-`\\`, `\e`, `\n`, `\r`, `\t`, `\uXXXX` and a leading `\ `; allowed values also
+`\\`, `\e`, `\n`, `\r`, `\t`, `\uXXXX`, and a leading `\ `; allowed values also
 take `\]`, `\,` and `\:`. A `[` is never escaped - write it as-is.
 
 This also appears for a malformed unicode escape, which needs exactly four hex

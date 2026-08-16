@@ -101,13 +101,13 @@ at the [takeaway](benchmark/README.md).
 - **Fast, uniform reads** - a read is one HashMap lookup of an already-parsed
   value: ~2.3 ns whether it's an `int`, a `String`, or a list.
 - **No `Optional`s, no fluent chains** - `config.getInt("port")` returns an
-  `int`, because types, defaults and validation were settled at startup. On the
+  `int`, because types, defaults, and validation were settled at startup. On the
   API side it's a similar API to `java.util.Map`, with types tacked on.
-- **Types and lists** - `boolean`, `int`, `long`, `double` and `string`, plus
-  `booleanList`, `intList`, `longList`, `doubleList` and `stringList`.
+- **Types and lists** - `boolean`, `int`, `long`, `double`, and `string`, plus
+  `booleanList`, `intList`, `longList`, `doubleList`, and `stringList`.
 - **Layered sources, with precedence you declare** - command line arguments,
   environment variables, system properties, `.properties` files and
-  directories, plus YAML, JSON, XML and databases via the bundled plugins. Load
+  directories, plus YAML, JSON, XML, and databases via the bundled plugins. Load
   them from the filesystem, a `jar`, http(s), or the classpath. Add your own
   with a small plugin API.
 - **Nearly dependency-free** - the Java Base module and slf4j, which itself only
@@ -348,7 +348,7 @@ is up to snuff at app start (when you're in the office), than to find out at 3am
   fix it
 - [Choosing a Configuration Library](docs/comparison.md) - how rwConfig
   compares with the alternatives, and when to use one of them instead
-- [Plugins](PLUGINS.md) - the YAML, JSON, XML, JDBC and prefix plugins that
+- [Plugins](PLUGINS.md) - the YAML, JSON, XML, JDBC, and prefix plugins that
   ship with the project
 
 There is also a [minimal `rwconfig`](example/src/main/resources/rwconfig-minimal)

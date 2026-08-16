@@ -169,7 +169,7 @@ is, and your idea of "looks like a number" may not match it.
 reimplementing:
 
 ```java
-// reads file:, classpath:, jar:, http: and https: locations, with a
+// reads file:, classpath:, jar:, http:, and https: locations, with a
 // 10 second connect timeout and a 10 second read timeout
 String content = SimpleConfigSourcePlugin.loadResource(location);
 
@@ -210,7 +210,7 @@ for a fuller one. Cases worth covering:
 - a missing required property is rejected
 - an optional property left out uses its default and does not fail
 - an unreachable or malformed source throws rather than returning a partial map
-- if you flatten hierarchical data, that arrays, empty containers, nulls and
+- if you flatten hierarchical data, that arrays, empty containers, nulls, and
   mixed-type arrays all come out as intended
 
 Then add one end-to-end test that runs a real `rwconfig` through
