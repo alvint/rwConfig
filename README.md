@@ -245,9 +245,10 @@ me some feedback. See [Choosing a Configuration Library](docs/comparison.md).
 
 ## Does It Matter How Fast A Config System Is?
 Not really. But some people like numbers. What _really_ matters is the design
-ideology. It's better to define up-front what your config properties should look
-like and how they should be loaded. And it's _much_ better to test if your config
-is up to snuff at app start (when you're in the office), than to find out at 3am.
+philosophy. It's better to define up-front what your config properties should
+look like and how they should be loaded. And it's _much_ better to test if your
+config is up to snuff at app start (when you're in the office), than to find out
+at 3am.
 
 ## Project Goals
 - a simple interface with virtually no learning curve
