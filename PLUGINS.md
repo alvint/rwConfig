@@ -54,6 +54,108 @@ Several plugins read from a location, and they all accept it the same way.
       from the current working directory. For example, `file:my/file` is ok.
     - `jar:` URL syntax is normally `jar:file:/path/to/jar!path/to/item`.
 
+## How Nested Formats Are Flattened
+JSON, YAML, and XML all describe a tree, and rwConfig properties are flat. The
+three plugins therefore share one set of rules, described here once. Each plugin
+section below only covers what is specific to its format.
+
+**A property's name is the path to its value.** Start at the top of the
+document, write down each key you pass through on the way to a value, and join
+them with backslashes. Inside an array, the position is used instead of a key -
+`0`, `1`, `2`. Only values become properties; objects and arrays are the
+structure you walk through, not values in their own right.
+
+```json
+{
+  "numberOfAccounts": 2,        ->  numberOfAccounts = 2
+  "accounts": [                      (structure, not a value)
+    {
+      "name": "alvin",          ->  accounts\0\name = alvin
+      "role": "admin"           ->  accounts\0\role = admin
+    },
+    {
+      "name": "carl",           ->  accounts\1\name = carl
+      "role": "user"            ->  accounts\1\role = user
+    }
+  ]
+}
+```
+
+Note that `accounts` is not itself a property. Nothing is lost - every value it
+contains is reachable - but there is no property whose value is "the accounts
+array".
+
+### Why a backslash
+Property names may legally contain dots, so `a.b` is a perfectly good name for a
+single property. That makes a dot useless as a separator: `a.b` would be
+ambiguous between one name and two levels. A backslash is not idiomatic in
+property names, so it is the separator, and the rules under
+[Keys that would collide](#keys-that-would-collide) exist to keep it
+unambiguous.
+
+### Lists
+There is one exception to the path rule. If an array holds a homogenous list of
+booleans, strings, floating-point numbers, or integers, the whole array becomes
+a single comma-separated value on the key that holds it, rather than one
+property per index. That is what makes it readable by a `stringList`, `intList`,
+and the other list types.
+
+If the array holds anything else - objects, nested arrays, or a mixture of
+scalar types - the ordinary path rule applies and you get one indexed property
+per element.
+
+```json
+{
+  "strings": ["a", "b", "c"],   ->  strings = a,b,c
+  "ints": [1, 2, 3, 4, 5],      ->  ints = 1,2,3,4,5
+  "floats": [1.5, 2.5, 3.5],    ->  floats = 1.5,2.5,3.5
+  "mixed": [1, 2.5, 3]          ->  mixed\0 = 1
+}                                    mixed\1 = 2.5
+                                     mixed\2 = 3
+```
+
+`mixed` falls back because it mixes integers and floating-point numbers, which
+is not a type any rwConfig list can hold.
+
+An empty array counts as homogenous, and its value is the empty string. That
+works out because a property declared with any list type reads an empty string
+as an empty list.
+
+### Nulls and empty values
+A null becomes the string `"null"`. If the property is declared in your
+`rwconfig` file as anything but a `string`, that fails at startup rather than
+silently becoming `0` or `false` - which is the intent.
+
+An empty value is a different thing from a null, and stays an empty string.
+
+### Keys that would collide
+Because a backslash separates levels, a key that itself contains a backslash
+would be ambiguous. Consider:
+
+```json
+{
+  "a": { "b": "wazoo" },
+  "a\\b": "what happens here?"
+}
+```
+
+The second key is a literal `a\b` once the parser has read the escape, and
+without a rule it would name the same property as the nested `a` -> `b`. So
+before flattening, keys are rewritten:
+
+1. A literal backslash in a key is escaped with another backslash.
+1. An empty key - legal in JSON and YAML - is renamed to `empty\key`.
+1. A null key - legal in YAML - is renamed to `null\key`.
+
+which keeps the two apart:
+
+- `a\b=wazoo` - the nested value
+- `a\\b=what happens here?` - the key that contained a backslash
+
+These rules affect very few real documents; empty keys, null keys, and keys with
+backslashes are all rare. Where they do apply, no data is lost - the value is
+simply reachable under the adjusted name.
+
 ## JSON (`json.plugin`)
 Loads properties from a JSON file.
 ### Required Properties
@@ -61,106 +163,9 @@ Loads properties from a JSON file.
   - Where to read the source from. See
     [Common Properties](#common-properties).
 ### Details
-The JSON plugin reads and parses valid JSON, and then "flattens" the JSON into
-key-value pairs. It only extracts JSON nodes with values. Nodes that represent
-other JSON objects or JSON arrays are recursed and the name of the node followed
-by a backslash is prefixed to any value therein's property name. The property
-name used for each node is either its key name (if it was found in an object),
-or its index (if it was found in an array).
-
-It's easier to understand looking at an example:
-```json
-{
-  "numberOfAccounts": 2,
-  "accounts": [
-    {
-      "name": "alvin",
-      "role": "admin"
-    },
-    {
-      "name": "carl",
-      "role": "user"
-    }
-  ]
-}
-```
-The above JSON will produce the following properties:
-- `numberOfAccounts=2`
-- `accounts\0\name=alvin`
-- `accounts\0\role=admin`
-- `accounts\1\name=carl`
-- `accounts\1\role=user`
-
-#### Lists
-There is a special exception applied to the algorithm above: if an array
-contains a homogenous list of booleans, strings, floating-point numbers,
-or integers, the entire array is converted into a comma-separated list and
-used as the value for the current node. If the array is **not** one of the
-above types, or it contains a mixture of types, the standard rules apply.
-
-Empty lists are considered to be homogenous and their value will be an empty
-string. This works because any rwConfig property with a list type will
-interpret empty strings as an empty list.
-
-For example:
-```json
-{
-  "strings": ["a", "b", "c"],
-  "ints": [1, 2, 3, 4, 5],
-  "floats": [1.5, 2.5, 3.5],
-  "mixed": [1, 2.5, 3]
-}
-```
-The above JSON will produce the following properties:
-- `strings=a,b,c`
-- `ints=1,2,3,4,5`
-- `floats=1.5,2.5,3.5`
-- `mixed\0=1`
-- `mixed\1=2.5`
-- `mixed\2=3`
-
-The `mixed` array falls back to the original rules because it contains a
-mixture of integers and floating-point numbers. This is not supported in
-rwConfig lists.
-
-#### Null Values
-Null values are represented as the string "null". Attempting to load JSON
-which has a `null` value for a property declared in the `rwconfig` file as
-any type but `string` will result in an exception at startup. This is by
-design.
-
-#### Avoiding Naming Conflicts
-Consider the following JSON:
-```json
-{
-  "a": {
-    "b": "wazoo"
-  },
-  "a\\b": "what happens here?"
-}
-```
-Remember that the escaped backslash in the second top-level property will be
-interpreted as a literal backslash when this text representation of JSON is
-ingested by the JSON engine. This creates a dilemma with our property naming
-system. It's ambiguous which value the property name `a\b` should refer to.
-
-In order to preclude the possibility of a naming conflict while flattening,
-the following rules are applied in order:
-1. If a property key contains a literal backslash, it is escaped with another
-   backslash.
-1. If a property key is empty (legal in the JSON spec), it is renamed to
-   `empty\key`.
-
-As a result, the JSON shown above will produce the following properties:
-- `a\b=wazoo`
-- `a\\b=what happens here?`
-
-Any potential conflicts are avoided.
-
-In practice these rules should affect relatively few JSON sources, since it is
-not common to have empty property keys or property keys with backslashes. In any
-case the data is still there; you just have to access it under a slightly tweaked
-name.
+JSON is flattened exactly as described in
+[How Nested Formats Are Flattened](#how-nested-formats-are-flattened), and adds
+nothing of its own.
 
 ## YAML (`yaml.plugin`)
 Loads properties from a YAML file.
@@ -183,102 +188,22 @@ Loads properties from a YAML file.
 
     See below for more details.
 ### Details
-The YAML plugin reads and parses valid YAML files, and then "flattens" the node
-graph into key-value pairs. It only extracts YAML nodes with values. Nodes that
-represent other YAML objects or sequences are recursed and the name of the node
-followed by a backslash is prefixed to any value therein's property name. The
-property name used for each node is either its key name (if it was found in
-an object), or its index (if it was found in a sequence).
+YAML is flattened as described in
+[How Nested Formats Are Flattened](#how-nested-formats-are-flattened), with
+sequences playing the part of arrays:
 
-It's easier to understand looking at an example:
 ```yaml
-numberOfAccounts: 2
+numberOfAccounts: 2             ->  numberOfAccounts = 2
 accounts:
-  - name: alvin
-    role: admin
-  - name: carl
-    role: user
+  - name: alvin                 ->  accounts\0\name = alvin
+    role: admin                 ->  accounts\0\role = admin
+  - name: carl                  ->  accounts\1\name = carl
+    role: user                  ->  accounts\1\role = user
 ```
-The above YAML will produce the following properties:
-- `numberOfAccounts=2`
-- `accounts\0\name=alvin`
-- `accounts\0\role=admin`
-- `accounts\1\name=carl`
-- `accounts\1\role=user`
 
-#### Lists
-There is a special exception applied to the algorithm above: if a sequence
-contains a homogenous list of booleans, strings, floating-point numbers,
-or integers, the entire sequence is converted into a comma-separated list
-and used as the value for the current node. If the array is **not** one of
-the above types, or it contains a mixture of types, the standard rules
-apply.
+Merge keys are the one thing YAML adds.
 
-Empty sequences are considered to be homogenous and their value will be an
-empty string. This works because any rwConfig property with a list type
-will interpret empty strings as an empty list.
-
-For example:
-```yaml
-strings: [a, b, c]
-ints:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-floats: [1.5, 2.5, 3.5]
-mixed: [1, 2.5, 3]
-```
-The above YAML will produce the following properties:
-- `strings=a,b,c`
-- `ints=1,2,3,4,5`
-- `floats=1.5,2.5,3.5`
-- `mixed\0=1`
-- `mixed\1=2.5`
-- `mixed\2=3`
-
-The `mixed` array falls back to the original rules because it contains a
-mixture of integers and floating-point numbers. This is not supported in
-rwConfig lists.
-
-#### Null Values
-Null values are represented as the string "null". Attempting to load YAML
-which has a `null` value for a property declared in the `rwconfig` file as
-any type but `string` will result in an exception at startup. This is by
-design.
-
-#### Avoiding Naming Conflicts
-Consider the following YAML:
-```yaml
-a:
-  b: wazoo
-a\b: what happens here?
-```
-This creates a dilemma with our property naming system. It's ambiguous which
-value the property name `a\b` should refer to.
-
-In order to preclude the possibility of a naming conflict while flattening,
-the following rules are applied in order:
-1. If a property key contains a literal backslash, it is escaped with another
-   backslash.
-1. If a property key is empty (legal in the YAML spec), it is renamed to
-   `empty\key`.
-1. If a property key is null (legal in the YAML spec), it is renamed to
-   `null\key`.
-
-As a result, the YAML shown above will produce the following properties:
-- `a\b=wazoo`
-- `a\\b=what happens here?`
-
-Any potential conflicts are avoided.
-
-In practice these rules should affect relatively few YAML sources, since it is
-not common to have empty property keys, null keys, or keys with backslashes. In
-any case the data is still there; you just have to access it under a slightly
-tweaked name.
-
-#### Merge Keys
+### Merge Keys
 > Note that YAML's `<<` is unrelated to the `<<` used as a *deferred value* in
 > library settings. This one is YAML's own merge key, and only has meaning
 > inside a YAML document.
@@ -320,82 +245,54 @@ Loads properties from an XML file.
   - Where to read the source from. See
     [Common Properties](#common-properties).
 ### Details
-The XML plugin reads and parses valid XML, and then "flattens" the XML into
-key-value pairs. It only extracts properties from elements or attributes with
-a value. Elements that contain attributes or other XML elements are recursed,
-and the name of this element followed by a backslash is prefixed to any value
-therein's property name.
+XML is flattened as described in
+[How Nested Formats Are Flattened](#how-nested-formats-are-flattened). Two
+things are specific to XML.
 
-If an element contains multiple elements with the same name, it is considered
-to be an array. This is represented as the nested elements' name, followed by
-a backslash, followed by the
-element's index.
+**Attributes become properties, in the same namespace as elements.** An
+attribute `a` and a child element `a` of the same parent therefore name the same
+property. Nothing is dropped - they are treated as repeated values and collapse
+into a list, the same as any repeated scalar:
 
-It's easier to understand looking at an example:
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0">
-    <groupId>com.foo</groupId>
-    <artifactId>example</artifactId>
+<root a="fromAttribute"><a>fromElement</a></root>   ->  root\a = fromAttribute,fromElement
+```
+
+**Repeated elements are an array.** If an element contains several children with
+the same name, they are treated as a list under that shared name - which then
+follows the [list rules](#lists), collapsing to a comma-separated value when the
+values are homogenous.
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0">   ->  project\xmlns = http://maven.apache.org/POM/4.0.0
+    <groupId>com.foo</groupId>                        ->  project\groupId = com.foo
+    <artifactId>example</artifactId>                  ->  project\artifactId = example
     <dependencies>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>org.slf4j</groupId>              ->  project\dependencies\dependency\0\groupId = org.slf4j
+            <artifactId>slf4j-api</artifactId>        ->  project\dependencies\dependency\0\artifactId = slf4j-api
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
+            <groupId>org.slf4j</groupId>              ->  project\dependencies\dependency\1\groupId = org.slf4j
+            <artifactId>slf4j-simple</artifactId>     ->  project\dependencies\dependency\1\artifactId = slf4j-simple
         </dependency>
     </dependencies>
 </project>
 ```
-The above XML will produce the following properties:
-- `project\xmlns=http://maven.apache.org/POM/4.0.0`
-- `project\groupId=com.foo`
-- `project\artifactId=example`
-- `project\dependencies\dependency\0\groupId=org.slf4j`
-- `project\dependencies\dependency\0\artifactId=slf4j-api`
-- `project\dependencies\dependency\1\groupId=org.slf4j`
-- `project\dependencies\dependency\1\artifactId=slf4j-simple`
 
-#### Lists
-There is a special exception applied to the algorithm above: if an array
-contains a homogenous list of booleans, strings, floating-point numbers,
-or integers, the entire array is converted into a comma-separated list and
-used as the value for the current node. If the array is **not** one of the
-above types, or it contains a mixture of types, the standard rules apply.
+The two `dependency` elements are objects rather than scalars, so they keep
+their indexes. Repeated *scalar* elements collapse instead:
 
-For example:
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
 <foo>
-  <ints>
-    <val>1</val>
-    <val>3</val>
-    <val>5</val>
-  </ints>
-  <floats>
-    <val>1.5</val>
-    <val>3.5</val>
-    <val>5.5</val>
-  </floats>
-  <mixed>
-    <val>1</val>
-    <val>2.5</val>
-    <val>3</val>
-  </mixed>
-</foo>
+  <ints><val>1</val><val>3</val><val>5</val></ints>       ->  foo\ints\val = 1,3,5
+  <mixed><val>1</val><val>2.5</val><val>3</val></mixed>   ->  foo\mixed\val\0 = 1
+</foo>                                                        foo\mixed\val\1 = 2.5
+                                                              foo\mixed\val\2 = 3
 ```
-The above XML will produce the following properties:
-- `foo\ints\val=1,3,5`
-- `foo\floats\val=1.5,3.5,5.5`
-- `foo\mixed\val\0=1`
-- `foo\mixed\val\1=2.5`
-- `foo\mixed\val\2=3`
 
-The `mixed` array falls back to the original rules because it contains a
-mixture of integers and floating-point numbers. This is not supported in
-rwConfig lists.
+XML has no null literal, so the null rule never fires in practice. An empty
+element such as `<a></a>` is an empty value, not a missing one.
 
 ## JDBC (`jdbc.plugin`)
 This plugin loads properties from a database. This plugin also requires that the
