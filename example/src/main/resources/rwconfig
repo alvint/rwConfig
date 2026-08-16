@@ -24,16 +24,17 @@
 
 #
 # Library settings. Any property that starts with `rwc.` configures rwConfig
-# itself, and uses a syntax similar to a standard
-# java properties file. This means that all values in this section are strings.
+# itself, and uses a syntax similar to a standard java properties file. This
+# means that all values in this section are strings.
 #
 
 # The config sources to read in order of highest precedence to lowest. Built-in
 # config sources are can be a standard java properties file, a directory, the
-#command line arguments, java system properties, or environment variables.
-#Plugins are available for YAML, JSON, XML, or a database of some sort. rwConfig
-# will read the config sources in the order listed here. Any property value
-# defined in a higher precedence source will override he value of the same
+# command line arguments, java system properties, or environment variables.
+# Plugins are available for YAML, JSON, XML, and database config sources.
+#
+# rwConfig will read the config sources in the order listed here. Any property
+# value defined in a higher precedence source will override he value of the same
 # property defined in a lower precedence source.
 #
 # Information about each of the config sources (including how to load them) is
@@ -45,8 +46,8 @@ rwc.sources = args, system, environment, local, organization, app, prefix, \
               directory, json, xml, yaml, db
 
 # All config sources must have a `type` setting that declares the type of the
-# config source. The type determines how rwConfig will load the source,
-# and which other settings are required.
+# config source. The type determines how rwConfig will load the source, and
+# which other settings are required.
 #
 # Current supported config source types are:
 # 1. commandLineArguments: load configuration properties from command line
@@ -115,17 +116,17 @@ rwc.sources = args, system, environment, local, organization, app, prefix, \
 # declared in this file will cause an exception during initialization. This
 # behavior is on by default to help catch typos in property names.
 #
-# This applies to sources that can be read in full - properties files,
-# directories, and anything loaded by a plugin - and to the command line, since
-# every argument there was typed deliberately for this application. It does
-# *not* apply to `systemProperties` or `environmentVariables`: those are looked
-# up one declared property at a time, so the many unrelated entries in them are
-# never seen, and the setting has no effect.
+# The `ignoreUnknownProperties` setting only applies to command line arguments,
+# properties files, directories, and anything loaded by a plugin. It does *not*
+# apply to system properties or environment variables because they contain many
+# settings unrelated to the app. For those sourcess the setting is always on,
+# and trying to set it to `off` will result in a warning being logged.
 #
-# Note that the `args` source below is left strict, so running this example with
-# an argument of the form `name=value` that no property declares will stop
-# startup. Arguments that are not assignments - `--verbose`, `input.txt` - are
-# ignored, as are the library's own, such as `rw.config.path=...`.
+# A note about `ignoreUnknownProperties` with respect to command line arguments:
+# when the setting is on (the default), only command line arguments that fit the
+# form `propertyName=value` are checked. Arguments that are *not* properties in
+# you app such as `--verbose` or `input.txt` are ignored, as are the library's
+# own settings such as `rw.config.path=...`.
 
 rwc.args.type = commandLineArguments
 rwc.system.type = systemProperties
@@ -162,11 +163,11 @@ rwc.db.username = admin
 # described here.
 #
 # Even though the value for this property is present in an earlier config
-# source, it is still considered to be configuration info and not an application
+# source, it is still considered to be a library setting  and not an application
 # property. This means that it will not be available to the application, and you
 # do not need to set the `ignoreUnknownProperties` flag to `true`.
 #
-# In this case, a higher-precedence config source must contain the property
+# In this case, a higher-precedence config source must contain the setting
 # `rwc.db.password=mySecretPassword` or an exception will be thrown during
 # initialization.
 rwc.db.password = <<
