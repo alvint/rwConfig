@@ -1,4 +1,9 @@
 # What is rwConfig?
+![Java](https://img.shields.io/badge/Java-21%2B-blue)
+![Tests](https://img.shields.io/badge/tests-280-brightgreen)
+![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
+![Status](https://img.shields.io/badge/status-pre--1.0-orange)
+
 rwConfig is a simple, lightweight library that provides a unified and _fast_
 interface for reading static configuration information from a wide range of
 configuration sources.
@@ -9,7 +14,55 @@ you have what you need on startup. This means that you can rest easier knowing
 that you won't be surprised by configuration issues when it's too late to do
 something about it.
 
+## In A Nutshell
+Declare what your app needs, in one file:
+
+```
+int[80, 1024:65535] port = 8000
+DBPassword
+```
+
+That says: `port` is an `int`, it may only be 80 or a value from 1024 to 65535,
+and it defaults to 8000. `DBPassword` is required, and deliberately has no value
+here--it comes from the environment, the command line, a database, or a file you
+don't commit.
+
+Read it with no ceremony:
+
+```java
+int port = config.getInt("port");
+```
+
+No `Optional`. No cast. No default value at the call site. No exception to
+handle. The type, the default, and the allowed values were all settled before
+your first line of code ran.
+
+And when the configuration is wrong, you hear about it at startup--not at 3am:
+
+```
+value is not allowed for property `port` (in source `args`): 500
+```
+```
+property `DBPassword` is not set by any config source, and has no default value defined in the config file
+```
+
 ## How Fast Is It?
+| reading an `int` by name | |
+|---|---|
+| **rwConfig** | **3.3 ns** |
+| avaje-config | 4.1 ns |
+| `java.util.Properties` | 7.3 ns |
+| SmallRye Config | 10.2 ns |
+| Typesafe Config | 16.5 ns |
+| Spring `Environment` | 35.1 ns |
+| Commons Configuration | 44.1 ns |
+| Owner | 248.2 ns |
+
+Fastest of the libraries that look a value up by name. Some libraries are
+faster still by not looking anything up at read time--the
+[benchmark README](benchmark/README.md) is honest about which, and why that
+isn't the same question.
+
 For arbitrary reads it's already faster than the other popular config libraries
 tested. The reason is this library validates everything up front; it trades
 up-front cost for a reduced cost at retrieval time. And that cost is spent only
@@ -22,104 +75,29 @@ you're getting it from.
 Don't take my word for it. [Run the benchmarks yourself!](benchmark) Or just look
 at the [takeaway](benchmark/README.md).
 
-## Does It Matter How Fast A Config System Is?
-Not really. But some people like numbers. What _really_ matters is the design
-ideology. It's better to define up-front what your config properties should look
-like and how they should be loaded. And it's _much_ better to test if your config
-is up to snuff at app start (when you're in the office), than to find out at 3am.
-
 ## Features
-- fast reads
-  - reading and parsing of configuration sources and property values happens at
-    startup only
-  - after initialization, a read is a lookup in a flat HashMap of String keys to
-    already-parsed values
-    - see the "Design Choices" section for more details
-- simple interface for property retrieval
-  - since the library does the work of determining property types, allowed
-    values, and default values at initialization, the API side doesn't need to
-    deal with `Optional`s or a long, fluent chain of methods just to get a
-    simple value
-  - on the API side, it's a similar API to `java.util.Map` with types
-    tacked on
-- self-documenting
-  - the `rwconfig` file provides a single source of truth for information about
-    all of your application's properties and where to find values for them:
-    - property names
-    - property types (`boolean`, `int`, `long`, `double`, `string`, and list
-      versions of these types)
-    - allowed values (optional)
-    - default values (optional)
-    - where to retrieve property values (the configuration sources)
-- simple, declarative setup
-  - the `rwconfig` file syntax is similar to Java `.properties` files, but the
-    syntax is expanded to optionally include types, allowed values, and default
-    values
-  - you can set property values directly in the `rwconfig` file, or define how
-    to retrieve them
-- lightweight
-  - no dependencies outside of the Java Base module (and slf4j, which also only
-    requires Java Base)
-- support for multiple configuration sources
-  - built-in support for Java `.properties` files and directory-based
-    configuration
-  - support for loading app properties from YAML, JSON, XML, and databases using
-    the supplied plugins
-  - built-in support for loading configuration files from the filesystem,
-    a `jar` file on the filesystem, http(s), or the classpath
-  - support for command line arguments, environment variables, and JVM system
-    properties
-  - simple plugin API for creating custom configuration sources
-- fail-fast design - the library is designed to detect configuration issues
-  sooner rather than later
-  - most configuration issues are detected at startup
-- property types and value validation
-  - current supported types are `boolean`, `int`, `long`, `double`, and `string`
-  - list support (`booleanList`, `intList`, etc.)
-
-## Project Goals
-- a simple interface with virtually no learning curve
-- lightweight
-- high-speed retrieval of property values
-- fail-fast behavior - detect errors at startup whenever possible
-  - a compile-time plugin is also planned to detect when the Java side expects
-    a non-existent property or an incorrect property type
-- more secure
-  - values that aren't expressly needed are not added to the Config object, even
-    if present in the configuration source
-
-## Project _Non_-goals
-- a "one-size fits all" approach
-  - This is how I prefer to configure _my_ apps. I'm not going to make the API
-    or configuration more complex to cover use cases that would be of marginal
-    value to me.
-- a way to set properties within the app
-  - That would require the Config object to be mutable, and _that_ creates many
-    "what if" scenarios involving thread synchronization, guaranteeing atomic
-    behavior to clients of the API, etc.
-
-    The closest to supporting this I plan to come is notifying clients of the
-    API when a config source (for example, a `.properties` file) has changed.
-    The client can then choose to discard the old Config object and create a new
-    one. Yes, that's not very close at all.
-- support for an in-memory hierarchical data structure
-  - hierarchical data sources (like YAML, JSON, and XML) are "flattened" during
-    ingestion
-    - reads are far faster this way
-    - there is effectively no difference to clients of the API when retrieving a
-      value by its key
-  - see the "Design Choices" section for more details
-- anything that would greatly increase size, or add dependencies to this project
-  outside of Java Base
-
-## Should I Rip Out My Old Config System And Use It?
-The short answer is "probably not". The more accurate answer is "it depends,
-but probably not". It's generally not worth the effort to make that kind of
-change in an existing project, frameworks normally have their own "blessed"
-config systems and it's best not to swim against the tide, and if you recommend
-an immature library for a new production-level project people will correctly
-think you're crazy. Maybe just play around with it on your home projects and give
-me some feedback. See [Choosing a Configuration Library](docs/comparison.md).
+- **Every property declared in one file** - name, type, allowed values, default
+  value, and where to look for it. The `rwconfig` file is a single source of
+  truth, and doubles as your configuration documentation.
+- **Errors at startup, not at 3am** - missing values, unparseable values, values
+  outside their allowed range, wrong types on the Java side, and requests for
+  properties that no declaration mentions.
+- **Fast, uniform reads** - a read is one HashMap lookup of an already-parsed
+  value: ~2.3 ns whether it's an `int`, a `String`, or a list.
+- **No `Optional`s, no fluent chains** - `config.getInt("port")` returns an
+  `int`, because types, defaults and validation were settled at startup. On the
+  API side it's a similar API to `java.util.Map`, with types tacked on.
+- **Types and lists** - `boolean`, `int`, `long`, `double` and `string`, plus
+  `booleanList`, `intList`, `longList`, `doubleList` and `stringList`.
+- **Layered sources, with priority you declare** - command line arguments,
+  environment variables, system properties, `.properties` files and
+  directories, plus YAML, JSON, XML and databases via the bundled plugins. Load
+  them from the filesystem, a `jar`, http(s), or the classpath. Add your own
+  with a small plugin API.
+- **Nearly dependency-free** - the Java Base module and slf4j, which itself only
+  requires Java Base.
+- **Secure by omission** - values your app never declared are not added to the
+  Config object, even when the configuration source contains them.
 
 ## Quick Start
 ### 1. Jar Installation (via Maven)
@@ -168,67 +146,9 @@ int[80, 1024:65535] port = 8000
 DBPassword
 ```
 
-Here's a heavily commented version of the same file that elaborates on what's
-going on:
-
-```
-# sample config setup
-
-# Declare the names and priorities (highest to lowest) of any additional sources
-# to check for configuration properties.
-rwc.sources = args, system, environment
-
-# Declare information about those sources. The type of the source is always
-# required. Other information may be needed as well, depending on the source
-# type.
-#
-# For more information on all of the built-in source types--as well as how to
-# create a custom source type plugin--see the `rwconfig` file in the example
-# project's `resources` folder
-rwc.args.type = commandLineArguments
-rwc.system.type = systemProperties
-rwc.environment.type = environmentVariables
-
-
-#
-# All properties used by your app need to be *defined* in this file, but you are
-# not required to give the property a value here. The property's value can be 
-# set (or overridden) in one of the configuration sources listed above.
-#
-# The key thing to remember about this file is that its primary purpose is *not*
-# to provide values for your app's properties. Its purpose is to define what
-# properties your app requires, what they should look like, and where they can
-# be found.
-#
-
-
-# What port should our app use. Valid values are integers, and we only want to
-# allow certain integer values. Define the allowed values as 80, and any value
-# between 1024 and 65535. The default value is 8000.
-int[80, 1024:65535] port = 8000
-
-# Declare that we need a database password. Sensitive information like passwords 
-# should not be present in shared files, so we'll leave the value unset.
-#
-# This means that the value of `DBPassword` will have to be set in one of the
-# declared sources above. It can be set on the command line using an argument in
-# the form `DBPassword=mySecretPassword`, by setting a Java system property of
-# the same name, or by setting an environment variable. The environment variable
-# name can be the exact same name or the normalized form of `DB_PASSWORD`.
-#
-# You could also set the value of `DBPassword` in a separate, more secure file.
-# That would require adding another configuration source above. Details on how
-# to do this are in the sample `rwconfig` file in the example project's
-# `resources` folder.
-#
-# If this property's value is *not* set in a declared source, the library will
-# throw an exception at startup.
-#
-# By the way: you don't need to supply a type when you define a property as we
-# did with `port` above. If you don't supply the type, a type of `string` is
-# assumed. The below property could also be written as `string DBPassword`.
-DBPassword
-```
+For a heavily commented version of this file that explains every part of the
+syntax, see [The `rwconfig` File](docs/config-file.md), or the [sample
+`rwconfig`](example/src/main/resources/rwconfig) in the example project.
 
 ### 3. Basic Usage
 **Creating the Config Object**
@@ -283,6 +203,56 @@ property declarations, default values, and value types at startup. This means:
 These errors are treated as unchecked exceptions because (a) they are avoidable
 at coding time, and (b) encountering them at runtime guarantees that the code is
 not working as the developer intended from that point on.
+
+## Should I Rip Out My Old Config System And Use It?
+The short answer is "probably not". The more accurate answer is "it depends,
+but probably not". It's generally not worth the effort to make that kind of
+change in an existing project, frameworks normally have their own "blessed"
+config systems and it's best not to swim against the tide, and if you recommend
+an immature library for a new production-level project people will correctly
+think you're crazy. Maybe just play around with it on your home projects and give
+me some feedback. See [Choosing a Configuration Library](docs/comparison.md).
+
+## Does It Matter How Fast A Config System Is?
+Not really. But some people like numbers. What _really_ matters is the design
+ideology. It's better to define up-front what your config properties should look
+like and how they should be loaded. And it's _much_ better to test if your config
+is up to snuff at app start (when you're in the office), than to find out at 3am.
+
+## Project Goals
+- a simple interface with virtually no learning curve
+- lightweight
+- high-speed retrieval of property values
+- fail-fast behavior - detect errors at startup whenever possible
+  - a compile-time plugin is also planned to detect when the Java side expects
+    a non-existent property or an incorrect property type
+- more secure
+  - values that aren't expressly needed are not added to the Config object, even
+    if present in the configuration source
+
+## Project _Non_-goals
+- a "one-size fits all" approach
+  - This is how I prefer to configure _my_ apps. I'm not going to make the API
+    or configuration more complex to cover use cases that would be of marginal
+    value to me.
+- a way to set properties within the app
+  - That would require the Config object to be mutable, and _that_ creates many
+    "what if" scenarios involving thread synchronization, guaranteeing atomic
+    behavior to clients of the API, etc.
+
+    The closest to supporting this I plan to come is notifying clients of the
+    API when a config source (for example, a `.properties` file) has changed.
+    The client can then choose to discard the old Config object and create a new
+    one. Yes, that's not very close at all.
+- support for an in-memory hierarchical data structure
+  - hierarchical data sources (like YAML, JSON, and XML) are "flattened" during
+    ingestion
+    - reads are far faster this way
+    - there is effectively no difference to clients of the API when retrieving a
+      value by its key
+  - see the "Design Choices" section for more details
+- anything that would greatly increase size, or add dependencies to this project
+  outside of Java Base
 
 ## TODOs
 - IDE/Maven support to detect missing properties and incorrect property types at
