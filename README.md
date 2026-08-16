@@ -1,6 +1,6 @@
 # What is rwConfig?
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
-![Tests](https://img.shields.io/badge/tests-280-brightgreen)
+![Tests](https://img.shields.io/badge/tests-293-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
 
@@ -118,8 +118,8 @@ to call `1.0.0`. Until then, clone the repo and install it into your local Maven
 repository:
 
 ```
-git clone https://github.com/alvint/config.git
-cd config
+git clone https://github.com/alvint/rwConfig.git
+cd rwConfig
 mvn install
 ```
 

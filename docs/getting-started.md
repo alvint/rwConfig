@@ -35,8 +35,8 @@ to call `1.0.0`. Until then, clone the repo and install it into your local Maven
 repository:
 
 ```
-git clone https://github.com/alvint/config.git
-cd config
+git clone https://github.com/alvint/rwConfig.git
+cd rwConfig
 mvn install
 ```
 
