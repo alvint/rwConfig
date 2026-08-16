@@ -36,8 +36,12 @@ int[80, 1024:65535] port = 8000
 DBPassword
 ```
 
-`DBPassword` deliberately has no value here--it comes from the environment, the
-command line, a database, or a file you don't commit.
+`DBPassword` deliberately has no value here--it has to come from a config
+source, which in this file means the environment variable `DB_PASSWORD`. Miss
+it and the application refuses to start, rather than running with a blank
+password. Sources can equally be the command line, a file you don't commit, a
+directory, or a database; you list the ones you want in `rwc.sources`, best
+first.
 
 Read it with no ceremony:
 
