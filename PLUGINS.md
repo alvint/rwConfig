@@ -208,9 +208,24 @@ a.b = nested              ->  a\b = nested
 
 Quoting makes the dot part of the name instead, so the two cannot collide.
 
-**Durations and sizes are left as written.** `timeout = 5s` produces the string
-`5s`; rwConfig has no duration or size type, so declare it as a `string` and
-parse it yourself, or write the number you actually want.
+**HOCON's `10s` and `10MiB` notation works, but rwConfig is what interprets
+it.** The notation is not a value type in HOCON - it is a convention the
+*reader* opts into by calling `getDuration` or `getBytes`, so in the document
+these are ordinary strings and arrive here as the text `10s` and `10MiB`.
+Declare the property as a [`duration` or `size`](docs/config-file.md#types) and
+rwConfig parses it:
+
+```
+# in the HOCON source          # declared in your `rwconfig`
+timeout = 5s                   duration server\timeout = 30s      -> 5000
+maxUpload = 10MiB              size server\maxUpload = 1MiB       -> 10485760
+```
+
+The two vocabularies agree where they overlap - `s`, `m`, `h`, `d`, `MB`, and
+`MiB` all mean the same thing in both. rwConfig additionally rejects HOCON's
+ambiguous bare `K`, `M` and `G`, which mean 1024-based units there and are
+routinely written meaning 1000-based ones. It is a rejection rather than a
+different answer, so nothing is silently misread.
 
 **Numbers are normalised, so what you write is not always what you get.**
 Typesafe Config drops a redundant fractional part and expands exponents, so

@@ -496,6 +496,8 @@ public class ConfigFactory {
                     case LONG, LONG_LIST -> PropertyType.LONG;
                     case DOUBLE, DOUBLE_LIST -> PropertyType.DOUBLE;
                     case STRING, STRING_LIST -> PropertyType.STRING;
+                    case DURATION, DURATION_LIST -> PropertyType.DURATION;
+                    case SIZE, SIZE_LIST -> PropertyType.SIZE;
                 };
             Stream.of(allowedValues.split("(?<!\\\\),\\s*", -1)) // remove leading whitespace but not trailing
                 .forEach(rangeString -> {
@@ -582,6 +584,29 @@ public class ConfigFactory {
                     }
                     // value is allowed; return it
                     yield new Value.Integer(value);
+                }
+                case DURATION, SIZE -> {
+                    // unescape any escaped characters in the value string (and
+                    // trim whitespace)
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    // parse the number and its unit into the canonical unit -
+                    // milliseconds for a duration, bytes for a size
+                    long value = propertyType == PropertyType.DURATION
+                        ? parseDuration(propertyName, sourceName, unescapedValueString)
+                        : parseSize(propertyName, sourceName, unescapedValueString);
+                    // check if value is allowed. The range was parsed in the
+                    // same units, so both sides are already canonical
+                    if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
+                        ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
+                    )) {
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+                        throw new ConfigException(
+                            "value is not allowed for property `" + propertyName + "` (in " + source + "): "
+                            + unescapedValueString
+                        );
+                    }
+                    // value is allowed; return it
+                    yield new Value.Long(value);
                 }
                 case LONG -> {
                     // unescape any escaped characters in the value string (and
@@ -676,6 +701,18 @@ public class ConfigFactory {
                             .toList();
                     yield new Value.DoubleList(list);
                 }
+                case DURATION_LIST, SIZE_LIST -> {
+                    PropertyType itemType = propertyType == PropertyType.DURATION_LIST
+                        ? PropertyType.DURATION
+                        : PropertyType.SIZE;
+                    List<Value.Long> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s -> (Value.Long)
+                                parseValue(sourceName, propertyName, s, itemType, allowedValues))
+                            .toList();
+                    yield new Value.LongList(list);
+                }
                 case STRING_LIST -> {
                     // preserve trailing whitespace (but not leading), and split
                     // on unescaped commas
@@ -767,6 +804,100 @@ public class ConfigFactory {
             value = System.getenv(envName);
         }
         return value;
+    }
+
+    /**
+     * The units a `duration` accepts, and how many milliseconds each is worth.
+     * Milliseconds are the canonical unit, so a value with no unit is read as
+     * milliseconds. Nothing finer is offered: a `duration` is a whole number of
+     * milliseconds, and accepting `us` or `ns` would mean either silently
+     * truncating or accepting some values of a unit and rejecting others.
+     *
+     * <p>Note that no duration unit ends in `B` and every size unit does, so
+     * the two vocabularies cannot overlap even though `m` and `MB` both begin
+     * with the same letter.
+     */
+    private static final Map<String, Long> DURATION_UNITS = Map.of(
+        "ms", 1L,
+        "s", 1000L,
+        "m", 60L * 1000,
+        "h", 60L * 60 * 1000,
+        "d", 24L * 60 * 60 * 1000
+    );
+
+    /**
+     * The units a `size` accepts, and how many bytes each is worth. Bytes are
+     * the canonical unit, so a value with no unit is read as bytes.
+     *
+     * <p>`KB` and `KiB` mean different things, deliberately: the SI prefixes
+     * are powers of 1000 and the IEC ones powers of 1024, as the standards
+     * define them. Bare `K`, `M` and `G` are not accepted, because in the wild
+     * they mean either one depending on who wrote them - being made to spell
+     * out which is the point.
+     */
+    private static final Map<String, Long> SIZE_UNITS = Map.of(
+        "B", 1L,
+        "KB", 1000L,
+        "MB", 1000L * 1000,
+        "GB", 1000L * 1000 * 1000,
+        "TB", 1000L * 1000 * 1000 * 1000,
+        "KiB", 1024L,
+        "MiB", 1024L * 1024,
+        "GiB", 1024L * 1024 * 1024,
+        "TiB", 1024L * 1024 * 1024 * 1024
+    );
+
+    /** A number, optional whitespace, and an optional unit. */
+    private static final Pattern UNIT_VALUE = Pattern.compile("^([+-]?\\d+)\\s*([A-Za-z]*)$");
+
+    private static long parseDuration(String propertyName, String sourceName, String value) {
+        return parseUnitValue(propertyName, sourceName, value, "duration", DURATION_UNITS);
+    }
+
+    private static long parseSize(String propertyName, String sourceName, String value) {
+        return parseUnitValue(propertyName, sourceName, value, "size", SIZE_UNITS);
+    }
+
+    /**
+     * Parse `<number><unit>` into the canonical unit. The units are matched
+     * case-sensitively, so `m` (minutes) and `MB` (megabytes) stay distinct and
+     * a mistyped case is an error rather than a value that is wrong by a factor
+     * of a thousand.
+     */
+    private static long parseUnitValue(
+        String propertyName, String sourceName, String value, String typeName, Map<String, Long> units
+    ) {
+        Matcher matcher = UNIT_VALUE.matcher(value);
+        if (!matcher.matches()) {
+            throw new ConfigException(unitError(propertyName, sourceName, value, typeName, units));
+        }
+        String unit = matcher.group(2);
+        long multiplier = unit.isEmpty()
+            ? 1 // no unit means the canonical one
+            : units.getOrDefault(unit, 0L);
+        if (multiplier == 0) {
+            throw new ConfigException(unitError(propertyName, sourceName, value, typeName, units));
+        }
+        try {
+            return Math.multiplyExact(Long.parseLong(matcher.group(1)), multiplier);
+        } catch (ArithmeticException e) {
+            String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+            throw new ConfigException(
+                "value is too large for property `" + propertyName + "` (in " + source + "): " + value, e
+            );
+        }
+    }
+
+    /** The units are listed, since the error is the only place a reader looks. */
+    private static String unitError(
+        String propertyName, String sourceName, String value, String typeName, Map<String, Long> units
+    ) {
+        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+        return "error parsing the value of `" + propertyName + "` (in " + source + ") as type `"
+            + typeName + "`: " + value
+            + "\n\na " + typeName + " is a whole number with an optional unit, and the units are: "
+            + units.keySet().stream().sorted().collect(Collectors.joining(", "))
+            + "\nwith no unit meaning " + (units == DURATION_UNITS ? "milliseconds" : "bytes");
     }
 
     private static String handleEscapeSequences(String sourceName, String value) {

@@ -63,6 +63,45 @@ type gives you `string`.
 
 Booleans accept `true`/`false`, `yes`/`no`, `on`/`off`, `1`/`0`, in any case.
 
+There are also `duration` and `size`, which are whole numbers written with a
+unit, and their list forms `durationList` and `sizeList`. All four are `long`
+values at runtime, read with `getLong` and `getLongList`.
+
+| type | canonical unit | units accepted |
+|---|---|---|
+| `duration` | milliseconds | `ms`, `s`, `m`, `h`, `d` |
+| `size` | bytes | `B`, `KB`, `MB`, `GB`, `TB`, `KiB`, `MiB`, `GiB`, `TiB` |
+
+```
+duration[1s:5m] timeout = 30s        getLong     -> 30000
+size maxUpload = 10MiB               getLong     -> 10485760
+durationList retryDelays = 1s, 2s, 4s, 8s
+                                     getLongList -> [1000, 2000, 4000, 8000]
+```
+
+In a list each item carries its own unit and is checked on its own, so
+`1s, 500ms, 1m` is fine and one bad item fails the whole property.
+
+A value with no unit is already in the canonical unit, so `duration t = 1500`
+is 1500 milliseconds. A space before the unit is allowed: `1 s` and `1s` are
+the same.
+
+Four rules keep these from being read as something other than what was meant:
+
+- **Units are case-sensitive.** `1m` is a minute and `1MB` a megabyte; `1M` is
+  an error rather than either.
+- **The two vocabularies do not overlap.** Every size unit ends in `B` and no
+  duration unit does, so `duration x = 1MB` and `size x = 1m` are both errors.
+- **`KB` is 1000 and `KiB` is 1024**, as the SI and IEC standards define them.
+  Bare `K`, `M` and `G` are rejected, because in practice they are written
+  meaning either one.
+- **Nothing finer than a millisecond.** `500us` is an error rather than a
+  silent `0`.
+
+Units are only accepted on these two types. `long recordCount = 1s` is an
+error - which is the reason they are types rather than a parser bolted onto
+`long`.
+
 A type is only a type when a space or a `[` follows it, so a property may be
 named `longitude` or `stringify` without its first few characters being taken
 as a type. A property may even be named exactly `int`.

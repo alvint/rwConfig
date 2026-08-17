@@ -417,6 +417,173 @@ class ConfigFileTest {
     //
 
     @Nested
+    @DisplayName("`duration` and `size` are longs written with a unit")
+    class UnitTypes {
+
+        @Test
+        @DisplayName("durations are milliseconds, and a bare number is already milliseconds")
+        void durationsConvertToMilliseconds() throws IOException {
+            assertEquals(1, config("duration d = 1ms").getl("d"));
+            assertEquals(1_000, config("duration d = 1s").getl("d"));
+            assertEquals(60_000, config("duration d = 1m").getl("d"));
+            assertEquals(7_200_000, config("duration d = 2h").getl("d"));
+            assertEquals(86_400_000, config("duration d = 1d").getl("d"));
+            assertEquals(1_500, config("duration d = 1500").getl("d"));
+        }
+
+        @Test
+        @DisplayName("sizes are bytes, with SI prefixes decimal and IEC prefixes binary")
+        void sizesConvertToBytes() throws IOException {
+            assertEquals(1, config("size s = 1B").getl("s"));
+            assertEquals(1_000, config("size s = 1KB").getl("s"));
+            assertEquals(1_024, config("size s = 1KiB").getl("s"));
+            assertEquals(1_000_000, config("size s = 1MB").getl("s"));
+            assertEquals(1_048_576, config("size s = 1MiB").getl("s"));
+            assertEquals(2_048, config("size s = 2048").getl("s"), "a bare number is bytes");
+        }
+
+        @Test
+        @DisplayName("a duration unit is not a size unit, and the reverse")
+        void theTwoVocabulariesCannotCross() {
+            rejected("duration d = 1MB");
+            rejected("size s = 1m");
+            rejected("size s = 1h");
+        }
+
+        @Test
+        @DisplayName("units are case-sensitive, so a mistyped case is an error not a wrong value")
+        void unitsAreCaseSensitive() {
+            rejected("duration d = 1M");
+            rejected("duration d = 1S");
+            rejected("size s = 1kb");
+            rejected("size s = 1mib");
+        }
+
+        @Test
+        @DisplayName("bare `K`, `M` and `G` are rejected - they mean 1000 or 1024 depending on who wrote them")
+        void ambiguousSizePrefixesAreRejected() {
+            rejected("size s = 1K");
+            rejected("size s = 1M");
+            rejected("size s = 1G");
+        }
+
+        @Test
+        @DisplayName("anything finer than a millisecond is rejected rather than truncated")
+        void subMillisecondUnitsAreRejected() {
+            rejected("duration d = 500us");
+            rejected("duration d = 5ns");
+        }
+
+        @Test
+        @DisplayName("a unit on a plain number type is still an error - the point of having the types")
+        void unitsAreNotAcceptedOnPlainNumbers() {
+            // this is the case a parser hung off `long` could not catch:
+            // `1s` where a count was meant
+            rejected("long recordCount = 1s");
+            rejected("int retries = 1s");
+            rejected("double ratio = 1s");
+        }
+
+        @Test
+        @DisplayName("a range is written in units too, and compares in the canonical unit")
+        void rangesAreWrittenInUnits() throws IOException {
+            assertEquals(30_000, config("duration[1s:5m] d = 30s").getl("d"));
+            assertEquals(1_000, config("duration[1s:5m] d = 1s").getl("d"), "the minimum is inclusive");
+            assertEquals(300_000, config("duration[1s:5m] d = 5m").getl("d"), "the maximum is inclusive");
+            rejected("duration[1s:5m] d = 500ms");
+            rejected("duration[1s:5m] d = 6m");
+            assertEquals(2_048, config("size[1KiB:1MiB] s = 2KiB").getl("s"));
+            rejected("size[1KiB:1MiB] s = 512B");
+        }
+
+        @Test
+        @DisplayName("the units may be written next to the number or after a space")
+        void whitespaceBetweenNumberAndUnitIsAllowed() throws IOException {
+            assertEquals(1_000, config("duration d = 1 s").getl("d"));
+            assertEquals(1_024, config("size s = 1 KiB").getl("s"));
+        }
+
+        @Test
+        void negativeAndZeroDurations() throws IOException {
+            assertEquals(0, config("duration d = 0s").getl("d"));
+            assertEquals(-1_000, config("duration d = -1s").getl("d"));
+        }
+
+        @Test
+        @DisplayName("a value that would overflow a long is rejected, not silently wrapped")
+        void overflowIsRejected() {
+            ConfigException e = rejected("duration d = 9223372036854775807d");
+            assertTrue(
+                e.getMessage().contains("too large"),
+                "expected an overflow error, but got: " + e.getMessage()
+            );
+        }
+
+        @Test
+        @DisplayName("the error lists the units, since that is where a reader looks")
+        void theErrorListsTheUnits() {
+            ConfigException e = rejected("duration d = 5 fortnights");
+            assertTrue(e.getMessage().contains("ms"), "should list the units, but got: " + e.getMessage());
+            assertTrue(
+                e.getMessage().contains("milliseconds"),
+                "should say what no unit means, but got: " + e.getMessage()
+            );
+        }
+
+        @Test
+        @DisplayName("`durationList` and `sizeList` - a retry backoff is the obvious use")
+        void listsOfUnitValues() throws IOException {
+            assertEquals(
+                List.of(1_000L, 2_000L, 4_000L, 8_000L),
+                config("durationList retryDelays = 1s, 2s, 4s, 8s").getll("retryDelays")
+            );
+            assertEquals(
+                List.of(500L, 1_000L, 60_000L),
+                config("durationList d = 500ms, 1s, 1m").getll("d"),
+                "items may use different units"
+            );
+            assertEquals(
+                List.of(1_024L, 1_048_576L),
+                config("sizeList tiers = 1KiB, 1MiB").getll("tiers")
+            );
+        }
+
+        @Test
+        @DisplayName("an empty list of units is an empty list, as for every other list type")
+        void emptyUnitLists() throws IOException {
+            assertEquals(List.of(), config("durationList d = ").getll("d"));
+            assertEquals(List.of(), config("sizeList s = ").getll("s"));
+        }
+
+        @Test
+        @DisplayName("every item is checked on its own, so one bad unit fails the property")
+        void eachListItemIsChecked() {
+            rejected("durationList d = 1s, 1MB, 4s");
+            rejected("sizeList s = 1KiB, 1m");
+            rejected("durationList d = 1s, 500us");
+        }
+
+        @Test
+        @DisplayName("a range applies to each item of a list")
+        void rangesApplyToUnitListItems() throws IOException {
+            assertEquals(
+                List.of(1_000L, 30_000L, 60_000L),
+                config("durationList[1s:1m] d = 1s, 30s, 1m").getll("d")
+            );
+            rejected("durationList[1s:1m] d = 1s, 90s");
+        }
+
+        @Test
+        @DisplayName("these read back with getLong, and report their runtime type as `long`")
+        void theyAreLongsAtRuntime() throws IOException {
+            Config config = config("duration d = 1s");
+            assertEquals(1_000, config.getLong("d"));
+            assertEquals(Config.PropertyType.LONG, config.getType("d"));
+        }
+    }
+
+
+    @Nested
     @DisplayName("an allowed value can be a `<min>:<max>` range")
     class Ranges {
 

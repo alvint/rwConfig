@@ -1,6 +1,6 @@
 # What is rwConfig?
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
-![Tests](https://img.shields.io/badge/tests-329-brightgreen)
+![Tests](https://img.shields.io/badge/tests-346-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
 
@@ -103,8 +103,9 @@ at the [takeaway](benchmark/README.md).
 - **No `Optional`s, no fluent chains** - `config.getInt("port")` returns an
   `int`, because types, defaults, and validation were settled at startup. On the
   API side it's a similar API to `java.util.Map`, with types tacked on.
-- **Types and lists** - `boolean`, `int`, `long`, `double`, and `string`, plus
-  `booleanList`, `intList`, `longList`, `doubleList`, and `stringList`.
+- **Types and lists** - `boolean`, `int`, `long`, `double`, `string`, `size`,
+  and `duration`. Also `booleanList`, `intList`, `longList`, `doubleList`,
+  `stringList`, `sizeList`, and `durationList`.
 - **Layered sources, with precedence you declare** - command line arguments,
   environment variables, system properties, `.properties` files, and
   directories. Plus YAML, JSON, XML, HOCON, and databases via the bundled plugins.

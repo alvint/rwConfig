@@ -246,7 +246,7 @@ class HoconPluginTest {
         }
 
         @Test
-        @DisplayName("durations and sizes stay as written - rwConfig has no type for them")
+        @DisplayName("`5s` and `10M` are plain strings - the notation is a reader convention, not a type")
         void unitsAreNotInterpreted() throws Exception {
             Map<String, String> properties = load("timeout = 5s\nsize = 10M\n");
             assertEquals("5s", properties.get("timeout"));

@@ -141,12 +141,12 @@
     },
     {
       "comment": "type",
-      "match": "(?<=^\\s*)(?i:boolean|int|long|double|string|intList|stringList|booleanList|longList|doubleList)(?=\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$)",
+      "match": "(?<=^\\s*)(?i:boolean|int|long|double|string|duration|size|intList|stringList|booleanList|longList|doubleList|durationList|sizeList)(?=\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$)",
       "name": "storage.type.rwconfig"
     },
     {
       "comment": "invalid type name",
-      "match": "^(?!\\s*(?i:\\[|boolean|int|long|double|string|intList|stringList|booleanList|longList|doubleList)(?:\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$))(?:\\s+[^\\[=]*|[^\\[=]+)(?=\\s*\\[|\\s+[^\\s=])",
+      "match": "^(?!\\s*(?i:\\[|boolean|int|long|double|string|duration|size|intList|stringList|booleanList|longList|doubleList|durationList|sizeList)(?:\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$))(?:\\s+[^\\[=]*|[^\\[=]+)(?=\\s*\\[|\\s+[^\\s=])",
       "name": "invalid.illegal.type-name.rwconfig"
     },
     {

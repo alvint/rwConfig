@@ -263,17 +263,31 @@ rwc.db.password = <<
 # 3. int: an integer value
 # 4. long: a long value
 # 5. double: a double value
-# 6. stringList: a comma-separated list of string values
+# 6. duration: a whole number of milliseconds, optionally written with a unit
+#    - the units are `ms`, `s`, `m`, `h` and `d`, and are case sensitive. No
+#      unit means milliseconds, so `duration a = 1500` is a second and a half.
+#    - read with `getLong`, since a duration is a long at runtime
+#    - anything finer than a millisecond (`500us`) is an error rather than
+#      being silently rounded away
+# 7. size: a whole number of bytes, optionally written with a unit
+#     - the units are `B`, `KB`, `MB`, `GB`, `TB` (powers of 1000) and `KiB`,
+#       `MiB`, `GiB`, `TiB` (powers of 1024), as the SI and IEC standards
+#       define them. Bare `K`, `M` and `G` are rejected as ambiguous.
+#     - every size unit ends in `B` and no duration unit does, so the two
+#       vocabularies cannot be confused for one another
+# 8. stringList: a comma-separated list of string values
 #    - individual values can contain commas, so long as they are escaped with a
 #      backslash
 #    - leading spaces are trimmed for each individual value, but trailing spaces
 #      are preserved
 #      - in order to include leading spaces, escape the first space with a
 #        backslash
-# 7. booleanList: a comma-separated list of boolean values (case insensitive)
-# 8. intList: a comma-separated list of integer values
-# 9. longList: a comma-separated list of long values
-# 10. doubleList: a comma-separated list of double values
+# 9. booleanList: a comma-separated list of boolean values (case insensitive)
+# 10. intList: a comma-separated list of integer values
+# 11. longList: a comma-separated list of long values
+# 12. doubleList: a comma-separated list of double values
+# 13. durationList: a comma-separated list of durations
+# 14. sizeList: a comma-separated list of sizes
 #
 # For list types, an empty list is allowed for both default values and values
 # defined in config sources. An empty list can be represented by an empty string

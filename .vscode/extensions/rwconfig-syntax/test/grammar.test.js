@@ -11,7 +11,7 @@
 const assert = require('node:assert/strict');
 const { before, describe, test } = require('node:test');
 
-const { loadGrammar, tokenizeLines, scopesOf, invalidTokens, hasInvalid } = require('./grammar.js');
+const { loadGrammar, tokenize, tokenizeLines, scopesOf, invalidTokens, hasInvalid } = require('./grammar.js');
 
 before(loadGrammar);
 
@@ -39,6 +39,44 @@ async function assertScope(text, substring, suffix) {
     );
 }
 
+
+describe('the `duration` and `size` types', () => {
+    test('they are highlighted as types', async () => {
+        assert.ok((await scopesOf('duration timeout = 1s', 'duration')).some(
+            (scope) => scope.includes('storage.type')));
+        assert.ok((await scopesOf('size cache = 10MiB', 'size')).some(
+            (scope) => scope.includes('storage.type')));
+        assert.ok((await scopesOf('duration[1s:5m] timeout = 30s', 'duration')).some(
+            (scope) => scope.includes('storage.type')));
+    });
+
+    test('a property whose name merely starts with one is not a type', async () => {
+        // the lookahead after a type is what stops `sizeable` being read as
+        // `size` followed by `able`
+        for (const line of ['durationFoo = x', 'sizeable = y']) {
+            const tokens = await tokenize(line);
+            assert.ok(
+                !tokens.some((token) => token.scopes.some((scope) => scope.includes('storage.type'))),
+                `expected no type token in ${JSON.stringify(line)}`
+            );
+        }
+    });
+
+    test('values with units are not flagged as invalid', async () => {
+        await assertValid('duration timeout = 1s');
+        await assertValid('size cache = 10MiB');
+        await assertValid('duration[1s:5m] timeout = 30s');
+    });
+
+    test('the list forms are types too', async () => {
+        assert.ok((await scopesOf('durationList retryDelays = 1s, 2s, 4s', 'durationList')).some(
+            (scope) => scope.includes('storage.type')));
+        assert.ok((await scopesOf('sizeList tiers = 1KiB, 1MiB', 'sizeList')).some(
+            (scope) => scope.includes('storage.type')));
+        await assertValid('durationList retryDelays = 1s, 2s, 4s, 8s');
+        await assertValid('sizeList[1KiB:1GiB] tiers = 1KiB, 1MiB');
+    });
+});
 
 describe('the parts of a declaration', () => {
     test('a type, a name and a value', async () => {
