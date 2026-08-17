@@ -524,8 +524,8 @@ class ConfigSourceTest {
 
 
     @Nested
-    @DisplayName("the config root")
-    class ConfigRoot {
+    @DisplayName("the config prefix")
+    class ConfigPrefix {
 
         @Test
         void defaultsToRwc() throws IOException {
@@ -536,21 +536,66 @@ class ConfigSourceTest {
                 "myProp = a"
             );
             assertEquals("a", config.gets("myProp"));
-            assertTrue(!config.has("rwc.sources"), "config setup lines should not be application properties");
+            assertTrue(!config.has("rwc.sources"), "library settings should not be application properties");
         }
 
         @Test
         void canBeChanged() throws IOException {
             Config config = config(
-                "rwc.root = myapp.",
+                "rwc.prefix = myapp.",
                 "myapp.sources = sys",
                 "myapp.sys.type = systemProperties",
                 "myapp.sys.ignoreUnknownProperties = true",
                 "myProp = a"
             );
             assertEquals("a", config.gets("myProp"));
-            assertTrue(!config.has("rwc.root"), "the config root declaration is not an application property");
-            assertTrue(!config.has("myapp.sources"), "config setup lines should not be application properties");
+            assertTrue(!config.has("rwc.prefix"), "the prefix declaration is not an application property");
+            assertTrue(!config.has("myapp.sources"), "library settings should not be application properties");
+        }
+
+        @Test
+        @DisplayName("once the prefix moves, the old `rwc.` names are ordinary properties")
+        void theOldPrefixBecomesOrdinary() throws IOException {
+            Config config = config(
+                "rwc.prefix = myapp.",
+                "myapp.sources = sys",
+                "myapp.sys.type = systemProperties",
+                "myapp.sys.ignoreUnknownProperties = true",
+                "string rwc.leftover = a"
+            );
+            assertEquals("a", config.gets("rwc.leftover"));
+        }
+
+        @Test
+        @DisplayName("it must be the first line that is not a comment or blank")
+        void mustComeFirst() throws IOException {
+            // it applies to the whole file, so a reader should not have to
+            // reach the bottom to know what the lines above meant
+            ConfigException e = assertThrows(ConfigException.class, () -> config(
+                "myapp.sources = sys",
+                "rwc.prefix = myapp.",
+                "myProp = a"
+            ));
+            assertTrue(
+                e.getMessage().contains("first line"),
+                "the error should say where it belongs, but got: " + e.getMessage()
+            );
+        }
+
+        @Test
+        @DisplayName("comments and blank lines may still come before it")
+        void commentsMayPrecedeIt() throws IOException {
+            Config config = config(
+                "# a header comment",
+                "",
+                "! another comment",
+                "rwc.prefix = myapp.",
+                "myapp.sources = sys",
+                "myapp.sys.type = systemProperties",
+                "myapp.sys.ignoreUnknownProperties = true",
+                "myProp = a"
+            );
+            assertEquals("a", config.gets("myProp"));
         }
     }
 }

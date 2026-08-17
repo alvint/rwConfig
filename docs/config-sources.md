@@ -238,15 +238,20 @@ before `db` contains this property
 If `rwc.` clashes with property names you need, change it:
 
 ```
-rwc.root = myapp.
+rwc.prefix = myapp.
 
 myapp.sources = environment
 myapp.environment.type = environmentVariables
 myapp.environment.ignoreUnknownProperties = true
 ```
 
-The `rwc.root` line itself is always spelled `rwc.root`, whatever you set the
-prefix to, and it must match exactly - `RWC.ROOT` is read as an ordinary
+It has to be the **first line that is not a comment or blank**. The prefix
+applies to every line in the file, so a reader should not have to reach the
+bottom to learn what the lines above meant - and an editor highlighting the
+file cannot know at all until it gets there.
+
+The `rwc.prefix` line itself is always spelled `rwc.prefix`, whatever you set the
+prefix to, and it must match exactly - `RWC.PREFIX` is read as an ordinary
 property name.
 
 ## A worked example

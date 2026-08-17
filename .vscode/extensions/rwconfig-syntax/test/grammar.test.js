@@ -40,6 +40,42 @@ async function assertScope(text, substring, suffix) {
 }
 
 
+describe('library settings are highlighted differently from property names', () => {
+    /** The scopes of the name token on each line of `text`. */
+    async function nameScopes(text) {
+        const lines = await tokenizeLines(text);
+        return lines.map((tokens) => {
+            const named = tokens.find((token) => token.scopes.some((scope) =>
+                scope.includes('library-setting') || scope.includes('property-name')));
+            if (!named) return 'none';
+            return named.scopes.some((scope) => scope.includes('library-setting')) ? 'setting' : 'property';
+        });
+    }
+
+    test('with the default root, `rwc.` names are settings and the rest are properties', async () => {
+        assert.deepEqual(
+            await nameScopes('rwc.sources = args\nrwc.args.type = commandLineArguments\nint port = 8000\nDBPassword'),
+            ['setting', 'setting', 'property', 'property']
+        );
+    });
+
+    test('after `rwc.prefix`, an `rwc.` name is an ordinary property again', async () => {
+        // this is what the parser does: with a custom root, `rwc.leftover`
+        // is declared as an application property, so highlighting it as a
+        // setting would be actively misleading
+        assert.deepEqual(
+            await nameScopes('rwc.prefix = myapp.\nmyapp.sources = args\nrwc.leftover = x\nint port = 8000'),
+            ['setting', 'property', 'property', 'property'],
+            'the `rwc.prefix` line is itself a setting; everything after it is left alone'
+        );
+    });
+
+    test('the rest of the file still highlights normally after a `rwc.prefix` line', async () => {
+        await assertValid('rwc.prefix = myapp.\n# a comment\nduration t = 5s\nintList xs = 1, 2, 3');
+        await assertInvalid('rwc.prefix = myapp.\nint bad = notanint');
+    });
+});
+
 describe('the `duration` and `size` types', () => {
     test('they are highlighted as types', async () => {
         assert.ok((await scopesOf('duration timeout = 1s', 'duration')).some(

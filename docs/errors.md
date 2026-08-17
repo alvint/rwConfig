@@ -35,7 +35,7 @@ The same property is declared twice.
 
 **`invalid config line (missing value): <line>`**
 
-A `rwc.` line has no value. Library settings always need one - `rwc.root` on
+A `rwc.` line has no value. Library settings always need one - `rwc.prefix` on
 its own is not meaningful.
 
 **`invalid config line (library settings cannot have a type): <line>`**

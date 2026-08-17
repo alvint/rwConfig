@@ -26,8 +26,8 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 public class ConfigFactory {
     public static final String CONFIG_FILE_PATH_PROPERTY = "rw.config.path";
     public static final String DEFAULT_CONFIG_FILE_PATH = "rwconfig";
-    public static final String DEFAULT_CONFIG_ROOT = "rwc.";
-    public static final String CONFIG_ROOT_PROPERTY = DEFAULT_CONFIG_ROOT + "root";
+    public static final String DEFAULT_CONFIG_PREFIX = "rwc.";
+    public static final String CONFIG_PREFIX_PROPERTY = DEFAULT_CONFIG_PREFIX + "prefix";
 
     /**
      * This special value tells the library to look for the real value of this
@@ -61,17 +61,32 @@ public class ConfigFactory {
             commandLineArgs == null ? "not set" : "set"
         );
         List<String> configFile = loadConfigFile(commandLineArgs);
-        // figure out the config root - that is, the prefix that all config
-        // properties must start with
-        String configRoot = configFile.stream()
+        // Figure out the config prefix - the string every library setting
+        // starts with. It applies to the whole file, so it has to be the first
+        // line that is not a comment or blank: anywhere else and the lines
+        // above it would mean one thing on the way down and another on the way
+        // back up, which is as confusing for a reader as it is for an editor
+        // trying to highlight them.
+        List<String> declarations = configFile.stream()
             .map(s -> s.replaceAll("^\\s*[!#].*$", "")) // remove comments
             .filter(s -> !s.trim().isEmpty()) // remove empty lines
-            .map(s -> s.split("=", 2))
-            .filter(parts -> parts.length == 2)
-            .filter(parts -> parts[0].trim().equals(CONFIG_ROOT_PROPERTY))
-            .map(parts -> parts[1].trim())
-            .findFirst()
-            .orElse(DEFAULT_CONFIG_ROOT);
+            .toList();
+        String prefix = DEFAULT_CONFIG_PREFIX;
+        for (int i = 0; i < declarations.size(); i++) {
+            String[] parts = declarations.get(i).split("=", 2);
+            if (parts.length != 2 || !parts[0].trim().equals(CONFIG_PREFIX_PROPERTY)) {
+                continue;
+            }
+            if (i != 0) {
+                throw new ConfigException(
+                    "`" + CONFIG_PREFIX_PROPERTY + "` must be the first line of the `rwconfig` file that is"
+                    + " not a comment or blank, because it applies to every line: " + declarations.get(i).trim()
+                );
+            }
+            prefix = parts[1].trim();
+        }
+        // the lambdas below close over this, so it has to be effectively final
+        final String configPrefix = prefix;
         // parse the library settings and property info from the `rwconfig` file
         Map<String, String> configProperties = new HashMap<>();
         Map<String, PropertyInfo> propertyInfoMap = new HashMap<>();
@@ -150,7 +165,7 @@ public class ConfigFactory {
                 if (configProperties.containsKey(name) || propertyInfoMap.containsKey(name)) {
                     throw new ConfigException("duplicate config line for property: " + name);
                 }
-                if (name.startsWith(configRoot) || name.equals(CONFIG_ROOT_PROPERTY)) { // library setting
+                if (name.startsWith(configPrefix) || name.equals(CONFIG_PREFIX_PROPERTY)) { // library setting
                     if (type != null && !type.isEmpty()) {
                         throw new ConfigException("invalid config line (library settings cannot have a type): " + s);
                     }
@@ -184,20 +199,20 @@ public class ConfigFactory {
         // file - which is a complete, if static, configuration, and is the
         // smallest useful file anyone can write. A property with no default
         // still fails at startup, since nothing can supply it.
-        String sourceNames = configProperties.getOrDefault(configRoot + "sources", "");
+        String sourceNames = configProperties.getOrDefault(configPrefix + "sources", "");
         Stream.of(sourceNames.trim().split("\\s*,\\s*", -1))
             .filter(sourceName -> !sourceNames.trim().isEmpty())
             .forEach(sourceName -> {
                 if (sourceName.isEmpty()) {
                     throw new ConfigException(
-                        "invalid `" + configRoot + "sources` property (empty source name): " + sourceNames
+                        "invalid `" + configPrefix + "sources` property (empty source name): " + sourceNames
                     );
                 }
                 if (configSources.containsKey(sourceName)) {
                     throw new ConfigException("duplicate config source name: " + sourceName);
                 }
                 logger.debug("loading config source: {}", sourceName);
-                String type = getPluginProperty(configProperties, configSources, configRoot, sourceName, "type", true);
+                String type = getPluginProperty(configProperties, configSources, configPrefix, sourceName, "type", true);
                 if (type.indexOf('.') != -1) { // sourceType is a plugin
                     SimpleConfigSourcePlugin plugin = loadPluginByModule(type);
                     String pluginVersion = plugin.getPluginVersion();
@@ -214,14 +229,14 @@ public class ConfigFactory {
                     requiredProperties.stream()
                         .forEach(propertyName -> {
                             String propertyValue = getPluginProperty(
-                                configProperties, configSources, configRoot, sourceName, propertyName, true
+                                configProperties, configSources, configPrefix, sourceName, propertyName, true
                             );
                             properties.put(propertyName, propertyValue);
                         });
                     optionalProperties.stream()
                         .forEach(propertyName -> {
                             String propertyValue = getPluginProperty(
-                                configProperties, configSources, configRoot, sourceName, propertyName, false
+                                configProperties, configSources, configPrefix, sourceName, propertyName, false
                             );
                             properties.put(propertyName, propertyValue);
                         });
@@ -260,7 +275,7 @@ public class ConfigFactory {
                                     + "but no command line arguments were provided to the config system"
                                 );
                             }
-                            configSources.put(sourceName, new CommandLineProperties(commandLineArgs, configRoot));
+                            configSources.put(sourceName, new CommandLineProperties(commandLineArgs, configPrefix));
                             logger.debug("config source `{}` loaded from command line arguments", sourceName);
                         }
                         case SYSTEM_PROPERTIES -> {
@@ -272,7 +287,7 @@ public class ConfigFactory {
                             logger.debug("config source `{}` loaded from environment variables", sourceName);
                         }
                         case PROPERTIES -> {
-                            String location = getPluginProperty(configProperties, configSources, configRoot, sourceName, "location", true);
+                            String location = getPluginProperty(configProperties, configSources, configPrefix, sourceName, "location", true);
                             logger.info("setting plugin properties: location={}", location);
                             if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
                                 throw new ConfigException("unsupported location: " + location);
@@ -294,7 +309,7 @@ public class ConfigFactory {
                             }
                         }
                         case DIRECTORY -> {
-                            String dirPath = getPluginProperty(configProperties, configSources, configRoot, sourceName, "path", true);
+                            String dirPath = getPluginProperty(configProperties, configSources, configPrefix, sourceName, "path", true);
                             try (Stream<Path> files = Files.list(Path.of(dirPath))) {
                                 Map<String, String> properties = new HashMap<>();
                                 files
@@ -328,7 +343,7 @@ public class ConfigFactory {
             .forEach(entry -> {
                 String sourceName = entry.getKey();
                 boolean ignoreUnknownProperties = configProperties
-                    .getOrDefault(configRoot + sourceName + ".ignoreUnknownProperties", "false")
+                    .getOrDefault(configPrefix + sourceName + ".ignoreUnknownProperties", "false")
                     .matches("(?i)true|yes|on|1");
                 Map<String, String> properties = entry.getValue();
                 properties.keySet().stream()
@@ -1014,12 +1029,12 @@ public class ConfigFactory {
     private static String getPluginProperty(
         Map<String, String> configProperties,
         Map<String, Map<String, String>> configSources,
-        String configRoot,
+        String configPrefix,
         String sourceName,
         String propertyName,
         boolean required
     ) {
-        String fullPropertyName = configRoot + sourceName + "." + propertyName;
+        String fullPropertyName = configPrefix + sourceName + "." + propertyName;
         String propertyValue = configProperties.get(fullPropertyName);
         if (required && (propertyValue == null || propertyValue.isEmpty())) {
             throw new ConfigException(
@@ -1031,7 +1046,7 @@ public class ConfigFactory {
         // information such as passwords, which should not be stored in the
         // `rwconfig` file. The name searched for is the same as the fully
         // qualified name of the property here - for example, a setting named
-        // `<configRoot>jdbc.password` is looked up under that same name in the
+        // `<configPrefix>jdbc.password` is looked up under that same name in the
         // sources already loaded.
         if (propertyValue != null && DEFERRED_VALUE.equals(propertyValue.trim())) {
             propertyValue = configSources.values().stream()
@@ -1071,7 +1086,7 @@ public class ConfigFactory {
          * (`--verbose`, `input.txt`, `-n=3`) are left alone. The library's own
          * arguments are skipped too.
          */
-        private CommandLineProperties(String[] args, String configRoot) {
+        private CommandLineProperties(String[] args, String configPrefix) {
             if (args == null) { // if no args were provided, just return an empty map
                 return;
             }
@@ -1085,7 +1100,7 @@ public class ConfigFactory {
                 }
                 String name = matcher.group(1);
                 // the library's own arguments are not application properties
-                if (name.equals(CONFIG_FILE_PATH_PROPERTY) || name.startsWith(configRoot)) {
+                if (name.equals(CONFIG_FILE_PATH_PROPERTY) || name.startsWith(configPrefix)) {
                     continue;
                 }
                 // first occurrence wins, matching `getCommandLineArgument`

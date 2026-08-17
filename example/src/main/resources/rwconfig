@@ -42,7 +42,7 @@
 #
 # `rwc.<sourceName>.<setting>=<value>`.
  
-rwc.sources = args, system, environment, local, organization, app, prefix, \
+rwc.sources = args, system, environment, local, organization, app, legacy, \
               directory, json, xml, yaml, db, hocon
 
 # All config sources must have a `type` setting that declares the type of the
@@ -155,9 +155,9 @@ rwc.organization.type = properties
 rwc.organization.location = http://localhost:1520/web-test.properties
 rwc.app.type = properties
 rwc.app.location = classpath:app.properties
-rwc.prefix.type = prefix.plugin
-rwc.prefix.mediaType = properties
-rwc.prefix.location = file:prefix-test.properties
+rwc.legacy.type = prefix.plugin
+rwc.legacy.mediaType = properties
+rwc.legacy.location = file:prefix-test.properties
 rwc.directory.type = directory
 rwc.directory.path = test-directory-source
 rwc.json.type = json.plugin
@@ -402,7 +402,7 @@ stringList firstAndLastItemsAreEmpty = , foo, bar, \e
 string no-space = no\espace
 stringList emptyList =
 intList[1:10] emptyIntList =
-string prefix.test
+string legacy.test
 greeting
 name
 duration retryDelay = 1s

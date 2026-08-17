@@ -287,12 +287,15 @@ is valid, and every property then takes its declared default.
 If `rwc.` collides with a property name you need, change the prefix:
 
 ```
-rwc.root = myapp.
+rwc.prefix = myapp.
 myapp.sources = environment
 myapp.environment.type = environmentVariables
 ```
 
-`rwc.root` must be spelled exactly - `RWC.ROOT` is treated as an ordinary
+It must be the first line that is not a comment or blank, because it applies to
+the whole file.
+
+`rwc.prefix` must be spelled exactly - `RWC.PREFIX` is treated as an ordinary
 property name.
 
 ## A complete example
