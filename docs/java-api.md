@@ -76,13 +76,14 @@ contains only your application's properties - library settings
 itself are never included.
 
 `PropertyType` is an enum: `BOOLEAN`, `INT`, `LONG`, `DOUBLE`, `STRING`,
-`DURATION`, `SIZE`, `BOOLEAN_LIST`, `INT_LIST`, `LONG_LIST`, `DOUBLE_LIST`,
-`STRING_LIST`, `DURATION_LIST`, `SIZE_LIST`. Each has a `name` field holding the spelling used in the
-`rwconfig` file (`intList` and so on).
+`BOOLEAN_LIST`, `INT_LIST`, `LONG_LIST`, `DOUBLE_LIST`, `STRING_LIST`. Each has
+a `name` field holding the spelling used in the `rwconfig` file (`intList` and
+so on).
 
-A property declared `duration` or `size` is a `long` at runtime - read it with
-`getLong`, and `getType` reports `LONG`. Their list forms are read with
-`getLongList` and report `LONG_LIST`.
+**These are the run-time types, which is not quite the list of types you can
+write in the file.** `duration`, `size`, and their list forms are parsed into
+longs. For example, a property *declared* as `duration timeout` is *read* with
+`var duration = config.getLong("duration")`.
 
 Iterating everything, which is what the [example
 application](../example/src/main/java/net/rabbitware/config/example/Test.java)

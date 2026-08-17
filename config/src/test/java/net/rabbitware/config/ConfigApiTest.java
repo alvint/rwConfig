@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -291,5 +292,33 @@ class ConfigApiTest {
                 () -> configFrom("int myProp = " + (Integer.MAX_VALUE + 1L))
             );
         }
+    }
+    @Test
+    @DisplayName("`PropertyType` holds only types a property can actually have at run time")
+    void propertyTypeHasNoUnreachableConstants() throws IOException {
+        // `duration` and `size` can be written in the `rwconfig` file but are
+        // parsed into longs, so they never come back from `getType`. Keeping
+        // them out of this enum is what lets a caller's switch over
+        // `getType()` stay exhaustive without handling impossible cases
+        assertEquals(
+            List.of("boolean", "int", "long", "double", "string",
+                    "booleanList", "intList", "longList", "doubleList", "stringList"),
+            Stream.of(Config.PropertyType.values()).map(type -> type.name).toList()
+        );
+    }
+
+    @Test
+    @DisplayName("a `duration` or `size` property reports the run-time type it actually has")
+    void unitTypesReportTheirRuntimeType() throws IOException {
+        Config config = configFrom(
+            "duration timeout = 5s",
+            "size cache = 1MiB",
+            "durationList delays = 1s, 2s",
+            "sizeList tiers = 1KiB, 1MiB"
+        );
+        assertEquals(Config.PropertyType.LONG, config.getType("timeout"));
+        assertEquals(Config.PropertyType.LONG, config.getType("cache"));
+        assertEquals(Config.PropertyType.LONG_LIST, config.getType("delays"));
+        assertEquals(Config.PropertyType.LONG_LIST, config.getType("tiers"));
     }
 }

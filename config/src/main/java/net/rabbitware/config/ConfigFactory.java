@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config.ConfigException;
-import net.rabbitware.config.Config.PropertyType;
+
 import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 
 public class ConfigFactory {
@@ -142,7 +142,7 @@ public class ConfigFactory {
         //
         // If you find a valid config line that is not matched by this regex,
         // please report it as a bug.
-        String types = Stream.of(PropertyType.values())
+        String types = Stream.of(DeclaredType.values())
             .map(t -> t.name)
             .reduce((a, b) -> a + "|" + b)
             .orElse("");
@@ -412,7 +412,7 @@ public class ConfigFactory {
     //
 
     private static record PropertyInfo (
-        PropertyType propertyType,
+        DeclaredType propertyType,
         List<Range> allowedValues,
         Value defaultValue
     ) {}
@@ -489,7 +489,7 @@ public class ConfigFactory {
 
     private static PropertyInfo getPropertyInfo(String name, String type, String allowedValues, String defaultValue)
             throws ConfigException {
-        PropertyType propertyType = PropertyType.fromString(type);
+        DeclaredType propertyType = DeclaredType.fromString(type);
         List<Range> allowedValuesList = parseAllowedValues(name, propertyType, allowedValues);
         Value value;
         if (defaultValue == null) {
@@ -500,19 +500,19 @@ public class ConfigFactory {
         return new PropertyInfo(propertyType, allowedValuesList, value);
     }
 
-    private static List<Range> parseAllowedValues(String name, PropertyType propertyType, String allowedValues)
+    private static List<Range> parseAllowedValues(String name, DeclaredType propertyType, String allowedValues)
             throws ConfigException {
         List<Range> ranges = new LinkedList<>();
         if (allowedValues != null) {
-            PropertyType rangeType = 
+            DeclaredType rangeType = 
                 switch (propertyType) {
-                    case BOOLEAN, BOOLEAN_LIST -> PropertyType.BOOLEAN;
-                    case INT, INT_LIST -> PropertyType.INT;
-                    case LONG, LONG_LIST -> PropertyType.LONG;
-                    case DOUBLE, DOUBLE_LIST -> PropertyType.DOUBLE;
-                    case STRING, STRING_LIST -> PropertyType.STRING;
-                    case DURATION, DURATION_LIST -> PropertyType.DURATION;
-                    case SIZE, SIZE_LIST -> PropertyType.SIZE;
+                    case BOOLEAN, BOOLEAN_LIST -> DeclaredType.BOOLEAN;
+                    case INT, INT_LIST -> DeclaredType.INT;
+                    case LONG, LONG_LIST -> DeclaredType.LONG;
+                    case DOUBLE, DOUBLE_LIST -> DeclaredType.DOUBLE;
+                    case STRING, STRING_LIST -> DeclaredType.STRING;
+                    case DURATION, DURATION_LIST -> DeclaredType.DURATION;
+                    case SIZE, SIZE_LIST -> DeclaredType.SIZE;
                 };
             Stream.of(allowedValues.split("(?<!\\\\),\\s*", -1)) // remove leading whitespace but not trailing
                 .forEach(rangeString -> {
@@ -538,7 +538,7 @@ public class ConfigFactory {
         String sourceName,
         String propertyName,
         String valueString,
-        PropertyType propertyType,
+        DeclaredType propertyType,
         List<Range> allowedValues
     ) throws ConfigException {
         try {
@@ -606,7 +606,7 @@ public class ConfigFactory {
                     var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
                     // parse the number and its unit into the canonical unit -
                     // milliseconds for a duration, bytes for a size
-                    long value = propertyType == PropertyType.DURATION
+                    long value = propertyType == DeclaredType.DURATION
                         ? parseDuration(propertyName, sourceName, unescapedValueString)
                         : parseSize(propertyName, sourceName, unescapedValueString);
                     // check if value is allowed. The range was parsed in the
@@ -685,7 +685,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s ->(Value.Boolean)
-                                parseValue(sourceName, propertyName, s, PropertyType.BOOLEAN, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.BOOLEAN, allowedValues))
                             .toList();
                     yield new Value.BooleanList(list);
                 }
@@ -694,7 +694,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s ->(Value.Integer)
-                                parseValue(sourceName, propertyName, s, PropertyType.INT, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.INT, allowedValues))
                             .toList();
                     yield new Value.IntegerList(list);
                 }
@@ -703,7 +703,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s ->(Value.Long)
-                                parseValue(sourceName, propertyName, s, PropertyType.LONG, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.LONG, allowedValues))
                             .toList();
                     yield new Value.LongList(list);
                 }
@@ -712,14 +712,14 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s ->(Value.Double)
-                                parseValue(sourceName, propertyName, s, PropertyType.DOUBLE, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.DOUBLE, allowedValues))
                             .toList();
                     yield new Value.DoubleList(list);
                 }
                 case DURATION_LIST, SIZE_LIST -> {
-                    PropertyType itemType = propertyType == PropertyType.DURATION_LIST
-                        ? PropertyType.DURATION
-                        : PropertyType.SIZE;
+                    DeclaredType itemType = propertyType == DeclaredType.DURATION_LIST
+                        ? DeclaredType.DURATION
+                        : DeclaredType.SIZE;
                     List<Value.Long> list = valueString.isEmpty()
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
@@ -735,7 +735,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),\\s*", -1))
                             .map(s ->(Value.String)
-                                parseValue(sourceName, propertyName, s, PropertyType.STRING, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.STRING, allowedValues))
                             .toList();
                     yield new Value.StringList(list);
                 }

@@ -197,9 +197,8 @@ public interface Config {
 
     public static enum PropertyType {
         BOOLEAN("boolean"), INT("int"), LONG("long"), DOUBLE("double"), STRING("string"),
-        DURATION("duration"), SIZE("size"),
         BOOLEAN_LIST("booleanList"), INT_LIST("intList"), LONG_LIST("longList"), DOUBLE_LIST("doubleList"),
-        STRING_LIST("stringList"), DURATION_LIST("durationList"), SIZE_LIST("sizeList");
+        STRING_LIST("stringList");
 
         public final String name;
         private static final java.util.Map<String, PropertyType> nameToTypeMap = new java.util.HashMap<>();
