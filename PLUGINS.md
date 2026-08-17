@@ -56,8 +56,8 @@ Several plugins read from a location, and they all accept it the same way.
     - `jar:` URL syntax is normally `jar:file:/path/to/jar!path/to/item`.
 
 ## How Nested Formats Are Flattened
-JSON, YAML, and XML all describe a tree, and rwConfig properties are flat. The
-three plugins therefore share one set of rules, described here once. Each plugin
+JSON, YAML, HOCON, and XML all describe a tree, and rwConfig properties are flat.
+These plugins therefore share one set of rules, described here once. Each plugin
 section below only covers what is specific to its format.
 
 **A property's name is the path to its value.** Start at the top of the
