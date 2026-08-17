@@ -405,6 +405,9 @@ intList[1:10] emptyIntList =
 string prefix.test
 greeting
 name
+duration retryDelay = 1s
+durationList retryDelays = 1s, 2s, 4s, 8s
+size maxFileSize = 10MB
 # json plugin test cases
 intList numb\\ers
 foo\4\nested
