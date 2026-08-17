@@ -31,7 +31,7 @@
 # The config sources to read in order of highest precedence to lowest. Built-in
 # config sources are can be a standard java properties file, a directory, the
 # command line arguments, java system properties, or environment variables.
-# Plugins are available for YAML, JSON, XML, and database config sources.
+# Plugins are available for YAML, JSON, XML, HOCON, and database config sources.
 #
 # rwConfig will read the config sources in the order listed here. Any property
 # value defined in a higher precedence source will override he value of the same
@@ -43,7 +43,7 @@
 # `rwc.<sourceName>.<setting>=<value>`.
  
 rwc.sources = args, system, environment, local, organization, app, prefix, \
-              directory, json, xml, yaml, db
+              directory, json, xml, yaml, db, hocon
 
 # All config sources must have a `type` setting that declares the type of the
 # config source. The type determines how rwConfig will load the source, and
@@ -53,9 +53,9 @@ rwc.sources = args, system, environment, local, organization, app, prefix, \
 # 1. commandLineArguments: load configuration properties from command line
 #    arguments passed to the application in the form `my.property=value`
 #    - In order for this source to be loaded you need to create the config
-#      system with `ConfigFactory.create(args)`. If this is not done and this source
-#      type is used in your library settings, an exception will be thrown during
-#      initialization.
+#      system with `ConfigFactory.create(args)`. If this is not done and this
+#      source type is used in your library settings, an exception will be thrown
+#      during initialization.
 # 2. systemProperties: load configuration properties from JVM system properties
 # 3. environmentVariables: load configuration properties from environment
 #    variables
@@ -84,8 +84,8 @@ rwc.sources = args, system, environment, local, organization, app, prefix, \
 #      and `name=World`.
 #      - Leading and trailing whitespace in the file contents is preserved, and
 #        the file contents are read as a single string (including newlines).
-#      - An exception will be thrown during initialization if any of the files in
-#        the directory cannot be read.
+#      - An exception will be thrown during initialization if any of the files
+#        in the directory cannot be read.
 # 6. yaml.plugin: load configuration properties from a YAML file
 #    - The setting `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to a YAML file.
@@ -98,7 +98,25 @@ rwc.sources = args, system, environment, local, organization, app, prefix, \
 #    - The setting `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to an XML file.
 #      - see the `properties` section above for examples of valid URLs
-# 9. prefix.plugin: load configuration properties from a properties file, and
+# 9. hocon.plugin: load configuration properties from a HOCON file
+#    - The setting `rwc.<sourceName>.location` must be declared for this
+#      source type, and it must be a valid URL to a HOCON file.
+#      - see the `properties` section above for examples of valid URLs
+#    - HOCON is a superset of JSON, so it is flattened by the same rules.
+#      Substitutions such as `${base}` are resolved within the document, but
+#      `include` does not work here and substitutions cannot reach system
+#      properties or the environment - use the config sources above for that.
+# 10. jdbc.plugin: load configuration properties from a database
+#    - The settings `rwc.<sourceName>.connectionString` and
+#      `rwc.<sourceName>.query` must be declared for this source type. The
+#      query must return the property name in its first column and the
+#      property value in its second.
+#    - The settings `rwc.<sourceName>.username` and
+#      `rwc.<sourceName>.password` are optional. See `rwc.db.password` below
+#      for how to keep the password out of this file.
+#    - The JDBC driver for your database has to be on the module path; the
+#      plugin does not bring one.
+# 11. prefix.plugin: load configuration properties from a properties file, and
 #    add a prefix to each property name.
 #    - The setting `rwc.<sourceName>.location` must be declared for this
 #      source type, and it must be a valid URL to a properties file.
@@ -119,7 +137,7 @@ rwc.sources = args, system, environment, local, organization, app, prefix, \
 # The `ignoreUnknownProperties` setting only applies to command line arguments,
 # properties files, directories, and anything loaded by a plugin. It does *not*
 # apply to system properties or environment variables because they contain many
-# settings unrelated to the app. For those sourcess the setting is always on,
+# settings unrelated to the app. For those sources the setting is always on,
 # and trying to set it to `off` will result in a warning being logged.
 #
 # A note about `ignoreUnknownProperties` with respect to command line arguments:
@@ -156,6 +174,9 @@ rwc.db.type = jdbc.plugin
 rwc.db.connectionString = jdbc:h2:mem:test-db
 rwc.db.query = SELECT * FROM config_properties
 rwc.db.username = admin
+rwc.hocon.type = hocon.plugin
+rwc.hocon.location = file:test.conf
+rwc.hocon.ignoreUnknownProperties = true
 # You can use `<<` as a *deferred value* in a library setting, to indicate that
 # the *actual* value for this property is located in another config source. This
 # is useful for sensitive information like passwords. The config source that
@@ -394,3 +415,8 @@ server\endpoints\1\path
 databaseGreeting
 # http server test cases
 webTestGreeting
+# hocon plugin test cases
+hocon-foo.bar
+hocon-foo\bar
+hocon-foo\\bar
+hocon\empty\key

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -73,6 +74,19 @@ public class ComparisonBenchmark {
     // every read and is roughly 10x slower when a path element contains a
     // digit, so benchmarking `prop50` would say more about that quirk than
     // about the cost of a read. The quirk is measured separately below.
+    /**
+     * Fail at setup if a library cannot see one of the benchmark properties.
+     * The measured methods use these results where a value is required, so this
+     * turns a would-be NPE in the middle of a measurement into a clear failure
+     * before any timing starts.
+     */
+    static <T> T require(T value, String name) {
+        if (value == null) {
+            throw new IllegalStateException("benchmark property `" + name + "` did not resolve");
+        }
+        return value;
+    }
+
     static final String INT_NAME = "alphaValue";
     static final String STRING_NAME = "betaValue";
     static final String DIGIT_NAME = "prop50";
@@ -196,6 +210,8 @@ public class ComparisonBenchmark {
             try (var in = Files.newInputStream(file)) {
                 properties.load(in);
             }
+            require(properties.getProperty(INT_NAME), INT_NAME);
+            require(properties.getProperty(STRING_NAME), STRING_NAME);
         }
 
         @TearDown(Level.Trial)
@@ -230,9 +246,14 @@ public class ComparisonBenchmark {
         @Setup(Level.Trial)
         public void setUp() {
             environment = new org.springframework.core.env.StandardEnvironment();
+            // Spring declares this parameter non-null, and `properties()` is not
+            // annotated, so the check makes the guarantee explicit. This is
+            // setup, not a measured path, so it costs nothing that matters.
             environment.getPropertySources().addFirst(
                 new org.springframework.core.env.PropertiesPropertySource(
-                    "benchmark", properties()));
+                    "benchmark", Objects.requireNonNull(properties())));
+            require(environment.getProperty(INT_NAME, Integer.class), INT_NAME);
+            require(environment.getProperty(STRING_NAME), STRING_NAME);
         }
     }
 
@@ -344,11 +365,19 @@ public class ComparisonBenchmark {
         return state.config.alphaValue();
     }
 
+    // `getProperty` and Spring's typed `getProperty` are both declared
+    // nullable, and the results are used where a value is required. The state
+    // classes verify at setup that every name resolves, so a null here is
+    // impossible by the time a measurement runs - and adding a null check to
+    // the measured expression would put a branch in the very thing being
+    // timed, so the warning is suppressed rather than coded around.
+    @SuppressWarnings("null")
     @Benchmark
     public int propertiesInt(PropertiesState state) {
         return Integer.parseInt(state.properties.getProperty(INT_NAME));
     }
 
+    @SuppressWarnings("null")
     @Benchmark
     public int springInt(SpringState state) {
         return state.environment.getProperty(INT_NAME, Integer.class);

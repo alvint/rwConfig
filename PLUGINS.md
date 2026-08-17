@@ -4,6 +4,7 @@ These plugins are currently available and are built with the project.
 | plugin | type | artifact | brings in | required properties |
 |---|---|---|---|---|
 | [JSON](#json-jsonplugin) | `json.plugin` | `plugin-json` | `org.json:json` | `location` |
+| [HOCON](#hocon-hoconplugin) | `hocon.plugin` | `plugin-hocon` | `com.typesafe:config` | `location` |
 | [YAML](#yaml-yamlplugin) | `yaml.plugin` | `plugin-yaml` | `org.snakeyaml:snakeyaml-engine` | `location` |
 | [XML](#xml-xmlplugin) | `xml.plugin` | `plugin-xml` | `org.json:json` | `location` |
 | [JDBC](#jdbc-jdbcplugin) | `jdbc.plugin` | `plugin-jdbc` | nothing - you supply the driver | `connectionString`, `query` |
@@ -169,6 +170,78 @@ Loads properties from a JSON file.
 JSON is flattened exactly as described in
 [How Nested Formats Are Flattened](#how-nested-formats-are-flattened), and adds
 nothing of its own.
+
+## HOCON (`hocon.plugin`)
+Loads properties from a [HOCON](https://github.com/lightbend/config) file, the
+format used by Typesafe Config. HOCON is a superset of JSON, so it is flattened
+by the same rules described in
+[How Nested Formats Are Flattened](#how-nested-formats-are-flattened).
+
+### Required Properties
+- `location`
+  - Where to read the source from. See
+    [Common Properties](#common-properties).
+
+### Details
+Everything HOCON adds over JSON happens before flattening, so it simply works:
+comments, unquoted keys and values, triple-quoted strings, objects merged rather
+than replaced, and substitutions.
+
+```
+# a comment
+base = 8000
+
+server {
+  port = ${base}          ->  server\port = 8000
+  hosts = [a, b, c]       ->  server\hosts = a,b,c
+}
+server { tls = true }     ->  server\tls = true
+```
+
+**A dotted key is a path**, which is HOCON's own rule, and nests exactly as
+though it had been written out:
+
+```
+a.b = nested              ->  a\b = nested
+"c.d" = literal           ->  c.d = literal
+```
+
+Quoting makes the dot part of the name instead, so the two cannot collide.
+
+**Durations and sizes are left as written.** `timeout = 5s` produces the string
+`5s`; rwConfig has no duration or size type, so declare it as a `string` and
+parse it yourself, or write the number you actually want.
+
+**Numbers are normalised, so what you write is not always what you get.**
+Typesafe Config drops a redundant fractional part and expands exponents, so
+`1.0` arrives as `1`, `100.0` as `100`, and `2.0e3` as `2000`; `1.5` and `1.25`
+are untouched. This is harmless for `int` and `double` properties, which parse
+either form, but a property declared as a `string` gets the normalised text. If
+you need the exact characters, quote the value - `"1.0"` stays `1.0`.
+
+**An unresolved substitution stops startup** rather than producing a blank -
+`port = ${MISSING}` is an error. The optional form, `${?MISSING}`, leaves the
+property unset instead, which then falls through to a lower-precedence config
+source or to the default in your `rwconfig` file.
+
+### Two things this plugin does not do
+Both are consequences of rwConfig's design rather than gaps in the parser, but
+they will surprise anyone arriving from Typesafe Config.
+
+**`include` does not work.** The source is read into memory before being parsed,
+so a relative include has no directory to resolve against. An optional include
+finds nothing and is skipped silently; `include required("other.conf")` fails
+with an error naming the file. This is consistent with rwConfig's premise that
+every source an application reads is declared in the `rwconfig` file - an
+include would load configuration that nothing declared. Add the other file as
+its own config source instead, and give it the precedence you want.
+
+**Substitutions cannot reach system properties or the environment.**
+`${?user.home}` resolves to nothing, where `ConfigFactory.load()` in a plain
+Typesafe Config application would find it. Resolution is confined to the
+document, so a source cannot quietly pull in values from outside itself. Use
+rwConfig's own `systemProperties` and `environmentVariables` sources, whose
+precedence you declare in `rwc.sources`.
 
 ## YAML (`yaml.plugin`)
 Loads properties from a YAML file.

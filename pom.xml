@@ -26,6 +26,7 @@
         <module>plugin-xml</module>
         <module>plugin-yaml</module>
         <module>plugin-jdbc</module>
+        <module>plugin-hocon</module>
     </modules>
 
     <dependencyManagement>
@@ -63,6 +64,11 @@
             <dependency>
                 <groupId>net.rabbitware.config</groupId>
                 <artifactId>plugin-jdbc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.rabbitware.config</groupId>
+                <artifactId>plugin-hocon</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

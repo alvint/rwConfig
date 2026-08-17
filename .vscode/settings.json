@@ -17,8 +17,11 @@
         "getl",
         "getll",
         "getsl",
+        "hocon",
         "rabbitware",
-        "rwconfig"
+        "rwconfig",
+        "typesafe"
     ],
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic"
 }

@@ -102,6 +102,14 @@ public class OverheadProbe {
     @TearDown(Level.Trial)
     public void tearDown() throws Exception {
         Files.deleteIfExists(file);
+        // `kept` exists so the libraries loaded above stay strongly reachable
+        // for the whole trial rather than being collected part way through it.
+        // Reading it here is what makes that hold - and what stops the field
+        // looking unused, which is exactly how it would get deleted by someone
+        // tidying up later.
+        if (kept != null && kept.length == 0) {
+            throw new IllegalStateException("nothing was kept alive");
+        }
     }
 
     @Benchmark

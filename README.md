@@ -1,6 +1,6 @@
 # What is rwConfig?
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
-![Tests](https://img.shields.io/badge/tests-293-brightgreen)
+![Tests](https://img.shields.io/badge/tests-329-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
 
@@ -107,7 +107,7 @@ at the [takeaway](benchmark/README.md).
   `booleanList`, `intList`, `longList`, `doubleList`, and `stringList`.
 - **Layered sources, with precedence you declare** - command line arguments,
   environment variables, system properties, `.properties` files and
-  directories, plus YAML, JSON, XML, and databases via the bundled plugins. Load
+  directories, plus YAML, JSON, XML, HOCON, and databases via the bundled plugins. Load
   them from the filesystem, a `jar`, http(s), or the classpath. Add your own
   with a small plugin API.
 - **Nearly dependency-free** - the Java Base module and slf4j, which itself only
@@ -349,7 +349,7 @@ at 3am.
   fix it
 - [Choosing a Configuration Library](docs/comparison.md) - how rwConfig
   compares with the alternatives, and when to use one of them instead
-- [Plugins](PLUGINS.md) - the YAML, JSON, XML, JDBC, and prefix plugins that
+- [Plugins](PLUGINS.md) - the YAML, JSON, XML, HOCON, JDBC, and prefix plugins that
   ship with the project
 
 There is also a [minimal `rwconfig`](example/src/main/resources/rwconfig-minimal)
