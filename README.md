@@ -1,9 +1,10 @@
-# What is rwConfig?
+# rwConfig
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
 ![Tests](https://img.shields.io/badge/tests-351-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
 
+## What is rwConfig?
 rwConfig is a simple, lightweight library that provides a unified and _fast_
 interface for reading static configuration information from a wide range of
 config sources.
