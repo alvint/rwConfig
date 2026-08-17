@@ -106,9 +106,9 @@ at the [takeaway](benchmark/README.md).
 - **Types and lists** - `boolean`, `int`, `long`, `double`, and `string`, plus
   `booleanList`, `intList`, `longList`, `doubleList`, and `stringList`.
 - **Layered sources, with precedence you declare** - command line arguments,
-  environment variables, system properties, `.properties` files and
-  directories, plus YAML, JSON, XML, HOCON, and databases via the bundled plugins. Load
-  them from the filesystem, a `jar`, http(s), or the classpath. Add your own
+  environment variables, system properties, `.properties` files, and
+  directories. Plus YAML, JSON, XML, HOCON, and databases via the bundled plugins.
+  Load them from the filesystem, a `jar`, http(s), or the classpath. Add your own
   with a small plugin API.
 - **Nearly dependency-free** - the Java Base module and slf4j, which itself only
   requires Java Base.
