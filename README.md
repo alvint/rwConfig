@@ -107,11 +107,12 @@ at the [takeaway](benchmark/README.md).
 - **Types and lists** - `boolean`, `int`, `long`, `double`, `string`, `size`,
   and `duration`. Also `booleanList`, `intList`, `longList`, `doubleList`,
   `stringList`, `sizeList`, and `durationList`.
-- **Layered sources, with precedence you declare** - command line arguments,
-  environment variables, system properties, `.properties` files, and
-  directories. Plus YAML, JSON, XML, HOCON, and databases via the bundled plugins.
-  Load them from the filesystem, a `jar`, http(s), or the classpath. Add your own
-  with a small plugin API.
+- **Layered sources, with precedence you declare** - get all of your config info
+  through one interface with built-in support for command line arguments,
+  environment variables, system properties, `.properties` files, and directories.
+  Plus YAML, JSON, XML, HOCON, and databases via the bundled plugins. Need something
+  else? Add your own source type with a small plugin API. File-based sources can
+  load from the filesystem, a `jar`, http(s), or the classpath.
 - **Nearly dependency-free** - the Java Base module and slf4j, which itself only
   requires Java Base.
 - **Secure by omission** - values your app never declared are not added to the
