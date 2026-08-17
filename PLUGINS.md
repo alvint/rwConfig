@@ -87,7 +87,7 @@ contains is reachable - but there is no property whose value is "the accounts
 array".
 
 ### Why a backslash
-Keys in many nested formats (JSON, YAML, etc.)  may legally contain dots, and
+Keys in many nested formats (JSON, YAML, etc.)  can legally contain dots, and
 often do. So `a.b` is a perfectly good name for a single property. That makes a
 dot useless as a separator; `a.b` would be ambiguous between one name and two
 levels.
