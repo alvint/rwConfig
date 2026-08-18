@@ -166,8 +166,8 @@ stringList names = a, b, c          ["a", "b", "c"]
 intList none =                      []  (an empty value is an empty list)
 ```
 
-Only `stringList` may contain blank items, because only strings have a blank
-value. Blank items come from adjacent commas or from `\e`:
+Only `stringList` may contain blank items, because only strings can have a
+blank value. Blank items come from adjacent commas or from `\e`:
 
 ```
 stringList a = one,,two             ["one", "", "two"]
