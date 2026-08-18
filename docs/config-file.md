@@ -85,7 +85,7 @@ A value with no unit is already in the canonical unit, so `duration t = 1500`
 is 1500 milliseconds. A space before the unit is allowed: `1 s` and `1s` are
 the same.
 
-Four rules keep these from being read as something other than what was meant:
+Additional notes:
 
 - **Units are case-sensitive.** `1m` is a minute and `1MB` a megabyte; `1M` is
   an error rather than either.
