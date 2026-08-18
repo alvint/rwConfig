@@ -73,11 +73,11 @@ dbPassword
 
 - `port` may now only be `80` or anything from `1024` to `65535`. A value
   outside that fails at startup rather than at bind time.
-- `greeting` is a `string` defaulting to `Hello`. No type is written, and
-  `string` is the default type.
-- `dbPassword` is a `string` with **no default**, so something has to provide
-  it or the application will not start. That is deliberate - it is how you say
-  "this must be configured, and I am not putting it in a shared file."
+- `greeting` is a `string` defaulting to `Hello`.
+- `dbPassword` is a `string` (the default type if not specified) with **no
+   default value**. Something has to provide it or the application will not
+   start. That is deliberate - it is how you say "this must be configured,
+   and I am not putting it in a shared file."
 
 That last one needs somewhere for the value to come from, which is what config
 sources are for. Add them above the declarations:
