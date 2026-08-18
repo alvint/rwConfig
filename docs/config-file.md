@@ -20,9 +20,6 @@ The library looks in this order and uses the first one it finds:
 The first three take a [location](config-sources.md#locations), so the file can
 live on the classpath, in a jar, or behind a URL, not just on disk.
 
-> **Note:** the classpath is checked *before* the working directory. A file
-> bundled in your jar wins over one sitting next to it.
-
 ## Comments
 
 A line whose first non-whitespace character is `#` or `!` is a comment.
