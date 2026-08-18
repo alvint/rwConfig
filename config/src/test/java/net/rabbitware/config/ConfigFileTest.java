@@ -44,8 +44,7 @@ class ConfigFileTest {
      */
     private static final List<String> SETUP = List.of(
         "rwc.sources = system",
-        "rwc.system.type = systemProperties",
-        "rwc.system.ignoreUnknownProperties = true"
+        "rwc.system.type = systemProperties"
     );
 
     @TempDir

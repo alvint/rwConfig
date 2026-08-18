@@ -61,8 +61,7 @@ class ConfigApiTest {
     private Config configFrom(String... propertyLines) throws IOException {
         List<String> lines = new ArrayList<>(List.of(
             "rwc.sources = sys",
-            "rwc.sys.type = systemProperties",
-            "rwc.sys.ignoreUnknownProperties = true"
+            "rwc.sys.type = systemProperties"
         ));
         lines.addAll(Arrays.asList(propertyLines));
         Path file = tempDir.resolve("rwconfig");

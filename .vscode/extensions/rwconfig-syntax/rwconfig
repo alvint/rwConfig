@@ -1,0 +1,5 @@
+rwc.sources = f
+rwc.f.type = properties
+rwc.f.location = file:extra.properties
+rwc.f.ignoreUnknownProperties = true
+int port = 1

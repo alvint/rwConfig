@@ -59,6 +59,26 @@ class ConfigSourceTest {
         return ConfigFactory.create(allArgs);
     }
 
+    /**
+     * Load the given lines and return the warnings logged while doing so.
+     * slf4j-simple writes to {@code System.err} and looks it up per message,
+     * so it can be swapped out here.
+     */
+    private List<String> warningsFrom(String... lines) throws IOException {
+        java.io.PrintStream original = System.err;
+        var captured = new java.io.ByteArrayOutputStream();
+        try {
+            System.setErr(new java.io.PrintStream(captured, true, java.nio.charset.StandardCharsets.UTF_8));
+            config(lines);
+        } finally {
+            System.setErr(original);
+        }
+        return captured.toString(java.nio.charset.StandardCharsets.UTF_8)
+            .lines()
+            .filter(line -> line.contains("WARN"))
+            .toList();
+    }
+
     private ConfigException rejected(String... lines) {
         return assertThrows(ConfigException.class, () -> config(lines));
     }
@@ -81,7 +101,6 @@ class ConfigSourceTest {
             Config config = config(
                 "rwc.sources = sys",
                 "rwc.sys.type = systemProperties",
-                "rwc.sys.ignoreUnknownProperties = true",
                 "myTestProperty"
             );
             assertEquals("fromSystemProperties", config.gets("myTestProperty"));
@@ -107,7 +126,6 @@ class ConfigSourceTest {
             Config config = config(
                 "rwc.sources = env",
                 "rwc.env.type = environmentVariables",
-                "rwc.env.ignoreUnknownProperties = true",
                 "PATH"
             );
             assertEquals(System.getenv("PATH"), config.gets("PATH"));
@@ -215,6 +233,58 @@ class ConfigSourceTest {
                 "int port = 8000"
             );
             assertEquals(1111, config.geti("port"));
+        }
+
+        @Test
+        @DisplayName("turning `ignoreUnknownProperties` off on system properties or the environment warns")
+        void ignoreUnknownPropertiesCannotBeTurnedOffThere() throws IOException {
+            // those sources are read one declared name at a time, so an unknown
+            // property is never seen and cannot be rejected - asking for it to
+            // be is a promise the library cannot keep
+            for (String[] lines : List.of(
+                new String[] {"rwc.sources = sys", "rwc.sys.type = systemProperties",
+                              "rwc.sys.ignoreUnknownProperties = false", "myProp = a"},
+                new String[] {"rwc.sources = env", "rwc.env.type = environmentVariables",
+                              "rwc.env.ignoreUnknownProperties = off", "myProp = a"}
+            )) {
+                List<String> warnings = warningsFrom(lines);
+                assertTrue(
+                    warnings.stream().anyMatch(w -> w.contains("ignoreUnknownProperties")
+                        && w.contains("cannot be turned off")),
+                    "expected a warning about the setting, but got: " + warnings
+                );
+            }
+        }
+
+        @Test
+        @DisplayName("turning it on there is redundant but quiet - it describes what already happens")
+        void ignoreUnknownPropertiesOnIsQuiet() throws IOException {
+            assertTrue(
+                warningsFrom("rwc.sources = sys", "rwc.sys.type = systemProperties",
+                             "rwc.sys.ignoreUnknownProperties = true", "myProp = a")
+                    .stream().noneMatch(w -> w.contains("ignoreUnknownProperties")),
+                "setting it on matches the behaviour, so it should pass quietly"
+            );
+        }
+
+        @Test
+        @DisplayName("no warning when the setting is absent, or on a source where it does something")
+        void ignoreUnknownPropertiesIsQuietWhereItApplies() throws IOException {
+            assertTrue(
+                warningsFrom("rwc.sources = sys", "rwc.sys.type = systemProperties", "myProp = a")
+                    .stream().noneMatch(w -> w.contains("ignoreUnknownProperties")),
+                "an absent setting should say nothing"
+            );
+            assertTrue(
+                warningsFrom(
+                    "rwc.sources = only",
+                    "rwc.only.type = properties",
+                    "rwc.only.location = " + propertiesFile("w.properties", "myProp=a\nextra=b"),
+                    "rwc.only.ignoreUnknownProperties = true",
+                    "myProp = a"
+                ).stream().noneMatch(w -> w.contains("cannot be turned off")),
+                "on a source that reads everything, the setting does apply"
+            );
         }
 
         @Test
@@ -532,7 +602,6 @@ class ConfigSourceTest {
             Config config = config(
                 "rwc.sources = sys",
                 "rwc.sys.type = systemProperties",
-                "rwc.sys.ignoreUnknownProperties = true",
                 "myProp = a"
             );
             assertEquals("a", config.gets("myProp"));
@@ -545,7 +614,6 @@ class ConfigSourceTest {
                 "rwc.prefix = myapp.",
                 "myapp.sources = sys",
                 "myapp.sys.type = systemProperties",
-                "myapp.sys.ignoreUnknownProperties = true",
                 "myProp = a"
             );
             assertEquals("a", config.gets("myProp"));
@@ -560,7 +628,6 @@ class ConfigSourceTest {
                 "rwc.prefix = myapp.",
                 "myapp.sources = sys",
                 "myapp.sys.type = systemProperties",
-                "myapp.sys.ignoreUnknownProperties = true",
                 "string rwc.leftover = a"
             );
             assertEquals("a", config.gets("rwc.leftover"));
@@ -592,7 +659,6 @@ class ConfigSourceTest {
                 "rwc.prefix = myapp.",
                 "myapp.sources = sys",
                 "myapp.sys.type = systemProperties",
-                "myapp.sys.ignoreUnknownProperties = true",
                 "myProp = a"
             );
             assertEquals("a", config.gets("myProp"));

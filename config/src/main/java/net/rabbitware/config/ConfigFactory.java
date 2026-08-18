@@ -279,10 +279,14 @@ public class ConfigFactory {
                             logger.debug("config source `{}` loaded from command line arguments", sourceName);
                         }
                         case SYSTEM_PROPERTIES -> {
+                            warnIfIgnoreUnknownPropertiesCannotBeTurnedOff(
+                                configProperties, configPrefix, sourceName, type);
                             configSources.put(sourceName, new SystemProperties(propertyInfoMap));
                             logger.debug("config source `{}` loaded from system properties", sourceName);
                         }
                         case ENVIRONMENT_VARIABLES -> {
+                            warnIfIgnoreUnknownPropertiesCannotBeTurnedOff(
+                                configProperties, configPrefix, sourceName, type);
                             configSources.put(sourceName, new EnvironmentProperties(propertyInfoMap));
                             logger.debug("config source `{}` loaded from environment variables", sourceName);
                         }
@@ -913,6 +917,30 @@ public class ConfigFactory {
             + "\n\na " + typeName + " is a whole number with an optional unit, and the units are: "
             + units.keySet().stream().sorted().collect(Collectors.joining(", "))
             + "\nwith no unit meaning " + (units == DURATION_UNITS ? "milliseconds" : "bytes");
+    }
+
+    /**
+     * `ignoreUnknownProperties` governs what happens to a value a source holds
+     * that no declaration mentions. The system properties and the environment
+     * are read by looking up one declared name at a time - they are never
+     * enumerated, because they are full of entries that have nothing to do with
+     * this application - so they can never report an unknown property. The
+     * setting is therefore always on for them.
+     *
+     * <p>Only turning it <em>off</em> is worth warning about: that asks for
+     * unknown properties to be rejected, which will not happen. Setting it on
+     * is redundant but describes what does happen, so it passes quietly.
+     */
+    private static void warnIfIgnoreUnknownPropertiesCannotBeTurnedOff(
+        Map<String, String> configProperties, String configPrefix, String sourceName, String type
+    ) {
+        String value = configProperties.get(configPrefix + sourceName + ".ignoreUnknownProperties");
+        if (value != null && !value.matches("(?i)true|yes|on|1")) {
+            logger.warn(
+                "`{}{}.ignoreUnknownProperties` is set to `{}`, but it cannot be turned off for a `{}`" + " source",
+                configPrefix, sourceName, value, type
+            );
+        }
     }
 
     private static String handleEscapeSequences(String sourceName, String value) {

@@ -154,7 +154,9 @@ anything at all:
 | `systemProperties`, `environmentVariables` | looking up each declared property by name | never seen, so the flag has no effect |
 
 The last group cannot report an unknown property even in principle - it only
-ever asks for names your `rwconfig` file declares. That is deliberate: an
+ever asks for names your `rwconfig` file declares. The setting is
+therefore always on for them, and trying to turn it *off* logs a warning at
+startup: it asks for something the library cannot do. That is deliberate: an
 application using system properties should not drown in errors about the JVM's
 own, and the environment is full of variables that have nothing to do with your
 program.
@@ -242,7 +244,6 @@ rwc.prefix = myapp.
 
 myapp.sources = environment
 myapp.environment.type = environmentVariables
-myapp.environment.ignoreUnknownProperties = true
 ```
 
 It has to be the **first line that is not a comment or blank**. The prefix
