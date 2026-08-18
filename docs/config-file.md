@@ -99,7 +99,7 @@ Additional notes:
 - **Property names can start with type names.** The parser is context aware,
   so a property may be named `longitude` or `stringify` without its first few
   characters being taken as a type. In fact, the two declarations below are
-  perfectly legal:
+  also perfectly legal:
   - `string int = this is a string`
   - `int = this is also a string`
 
