@@ -89,8 +89,6 @@ Four rules keep these from being read as something other than what was meant:
 
 - **Units are case-sensitive.** `1m` is a minute and `1MB` a megabyte; `1M` is
   an error rather than either.
-- **The two vocabularies do not overlap.** Every size unit ends in `B` and no
-  duration unit does, so `duration x = 1MB` and `size x = 1m` are both errors.
 - **`KB` is 1000 and `KiB` is 1024**, as the SI and IEC standards define them.
   Bare `K`, `M` and `G` are rejected, because in practice they are written
   meaning either one.
