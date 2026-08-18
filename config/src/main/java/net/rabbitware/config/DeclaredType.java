@@ -15,9 +15,10 @@ import net.rabbitware.config.Config.PropertyType;
  */
 enum DeclaredType {
     BOOLEAN("boolean"), INT("int"), LONG("long"), DOUBLE("double"), STRING("string"),
-    DURATION("duration"), SIZE("size"),
+    DURATION("duration"), SIZE("size"), TIMESTAMP("timestamp"),
     BOOLEAN_LIST("booleanList"), INT_LIST("intList"), LONG_LIST("longList"), DOUBLE_LIST("doubleList"),
-    STRING_LIST("stringList"), DURATION_LIST("durationList"), SIZE_LIST("sizeList");
+    STRING_LIST("stringList"), DURATION_LIST("durationList"), SIZE_LIST("sizeList"),
+    TIMESTAMP_LIST("timestampList");
 
     public final String name;
     private static final java.util.Map<String, DeclaredType> nameToTypeMap = new java.util.HashMap<>();

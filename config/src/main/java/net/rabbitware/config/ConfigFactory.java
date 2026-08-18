@@ -517,6 +517,7 @@ public class ConfigFactory {
                     case STRING, STRING_LIST -> DeclaredType.STRING;
                     case DURATION, DURATION_LIST -> DeclaredType.DURATION;
                     case SIZE, SIZE_LIST -> DeclaredType.SIZE;
+                    case TIMESTAMP, TIMESTAMP_LIST -> DeclaredType.TIMESTAMP;
                 };
             Stream.of(allowedValues.split("(?<!\\\\),\\s*", -1)) // remove leading whitespace but not trailing
                 .forEach(rangeString -> {
@@ -603,6 +604,20 @@ public class ConfigFactory {
                     }
                     // value is allowed; return it
                     yield new Value.Integer(value);
+                }
+                case TIMESTAMP -> {
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    long value = parseTimestamp(propertyName, sourceName, unescapedValueString);
+                    if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
+                        ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
+                    )) {
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+                        throw new ConfigException(
+                            "value is not allowed for property `" + propertyName + "` (in " + source + "): "
+                            + unescapedValueString
+                        );
+                    }
+                    yield new Value.Long(value);
                 }
                 case DURATION, SIZE -> {
                     // unescape any escaped characters in the value string (and
@@ -719,6 +734,15 @@ public class ConfigFactory {
                                 parseValue(sourceName, propertyName, s, DeclaredType.DOUBLE, allowedValues))
                             .toList();
                     yield new Value.DoubleList(list);
+                }
+                case TIMESTAMP_LIST -> {
+                    List<Value.Long> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s -> (Value.Long)
+                                parseValue(sourceName, propertyName, s, DeclaredType.TIMESTAMP, allowedValues))
+                            .toList();
+                    yield new Value.LongList(list);
                 }
                 case DURATION_LIST, SIZE_LIST -> {
                     DeclaredType itemType = propertyType == DeclaredType.DURATION_LIST
@@ -868,6 +892,61 @@ public class ConfigFactory {
 
     /** A number, optional whitespace, and an optional unit. */
     private static final Pattern UNIT_VALUE = Pattern.compile("^([+-]?\\d+)\\s*([A-Za-z]*)$");
+
+    /**
+     * A date and time written in ISO-8601, with the offset from UTC always
+     * spelled out, parsed to milliseconds since the epoch.
+     *
+     * <p>The offset is required. {@code 2026-08-17T00:00:00} on its own names a
+     * different moment depending on the machine's time zone, so the same file
+     * would mean different things on a laptop and on a server - exactly the
+     * kind of surprise this library exists to prevent. Write {@code Z}, or an
+     * offset such as {@code +02:00}.
+     *
+     * <p>A space is accepted in place of the {@code T}, since that is how people
+     * write these by hand. It is normalised before parsing; everything else has
+     * to be ISO-8601.
+     *
+     * <p>A bare number is <em>not</em> read as milliseconds since the epoch,
+     * even though that is what the property becomes. {@code timestamp t = 2026}
+     * would quietly mean two seconds past the epoch rather than the year, and a
+     * mistyped year is the likeliest way to get one. Declare a {@code long} if
+     * you want to write an epoch value directly.
+     */
+    private static long parseTimestamp(String propertyName, String sourceName, String value) {
+        // a space may stand in for the `T`; nothing else about the form is relaxed
+        String normalized = value.replaceFirst("^(\\d{4}-\\d{2}-\\d{2})[ ]+", "$1T");
+        java.time.Instant instant;
+        try {
+            instant = java.time.Instant.parse(normalized);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new ConfigException(timestampError(propertyName, sourceName, value), e);
+        }
+        if (instant.getNano() % 1_000_000 != 0) {
+            String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+            throw new ConfigException(
+                "value is more precise than a millisecond for property `" + propertyName + "` (in "
+                + source + "): " + value
+                + "\n\na timestamp is a whole number of milliseconds since the epoch, so anything finer"
+                + " would be silently discarded"
+            );
+        }
+        return instant.toEpochMilli();
+    }
+
+    /** The accepted forms are listed, since the error is where a reader looks. */
+    private static String timestampError(String propertyName, String sourceName, String value) {
+        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+        return "error parsing the value of `" + propertyName + "` (in " + source + ") as type"
+            + " `timestamp`: " + value
+            + "\n\na timestamp is an ISO-8601 date and time that states its offset from UTC:"
+            + "\n    2026-08-17T00:00:00Z"
+            + "\n    2026-08-17T00:00:00+02:00"
+            + "\n    2026-08-17 00:00:00Z        (a space may stand in for the `T`)"
+            + "\n\nthe offset is required, because without one the same file would mean a different"
+            + " moment on a machine in another time zone. A bare number is not accepted either -"
+            + " declare a `long` to write milliseconds since the epoch directly";
+    }
 
     private static long parseDuration(String propertyName, String sourceName, String value) {
         return parseUnitValue(propertyName, sourceName, value, "duration", DURATION_UNITS);

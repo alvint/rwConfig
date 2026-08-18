@@ -54,9 +54,9 @@ configuration without putting the value in a shared file.
 
 ### Types
 
-`boolean`, `int`, `long`, `double`, `string`, `duration`, `size`, and a list
+`boolean`, `int`, `long`, `double`, `string`, `duration`, `size`, `timestamp`, and a list
 form of each: `booleanList`, `intList`, `longList`, `doubleList`,
-`stringList`, `durationList`, `sizeList`. Omitting the type gives you
+`stringList`, `durationList`, `sizeList`, and `timestampList`. Omitting the type gives you
 `string`.
 
 Booleans accept `true`/`false`, `yes`/`no`, `on`/`off`, `1`/`0`, in any case.
@@ -70,6 +70,38 @@ runtime are milliseconds for duration and bytes for size.
 |---|---|---|
 | `duration` | milliseconds | `ms`, `s`, `m`, `h`, `d` |
 | `size` | bytes | `B`, `KB`, `MB`, `GB`, `TB`, `KiB`, `MiB`, `GiB`, `TiB` |
+
+`timestamp`, and `timestampList`express a moment in time rather
+than a length of one. It is an ISO-8601 date and time read as milliseconds
+since the epoch, so it too is a `long` at runtime:
+
+```
+timestamp[2020-01-01T00:00:00Z..2030-01-01T00:00:00Z] validFrom = 2026-08-17T00:00:00Z
+                                     getLong -> 1786924800000
+```
+
+**The offset from UTC is required.** `2026-08-17T00:00:00` alone names a
+different moment depending on the machine's time zone, so the same file would
+mean different things on a laptop and on a server; `2026-08-17` is rejected for
+the same reason. Write `Z`, or an offset such as `+02:00`.
+
+A space may stand in for the `T`, since that is how people write these by hand.
+These two are the same moment:
+
+```
+2026-08-17T00:00:00+02:00
+2026-08-17 00:00:00+02:00
+```
+
+Nothing else about the form is relaxed - a space before the offset, for
+instance, is an error.
+
+Two things are deliberately refused. **A bare number is not milliseconds since
+the epoch** - `timestamp t = 2026` would quietly mean two seconds past 1970
+rather than the year, and a mistyped year is the likeliest way to write one;
+declare a `long` if you want to give an epoch value directly. And **anything
+finer than a millisecond** is an error rather than being rounded away, for the
+same reason `500us` is not a duration.
 
 ```
 duration[1s..5m] timeout = 30s        getLong     -> 30000

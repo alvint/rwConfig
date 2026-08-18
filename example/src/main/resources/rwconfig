@@ -275,19 +275,30 @@ rwc.db.password = <<
 #       define them. Bare `K`, `M` and `G` are rejected as ambiguous.
 #     - every size unit ends in `B` and no duration unit does, so the two
 #       vocabularies cannot be confused for one another
-# 8. stringList: a comma-separated list of string values
+# 8. timestamp: a moment in time, read as milliseconds since the epoch
+#     - written in ISO-8601 with the offset from UTC always stated, such as
+#       `2026-08-17T00:00:00Z` or `2026-08-17T00:00:00+02:00`. A space may
+#       stand in for the `T`; nothing else about the form is relaxed.
+#     - the offset is required: without one, the same file would mean a
+#       different moment on a machine in another time zone
+#     - a bare number is *not* accepted as epoch milliseconds, because
+#       `timestamp t = 2026` would quietly mean two seconds past 1970 rather
+#       than the year. Declare a `long` if you want to write one directly.
+#     - anything finer than a millisecond is an error rather than rounded away
+# 9. stringList: a comma-separated list of string values
 #    - individual values can contain commas, so long as they are escaped with a
 #      backslash
 #    - leading spaces are trimmed for each individual value, but trailing spaces
 #      are preserved
 #      - in order to include leading spaces, escape the first space with a
 #        backslash
-# 9. booleanList: a comma-separated list of boolean values (case insensitive)
-# 10. intList: a comma-separated list of integer values
-# 11. longList: a comma-separated list of long values
-# 12. doubleList: a comma-separated list of double values
-# 13. durationList: a comma-separated list of durations
-# 14. sizeList: a comma-separated list of sizes
+# 10. booleanList: a comma-separated list of boolean values (case insensitive)
+# 11. intList: a comma-separated list of integer values
+# 12. longList: a comma-separated list of long values
+# 13. doubleList: a comma-separated list of double values
+# 14. durationList: a comma-separated list of durations
+# 15. sizeList: a comma-separated list of sizes
+# 16. timestampList: a comma-separated list of timestamps
 #
 # For list types, an empty list is allowed for both default values and values
 # defined in config sources. An empty list can be represented by an empty string

@@ -530,6 +530,84 @@ class ConfigFileTest {
         }
 
         @Test
+        @DisplayName("a timestamp is ISO-8601 with an offset, read as milliseconds since the epoch")
+        void timestampsConvertToEpochMillis() throws IOException {
+            assertEquals(1_786_924_800_000L, config("timestamp t = 2026-08-17T00:00:00Z").getl("t"));
+            assertEquals(1_786_917_600_000L, config("timestamp t = 2026-08-17T00:00:00+02:00").getl("t"));
+            assertEquals(1_786_924_800_500L, config("timestamp t = 2026-08-17T00:00:00.500Z").getl("t"));
+        }
+
+        @Test
+        @DisplayName("a space may stand in for the `T`, since that is how people write these")
+        void timestampsAllowASpaceForTheT() throws IOException {
+            assertEquals(1_786_924_800_000L, config("timestamp t = 2026-08-17 00:00:00Z").getl("t"));
+            assertEquals(1_786_917_600_000L, config("timestamp t = 2026-08-17 00:00:00+02:00").getl("t"));
+        }
+
+        @Test
+        @DisplayName("nothing else about the form is relaxed - a space before the offset is an error")
+        void timestampsAllowNoOtherSpaces() {
+            rejected("timestamp t = 2026-08-17T00:00:00 +02:00");
+            rejected("timestamp t = 2026-08-17 00:00:00 +02:00");
+        }
+
+        @Test
+        @DisplayName("the offset is required - without one the value would depend on the machine")
+        void timestampsRequireAnOffset() {
+            rejected("timestamp t = 2026-08-17T00:00:00");
+            rejected("timestamp t = 2026-08-17");
+        }
+
+        @Test
+        @DisplayName("a bare number is not epoch millis - a mistyped year would pass silently")
+        void timestampsRejectBareNumbers() {
+            // `2026` as epoch millis is two seconds past 1970, which is never
+            // what someone writing a year meant
+            rejected("timestamp t = 2026");
+            rejected("timestamp t = 1786924800000");
+        }
+
+        @Test
+        @DisplayName("precision finer than a millisecond is rejected rather than discarded")
+        void timestampsRejectSubMillisecondPrecision() throws IOException {
+            ConfigException e = rejected("timestamp t = 2026-08-17T00:00:00.123456Z");
+            assertTrue(
+                e.getMessage().contains("more precise than a millisecond"),
+                "expected a precision error, but got: " + e.getMessage()
+            );
+            // a trailing zero is not extra precision
+            assertEquals(1_786_924_800_100L, config("timestamp t = 2026-08-17T00:00:00.100000Z").getl("t"));
+        }
+
+        @Test
+        @DisplayName("timestamp ranges need no escaping now that `..` separates them")
+        void timestampRanges() throws IOException {
+            String range = "timestamp[2020-01-01T00:00:00Z..2030-01-01T00:00:00Z] t = ";
+            assertEquals(1_748_779_200_000L, config(range + "2025-06-01T12:00:00Z").getl("t"));
+            rejected(range + "2035-06-01T12:00:00Z");
+            rejected(range + "2019-06-01T12:00:00Z");
+        }
+
+        @Test
+        @DisplayName("`timestampList`, for a set of windows")
+        void timestampLists() throws IOException {
+            assertEquals(
+                List.of(1_767_225_600_000L, 1_782_864_000_000L),
+                config("timestampList windows = 2026-01-01T00:00:00Z, 2026-07-01T00:00:00Z").getll("windows")
+            );
+            assertEquals(List.of(), config("timestampList windows = ").getll("windows"));
+            rejected("timestampList windows = 2026-01-01T00:00:00Z, notATime");
+        }
+
+        @Test
+        @DisplayName("the error names the forms that are accepted")
+        void theTimestampErrorExplainsItself() {
+            ConfigException e = rejected("timestamp t = 17/08/2026");
+            assertTrue(e.getMessage().contains("ISO-8601"), e.getMessage());
+            assertTrue(e.getMessage().contains("offset is required"), e.getMessage());
+        }
+
+        @Test
         @DisplayName("`durationList` and `sizeList` - a retry backoff is the obvious use")
         void listsOfUnitValues() throws IOException {
             assertEquals(

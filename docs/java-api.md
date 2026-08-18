@@ -81,7 +81,7 @@ a `name` field holding the spelling used in the `rwconfig` file (`intList` and
 so on).
 
 **These are the run-time types, which is not quite the list of types you can
-write in the file.** `duration`, `size`, and their list forms are parsed into
+write in the file.** `duration`, `size`, `timestamp`, and their list forms are parsed into
 longs. For example, a property *declared* as `duration timeout` is *read* with
 `var duration = config.getLong("duration")`.
 

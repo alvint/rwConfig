@@ -1,6 +1,6 @@
 # rwConfig
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
-![Tests](https://img.shields.io/badge/tests-361-brightgreen)
+![Tests](https://img.shields.io/badge/tests-371-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
 
@@ -105,8 +105,8 @@ at the [takeaway](benchmark/README.md).
   `int`, because types, defaults, and validation were settled at startup. On the
   API side it's a similar API to `java.util.Map`, with types tacked on.
 - **Types and lists** - `boolean`, `int`, `long`, `double`, `string`, `size`,
-  and `duration`. Also `booleanList`, `intList`, `longList`, `doubleList`,
-  `stringList`, `sizeList`, and `durationList`.
+  `duration`, and `timestamp`. Also `booleanList`, `intList`, `longList`,
+  `doubleList`, `stringList`, `sizeList`, `durationList`, and `timestampList`.
 - **Layered sources, with precedence you declare** - get all of your config info
   through one interface with built-in support for command line arguments,
   environment variables, system properties, `.properties` files, and directories.
