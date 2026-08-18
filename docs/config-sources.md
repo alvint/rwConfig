@@ -278,7 +278,7 @@ rwc.deployed.location = classpath:app.properties
 
 rwc.environment.type = environmentVariables
 
-int[1024:65535] port = 8080
+int[1024..65535] port = 8080
 string[dev, staging, prod] stage = dev
 string apiKey
 ```

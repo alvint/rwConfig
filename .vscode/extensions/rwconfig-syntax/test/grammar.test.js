@@ -172,7 +172,7 @@ describe('lines that end with a backslash are joined with the next line', () => 
     });
 
     test('an allowed values list can be split over several lines', async () => {
-        const text = 'intList[80, \\\n        1024:65535] myPorts = 1520';
+        const text = 'intList[80, \\\n        1024..65535] myPorts = 1520';
         await assertValid(text);
         await assertScope(text, '1024', 'constant.numeric.rwconfig');
         await assertScope(text, 'myPorts', 'variable.other.property-name.rwconfig');
@@ -280,7 +280,7 @@ describe('an escaped space is only for the start of a value', () => {
 
 
 describe('escape sequences in an allowed values list', () => {
-    for (const escape of ['\\\\', '\\]', '\\,', '\\:', '\\e', '\\n', '\\r', '\\t', '\\u0041']) {
+    for (const escape of ['\\\\', '\\]', '\\,', '\\.', '\\e', '\\n', '\\r', '\\t', '\\u0041']) {
         test(`${escape} is a valid escape`, async () => {
             const line = `string[a${escape}b, c] myProp = c`;
             await assertValid(line);
@@ -301,34 +301,35 @@ describe('escape sequences in an allowed values list', () => {
 
 
 describe('allowed value ranges', () => {
-    for (const range of ['0:100', '0:9, A:F', '80, 1024:65535', 'a\\:b, c', '\\e:z']) {
+    for (const range of ['0..100', '0..9, A..F', '80, 1024..65535', 'a\\.\\.b, c', '\\e..z',
+                         '09:30, 17:00', 'file:a, classpath:b']) {
         test(`[${range}] is a well formed list`, async () => {
             await assertValid(`string[${range}] myProp = c`);
         });
     }
 
     test('a numeric range is highlighted as numbers', async () => {
-        const line = 'intList[80, 1024:65535] myPorts = 1520, 8080';
+        const line = 'intList[80, 1024..65535] myPorts = 1520, 8080';
         await assertScope(line, '1024', 'constant.numeric.rwconfig');
         await assertScope(line, '65535', 'constant.numeric.rwconfig');
         await assertScope(line, '8080', 'constant.numeric.rwconfig');
     });
 
-    for (const range of ['0:10:20', 'a:b:c', '0:100:']) {
-        test(`[${range}] has too many colons`, async () => {
+    for (const range of ['0..10..20', 'a..b..c', '0..100..']) {
+        test(`[${range}] has too many separators`, async () => {
             await assertInvalid(`string[${range}] myProp = c`);
         });
     }
 
-    for (const range of [':100', '100:', ':z']) {
+    for (const range of ['..100', '100..', '..z']) {
         test(`[${range}] is missing a bound`, async () => {
             await assertInvalid(`string[${range}] myProp = c`);
         });
     }
 
     test('only the malformed item of a list is marked', async () => {
-        const invalid = await invalidTokens('int[0:100, 5:] myProp = 50');
-        assert.deepEqual(invalid.map((token) => token.text), [' 5:']);
+        const invalid = await invalidTokens('int[0..100, 5..] myProp = 50');
+        assert.deepEqual(invalid.map((token) => token.text), [' 5..']);
     });
 });
 

@@ -66,7 +66,7 @@ default is simply the value.
 Declarations get more precise from there:
 
 ```
-int[80, 1024:65535] port = 8080
+int[80, 1024..65535] port = 8080
 string greeting = Hello
 dbPassword
 ```
@@ -90,7 +90,7 @@ rwc.args.type = commandLineArguments
 rwc.environment.type = environmentVariables
 
 # The properties this application uses.
-int[80, 1024:65535] port = 8080
+int[80, 1024..65535] port = 8080
 string greeting = Hello
 dbPassword
 ```
@@ -144,7 +144,7 @@ Everything below is an error at startup, before your code runs:
 
 | the file says | you supply | what happens |
 |---|---|---|
-| `int[80, 1024:65535] port = 8080` | `port=99` | rejected: `99` is not an allowed value |
+| `int[80, 1024..65535] port = 8080` | `port=99` | rejected: `99` is not an allowed value |
 | `int port = 8080` | `port=eighty` | rejected: not an `int` |
 | `dbPassword` (no default) | nothing | rejected: not set by any source, no default |
 

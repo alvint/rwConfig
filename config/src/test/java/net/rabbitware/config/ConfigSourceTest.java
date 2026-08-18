@@ -455,7 +455,7 @@ class ConfigSourceTest {
         @Test
         @DisplayName("without sources, declared values are still validated")
         void withoutSourcesValuesAreStillValidated() throws IOException {
-            ConfigException e = rejected("int[80, 1024:65535] port = 500");
+            ConfigException e = rejected("int[80, 1024..65535] port = 500");
             assertTrue(
                 e.getMessage().contains("not allowed"),
                 "expected an allowed-values error, but got: " + e.getMessage()
@@ -572,7 +572,7 @@ class ConfigSourceTest {
                 "rwc.sources = only",
                 "rwc.only.type = properties",
                 "rwc.only.location = " + propertiesFile("o.properties", "myProp=500"),
-                "int[0:100] myProp = 50"
+                "int[0..100] myProp = 50"
             );
             assertTrue(
                 e.getMessage().contains("is not allowed"),

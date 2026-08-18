@@ -117,7 +117,7 @@ class ConfigFileTest {
 
         @Test
         void anAllowedValuesListCanBeSplitOverSeveralLines() throws IOException {
-            Config config = config("int[0:50, \\", "100:150] myProp = 120");
+            Config config = config("int[0..50, \\", "100..150] myProp = 120");
             assertEquals(120, config.geti("myProp"));
         }
 
@@ -352,9 +352,9 @@ class ConfigFileTest {
         }
 
         @Test
-        @DisplayName("`]`, `,` and `:` are meaningful in the list, so they have to be escaped")
+        @DisplayName("`]`, `,` and `..` are meaningful in the list, so they have to be escaped")
         void theCharactersThatDelimitTheListCanBeEscaped() throws IOException {
-            Config config = config("string[a\\,b, c\\:d, e\\]f, g[h\\]] myProp = e]f");
+            Config config = config("string[a\\,b, c\\.\\.d, e\\]f, g[h\\]] myProp = e]f");
             assertEquals("e]f", config.gets("myProp"));
         }
 
@@ -486,13 +486,13 @@ class ConfigFileTest {
         @Test
         @DisplayName("a range is written in units too, and compares in the canonical unit")
         void rangesAreWrittenInUnits() throws IOException {
-            assertEquals(30_000, config("duration[1s:5m] d = 30s").getl("d"));
-            assertEquals(1_000, config("duration[1s:5m] d = 1s").getl("d"), "the minimum is inclusive");
-            assertEquals(300_000, config("duration[1s:5m] d = 5m").getl("d"), "the maximum is inclusive");
-            rejected("duration[1s:5m] d = 500ms");
-            rejected("duration[1s:5m] d = 6m");
-            assertEquals(2_048, config("size[1KiB:1MiB] s = 2KiB").getl("s"));
-            rejected("size[1KiB:1MiB] s = 512B");
+            assertEquals(30_000, config("duration[1s..5m] d = 30s").getl("d"));
+            assertEquals(1_000, config("duration[1s..5m] d = 1s").getl("d"), "the minimum is inclusive");
+            assertEquals(300_000, config("duration[1s..5m] d = 5m").getl("d"), "the maximum is inclusive");
+            rejected("duration[1s..5m] d = 500ms");
+            rejected("duration[1s..5m] d = 6m");
+            assertEquals(2_048, config("size[1KiB..1MiB] s = 2KiB").getl("s"));
+            rejected("size[1KiB..1MiB] s = 512B");
         }
 
         @Test
@@ -567,9 +567,9 @@ class ConfigFileTest {
         void rangesApplyToUnitListItems() throws IOException {
             assertEquals(
                 List.of(1_000L, 30_000L, 60_000L),
-                config("durationList[1s:1m] d = 1s, 30s, 1m").getll("d")
+                config("durationList[1s..1m] d = 1s, 30s, 1m").getll("d")
             );
-            rejected("durationList[1s:1m] d = 1s, 90s");
+            rejected("durationList[1s..1m] d = 1s, 90s");
         }
 
         @Test
@@ -583,63 +583,81 @@ class ConfigFileTest {
 
 
     @Nested
-    @DisplayName("an allowed value can be a `<min>:<max>` range")
+    @DisplayName("an allowed value can be a `<min>..<max>` range")
     class Ranges {
 
         @Test
         void aNumericRangeIsInclusive() throws IOException {
-            assertEquals(0, config("int[0:100] myProp = 0").geti("myProp"));
-            assertEquals(100, config("int[0:100] myProp = 100").geti("myProp"));
+            assertEquals(0, config("int[0..100] myProp = 0").geti("myProp"));
+            assertEquals(100, config("int[0..100] myProp = 100").geti("myProp"));
         }
 
         @Test
         void aValueOutsideANumericRangeIsRejected() {
-            rejected("int[0:100] myProp = 101");
+            rejected("int[0..100] myProp = 101");
         }
 
         @Test
         void severalRangesAndSingleValuesCanBeMixed() throws IOException {
-            Config config = config("intList[80, 1024:65535] myPorts = 1520, 8080, 80");
+            Config config = config("intList[80, 1024..65535] myPorts = 1520, 8080, 80");
             assertEquals(List.of(1520, 8080, 80), config.getil("myPorts"));
         }
 
         @Test
         void aStringRangeComparesLexicographically() throws IOException {
-            assertEquals("5", config("string[0:9, A:F] myProp = 5").gets("myProp"));
-            rejected("string[0:9, A:F] myProp = G");
+            assertEquals("5", config("string[0..9, A..F] myProp = 5").gets("myProp"));
+            rejected("string[0..9, A..F] myProp = G");
         }
 
         @Test
         @DisplayName("`\\e` is an empty string, so `\\e:z` is a range with an open lower bound")
         void anEmptyStringCanBeUsedAsAnOpenLowerBound() throws IOException {
-            assertEquals("hello", config("string[\\e:z] myProp = hello").gets("myProp"));
-            assertEquals("A", config("string[\\e:z] myProp = A").gets("myProp"));
-            assertEquals("", config("string[\\e:z] myProp =").gets("myProp"));
+            assertEquals("hello", config("string[\\e..z] myProp = hello").gets("myProp"));
+            assertEquals("A", config("string[\\e..z] myProp = A").gets("myProp"));
+            assertEquals("", config("string[\\e..z] myProp =").gets("myProp"));
             // the upper bound still applies
-            rejected("string[\\e:z] myProp = zzz");
+            rejected("string[\\e..z] myProp = zzz");
         }
 
         @Test
-        @DisplayName("an escaped colon is part of the value rather than a range separator")
-        void anEscapedColonDoesNotMakeARange() throws IOException {
-            assertEquals("a:b", config("string[a\\:b, c] myProp = a\\:b").gets("myProp"));
+        @DisplayName("an escaped `..` is part of the value rather than a range separator")
+        void anEscapedRangeSeparatorDoesNotMakeARange() throws IOException {
+            assertEquals("a..b", config("string[a\\.\\.b, c] myProp = a\\.\\.b").gets("myProp"));
+        }
+
+        @Test
+        @DisplayName("a colon needs no escaping now - it is an ordinary character")
+        void aColonIsAnOrdinaryCharacter() throws IOException {
+            assertEquals("09:30", config("string[09:30, 17:00] myProp = 09:30").gets("myProp"));
+            assertEquals(
+                "file:a.properties",
+                config("string[file:a.properties, classpath:b] myProp = file:a.properties").gets("myProp")
+            );
+        }
+
+        @Test
+        @DisplayName("a value holding a colon is exactly that value, not a range")
+        void aColonDoesNotSilentlyWidenTheAllowedValues() {
+            // this is why the separator is not a colon: `[09:30, 17:00]` used to
+            // parse as two ranges and quietly admit `12:45`
+            rejected("string[09:30, 17:00] myProp = 12:45");
         }
 
         @ParameterizedTest
         @ValueSource(strings = {
-            "int[0:10:20] myProp = 5",   // too many colons
-            "long[0:100:] myProp = 90",  // trailing colon
-            "string[a:b:c] myProp = a",  // too many colons, string type
+            "int[0..10..20] myProp = 5",   // too many separators
+            "long[0..100..] myProp = 90",  // trailing separator
+            "string[a..b..c] myProp = a",  // too many separators, string type
         })
-        void aRangeWithTooManyColonsIsRejected(String line) {
+        void aRangeWithTooManySeparatorsIsRejected(String line) {
             rejected(line);
         }
 
         @ParameterizedTest
         @ValueSource(strings = {
-            "int[:100] myProp = 5",      // no lower bound
-            "int[100:] myProp = 150",    // no upper bound
-            "string[:z] myProp = a",     // an allowed value is never empty, even for strings
+            "int[..100] myProp = 5",      // no lower bound
+            "int[100..] myProp = 150",    // no upper bound
+            "string[..z] myProp = a",     // an allowed value is never empty, even for strings
         })
         void aRangeWithAMissingBoundIsRejected(String line) {
             rejectedAsInvalidLine(line);
@@ -695,7 +713,7 @@ class ConfigFileTest {
 
         @Test
         void everyItemMustBeAnAllowedValue() {
-            rejected("intList[1:10] myList = 1, 2, 77");
+            rejected("intList[1..10] myList = 1, 2, 77");
         }
     }
 
@@ -857,7 +875,7 @@ class ConfigFileTest {
         @Test
         @DisplayName("a type followed directly by an allowed values list is still a type")
         void aTypeFollowedByABracket() throws IOException {
-            Config config = config("int[0:100] myProp = 90");
+            Config config = config("int[0..100] myProp = 90");
             assertEquals(Config.PropertyType.INT, config.getType("myProp"));
             assertEquals(90, config.geti("myProp"));
         }

@@ -37,12 +37,12 @@
         },
         "escape.space.range.valid": {
             "comment": "as `escape.space.value.valid`, but each allowed value and range bound is its own value",
-            "match": "(?<=^[ \\t]*|[\\[,:][ \\t]*)\\\\ ",
+            "match": "(?<=^[ \\t]*|[\\[,][ \\t]*|\\.\\.[ \\t]*)\\\\ ",
             "name": "constant.character.escape.rwconfig"
         },
         "range.invalid": {
             "comment": "an allowed value is either a single value (no colons) or `<min>:<max>` (one unescaped colon with a value on each side of it). anything else is a malformed range",
-            "match": "(?<=[\\[,][ \\t]*|^[ \\t]*)(?!(?:[ \\t]*|(?![ \\t]*(?::|$))(?:\\\\.|[^\\\\:])*(?::(?![ \\t]*$)(?:\\\\.|[^\\\\:])*)?)$).+$",
+            "match": "(?<=[\\[,][ \\t]*|^[ \\t]*)(?!(?:[ \\t]*|(?![ \\t]*(?:\\.\\.|$))(?:\\\\.|(?!\\.\\.)[^\\\\])*(?:\\.\\.(?![ \\t]*$)(?:\\\\.|(?!\\.\\.)[^\\\\])*)?)$).+$",
             "name": "invalid.illegal.range.rwconfig"
         },
         "empty.list.item": {
@@ -91,7 +91,7 @@
         },
         "escape.string.range.valid": {
             "comment": "escapes that are only needed inside an allowed values list, where each of these characters is otherwise meaningful. `[` is not escaped here - it is used as-is",
-            "match": "\\\\[\\\\\\],:]",
+            "match": "\\\\[\\\\\\],.]",
             "name": "constant.character.escape.rwconfig"
         },
         "escape.unicode.valid": {
@@ -237,7 +237,7 @@
                                         },
                                         {
                                             "comment": "integer",
-                                            "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
+                                            "match": "((?:(?!\\.\\.)[^,\\]\\s])+)\\s*(?:\\.\\.\\s*((?:(?!\\.\\.)[^,\\]\\s])+))?",
                                             "captures": {
                                                 "1": {
                                                     "patterns": [
@@ -340,7 +340,7 @@
                                         },
                                         {
                                             "comment": "double",
-                                            "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
+                                            "match": "((?:(?!\\.\\.)[^,\\]\\s])+)\\s*(?:\\.\\.\\s*((?:(?!\\.\\.)[^,\\]\\s])+))?",
                                             "captures": {
                                                 "1": {
                                                     "patterns": [
@@ -443,7 +443,7 @@
                                         },
                                         {
                                             "comment": "boolean",
-                                            "match": "([^,\\]\\s:]+)\\s*(?::\\s*([^,\\]\\s]+))?",
+                                            "match": "((?:(?!\\.\\.)[^,\\]\\s])+)\\s*(?:\\.\\.\\s*((?:(?!\\.\\.)[^,\\]\\s])+))?",
                                             "captures": {
                                                 "1": {
                                                     "patterns": [

@@ -44,7 +44,7 @@ Everything except the name is optional:
 myProperty                                  a string, no default
 myProperty = hello                          a string with a default
 int myProperty = 8080                       an int with a default
-int[80, 1024:65535] myProperty = 8080       an int, restricted, with a default
+int[80, 1024..65535] myProperty = 8080       an int, restricted, with a default
 [home, work] myProperty = home              a string, restricted (type omitted)
 ```
 
@@ -72,7 +72,7 @@ runtime are milliseconds for duration and bytes for size.
 | `size` | bytes | `B`, `KB`, `MB`, `GB`, `TB`, `KiB`, `MiB`, `GiB`, `TiB` |
 
 ```
-duration[1s:5m] timeout = 30s        getLong     -> 30000
+duration[1s..5m] timeout = 30s        getLong     -> 30000
 size maxUpload = 10MiB               getLong     -> 10485760
 durationList retryDelays = 1s, 2s, 4s, 8s
                                      getLongList -> [1000, 2000, 4000, 8000]
@@ -204,22 +204,22 @@ error.
 
 ### Ranges
 
-Any entry may be `<min>:<max>` instead of a single value. Ranges are inclusive
+Any entry may be `<min>..<max>` instead of a single value. Ranges are inclusive
 and work for numbers, strings (compared lexicographically), and booleans (where
 they are of little use).
 
 ```
-int[0:100] score = 90
-intList[80, 1024:65535] ports = 1520, 8080      a value and a range together
-string[0:9, A:F] hexDigit = 5
+int[0..100] score = 90
+intList[80, 1024..65535] ports = 1520, 8080      a value and a range together
+string[0..9, A..F] hexDigit = 5
 ```
 
-A range needs a value on both sides. `[:100]`, `[100:]`, and `[0:10:20]` are all
+A range needs a value on both sides. `[..100]`, `[100..]`, and `[0..10:20]` are all
 errors. For an open-ended string range, use `\e` - the empty string sorts
 before everything:
 
 ```
-string[\e:z] anythingUpToZ = hello
+string[\e..z] anythingUpToZ = hello
 ```
 
 ### Escapes inside allowed values
@@ -231,16 +231,17 @@ because those characters are meaningful inside the list:
 |---|---|
 | `\]` | a `]` that should not close the list |
 | `\,` | a `,` that should not separate values |
-| `\:` | a `:` that should not make a range |
+| `\.` | a `.` that should not be half of a `..` range separator |
 
 A `[` needs no escaping once the list is open, and cannot be escaped - `\[` is
-not an escape sequence anywhere.
+not an escape sequence anywhere. A colon needs no escaping either: it is an
+ordinary character, so `[09:30, 17:00]` is exactly those two values.
 
 ```
-string[a\,b, c\:d, e\]f, g[h\]] punctuation = g[h]
+string[a\,b, c\.\.d, e\]f, g[h\]] punctuation = g[h]
 ```
 
-...declares four allowed values: `a,b`, `c:d`, `e]f`, and `g[h]`.
+...declares four allowed values: `a,b`, `c..d`, `e]f`, and `g[h]`.
 
 An escaped space is allowed as the first character of an allowed value, and
 rejected anywhere else - here the parser enforces it rather than warning.
@@ -306,10 +307,10 @@ rwc.environment.type = environmentVariables
 
 # --- the application's properties ---
 appName = MyApp
-int[80, 1024:65535] port = 8080
+int[80, 1024..65535] port = 8080
 boolean debugMode = off
 double samplingRate = 0.25
-intList[1024:65535] workerPorts = 9001, 9002
+intList[1024..65535] workerPorts = 9001, 9002
 string[dev, staging, prod] environment = dev
 stringList features = search, export
 string apiKey

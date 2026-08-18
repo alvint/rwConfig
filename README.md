@@ -20,7 +20,7 @@ Declare what your app needs, in one file. This is a complete, working
 `rwconfig`:
 
 ```
-int[80, 1024:65535] port = 8000
+int[80, 1024..65535] port = 8000
 ```
 
 `port` is an `int`, it may only be 80 or a value from 1024 to 65535, and it
@@ -33,7 +33,7 @@ must be supplied rather than defaulted:
 rwc.sources = environment
 rwc.environment.type = environmentVariables
 
-int[80, 1024:65535] port = 8000
+int[80, 1024..65535] port = 8000
 DBPassword
 ```
 
@@ -155,7 +155,7 @@ default declared for it:
 
 ```
 # a complete rwconfig file
-int[80, 1024:65535] port = 8000
+int[80, 1024..65535] port = 8000
 ```
 
 Declare config sources when you want values to come from somewhere else. They
@@ -169,7 +169,7 @@ rwc.system.type = systemProperties
 rwc.environment.type = environmentVariables
 
 # example properties; your properties can be anything you want
-int[80, 1024:65535] port = 8000
+int[80, 1024..65535] port = 8000
 DBPassword
 ```
 

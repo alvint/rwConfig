@@ -23,8 +23,8 @@ The line does not fit the format. Common causes:
 - a space in a property name (`first name = Joe`)
 - a name starting with a digit or a period (`1stName`, `.rc`)
 - an empty allowed values list (`string[] myProp`)
-- a malformed range - too many colons, or a missing bound (`[0:100:]`,
-  `[:100]`, `[100:]`)
+- a malformed range - too many separators, or a missing bound (`[0..100..]`,
+  `[..100]`, `[100..]`)
 - a blank allowed value for a non-string type (`intList[1,,10]`)
 - an escape sequence that is not recognized *inside an allowed values list*
   (`string[a\qb] x`)
@@ -88,8 +88,8 @@ should accept it, rather than reflexively widening the list.
 
 **``invalid allowed value range for property `<name>`: <range>``**
 
-A range with more than one colon. A range is `<min>:<max>`; to use a literal
-colon inside a value, escape it as `\:`.
+A range with more than one separator. A range is `<min>..<max>`; to use a
+literal `..` inside a value, escape it as `\.\.`.
 
 **``property `<name>` is not set by any config source, and has no default value defined in the `rwconfig` file``**
 

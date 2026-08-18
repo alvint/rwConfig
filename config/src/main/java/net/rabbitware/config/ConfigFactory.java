@@ -147,7 +147,7 @@ public class ConfigFactory {
             .reduce((a, b) -> a + "|" + b)
             .orElse("");
         var pattern = Pattern.compile(
-"^[^\\S\\n\\r]*((?i:{types})(?=[^\\S\\n\\r]|\\[))?[^\\S\\n\\r]*(?:\\[\\s*((?:(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*)(?::\\s*(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*))?)(?:,\\s*(?:(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*)(?::\\s*(?:(?:\\\\[\\\\\\],: enrtu]|[^\\\\\\],:\\s])(?:\\\\[\\\\\\],:enrtu]|[^\\\\\\],:])*))?))*)\\])?\\s*([A-Za-z][\\w\\.\\\\-]*)\\s*(?:=[^\\S\\n\\r]*([^\\n\\r]*))?$"
+"^[^\\S\\n\\r]*((?i:{types})(?=[^\\S\\n\\r]|\\[))?[^\\S\\n\\r]*(?:\\[\\s*((?:(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*)(?:\\.\\.\\s*(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*))?)(?:,\\s*(?:(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*)(?:\\.\\.\\s*(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*))?))*)\\])?\\s*([A-Za-z][\\w\\.\\\\-]*)\\s*(?:=[^\\S\\n\\r]*([^\\n\\r]*))?$"
             .replace("{types}", types)
         );
         configFile.stream()
@@ -520,7 +520,7 @@ public class ConfigFactory {
                 };
             Stream.of(allowedValues.split("(?<!\\\\),\\s*", -1)) // remove leading whitespace but not trailing
                 .forEach(rangeString -> {
-                    String[] minMax = rangeString.split("(?<!\\\\):\\s*", -1); // remove leading whitespace only
+                    String[] minMax = rangeString.split("(?<!\\\\)\\.\\.\\s*", -1); // remove leading whitespace only
                     if (minMax.length > 2) {
                         throw new ConfigException(
                             "invalid allowed value range for property `" + name + "`: " + rangeString
@@ -976,7 +976,7 @@ public class ConfigFactory {
         }
         // handle other escape sequences
         value = value.replaceAll("\\\\,", ",");
-        value = value.replaceAll("\\\\:", ":");
+        value = value.replaceAll("\\\\\\.", ".");
         value = value.replaceAll("\\\\ ", " ");
         value = value.replaceAll("\\\\e", "");
         value = value.replaceAll("\\\\\\]", "]");
