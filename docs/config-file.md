@@ -278,9 +278,6 @@ itself rather than declaring properties of your application. They never appear
 in `getPropertyNames()` and your code cannot read them. They are covered in
 [Config sources](config-sources.md).
 
-All of them are optional. A file containing nothing but property declarations
-is valid, and every property then takes its declared default.
-
 If `rwc.` collides with a property name you need, change the prefix:
 
 ```
