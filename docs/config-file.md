@@ -54,15 +54,17 @@ configuration without putting the value in a shared file.
 
 ### Types
 
-`boolean`, `int`, `long`, `double`, `string`, and a list form of each:
-`booleanList`, `intList`, `longList`, `doubleList`, `stringList`. Omitting the
-type gives you `string`.
+`boolean`, `int`, `long`, `double`, `string`, `duration`, `size`, and a list
+form of each: `booleanList`, `intList`, `longList`, `doubleList`,
+`stringList`, `durationList`, `sizeList`. Omitting the type gives you
+`string`.
 
 Booleans accept `true`/`false`, `yes`/`no`, `on`/`off`, `1`/`0`, in any case.
 
-There are also `duration` and `size`, which are whole numbers written with a
-unit, and their list forms `durationList` and `sizeList`. All four are `long`
-values at runtime, read with `getLong` and `getLongList`.
+`duration` and `size` are whole numbers written with a unit. Although they are
+_declared_ as a `duration` and `size`, at runtime they are retrieved as `long`
+values. That is, they're read with `getLong` and `getLongList`. The units at
+runtime are milliseconds for duration and bytes for size.
 
 | type | canonical unit | units accepted |
 |---|---|---|
