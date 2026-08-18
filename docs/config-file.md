@@ -94,13 +94,14 @@ Additional notes:
   meaning either one.
 - **Nothing finer than a millisecond.** `500us` is an error rather than a
   silent `0`.
-
-Units are only accepted on these two types. `long recordCount = 1s` is an
-error.
-
-A type is only a type when a space or a `[` follows it, so a property may be
-named `longitude` or `stringify` without its first few characters being taken
-as a type. A property may even be named exactly `int`.
+- **Units are only accepted on these two types.** `long recordCount = 1s` is
+  an error.
+- **Property names can start with type names.** The parser is context aware,
+  so a property may be named `longitude` or `stringify` without its first few
+  characters being taken as a type. In fact, the two declarations below are
+  perfectly legal:
+  - `string int = this is a string`
+  - `int = this is also a string`
 
 ### Names
 
