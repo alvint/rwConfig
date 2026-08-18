@@ -96,8 +96,7 @@ Additional notes:
   silent `0`.
 
 Units are only accepted on these two types. `long recordCount = 1s` is an
-error - which is the reason they are types rather than a parser bolted onto
-`long`.
+error.
 
 A type is only a type when a space or a `[` follows it, so a property may be
 named `longitude` or `stringify` without its first few characters being taken
