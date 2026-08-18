@@ -129,7 +129,7 @@ The source was reached but failed while producing properties - a database query
 against a missing table, malformed JSON, unreadable YAML. The cause is chained;
 look at the exception below this one for the real reason.
 
-**``no plugin provides config source type `<type>```**
+**``no plugin provides config source type `<type>` ``**
 
 A plugin could not be found. The message names the Maven artifact to add and
 lists the plugins it did find, which distinguishes the usual causes:
