@@ -144,6 +144,3 @@ public class Main {
 ```
 
 Read what you need where you need it and pass values on as ordinary arguments.
-There is no benefit to threading the `Config` object through your application,
-and doing so tends to spread configuration knowledge back through the code -
-which is the thing this library exists to avoid.
