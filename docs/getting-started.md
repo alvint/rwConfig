@@ -98,10 +98,9 @@ dbPassword
 Now `dbPassword` can be set with `dbPassword=secret` on the command line or the
 environment variable `DB_PASSWORD`, and either will override a default.
 
-Both ends of this are in the example project: a [minimal
-`rwconfig`](../example/src/main/resources/rwconfig-minimal), and a [heavily
-commented one](../example/src/main/resources/rwconfig) exercising nearly every
-feature.
+Look here for more examples of `rwconfig` files: a [minimal `rwconfig`]
+(../example/src/main/resources/rwconfig-minimal), and a [heavily commented one]
+(../example/src/main/resources/rwconfig) exercising nearly every feature.
 
 Lines starting with `#` or `!` are comments. Anything starting with `rwc.` is a
 library setting - configuration *for the library itself* rather than a property
