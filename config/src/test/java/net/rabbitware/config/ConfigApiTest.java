@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -320,5 +321,90 @@ class ConfigApiTest {
         assertEquals(Config.PropertyType.LONG, config.getType("cache"));
         assertEquals(Config.PropertyType.LONG_LIST, config.getType("delays"));
         assertEquals(Config.PropertyType.LONG_LIST, config.getType("tiers"));
+    }
+    @Nested
+    @DisplayName("the global instance holder")
+    class InstanceHolder {
+
+        @AfterEach
+        void clearTheHolder() throws Exception {
+            // the holder is global, so a test that sets it has to put it back
+            java.lang.reflect.Field field = Config.Instance.class.getDeclaredField("instance");
+            field.setAccessible(true);
+            field.set(null, null);
+        }
+
+        @Test
+        @DisplayName("get before set fails rather than returning null")
+        void getBeforeSet() {
+            Config.ConfigException e = assertThrows(Config.ConfigException.class, () -> Config.Instance.get());
+            assertTrue(e.getMessage().contains("no config instance"), e.getMessage());
+        }
+
+        @Test
+        void setThenGetReturnsTheSameInstance() throws IOException {
+            Config config = configFrom("int port = 8080");
+            Config.Instance.set(config);
+            assertSame(config, Config.Instance.get());
+        }
+
+        @Test
+        @DisplayName("setting twice is an error - it usually means two components both initialised")
+        void setIsOnce() throws IOException {
+            Config.Instance.set(configFrom("int port = 8080"));
+            Config.ConfigException e = assertThrows(
+                Config.ConfigException.class, () -> Config.Instance.set(configFrom("int port = 9090")));
+            assertTrue(e.getMessage().contains("already been set"), e.getMessage());
+        }
+
+        @Test
+        @DisplayName("`replace` swaps deliberately, for a reload")
+        void replaceSwapsTheInstance() throws IOException {
+            Config first = configFrom("int port = 8080");
+            Config second = configFrom("int port = 9090");
+            Config.Instance.set(first);
+            Config.Instance.replace(second);
+            assertSame(second, Config.Instance.get());
+            assertEquals(8080, first.geti("port"), "the old instance is unchanged - it is a snapshot");
+        }
+
+        @Test
+        @DisplayName("`replace` before anything is set is an error")
+        void replaceRequiresAnInstance() throws IOException {
+            assertThrows(Config.ConfigException.class, () -> Config.Instance.replace(configFrom("int port = 1")));
+        }
+
+        @Test
+        void nullIsRejectedByBoth() throws IOException {
+            assertThrows(Config.ConfigException.class, () -> Config.Instance.set(null));
+            Config.Instance.set(configFrom("int port = 1"));
+            assertThrows(Config.ConfigException.class, () -> Config.Instance.replace(null));
+        }
+
+        @Test
+        @DisplayName("only one of many threads racing to set can win")
+        void setOnceHoldsUnderContention() throws Exception {
+            // the reason the write path takes a lock: without it the check and
+            // the assignment are two steps another thread can interleave
+            Config config = configFrom("int port = 8080");
+            int threads = 8;
+            var barrier = new java.util.concurrent.CyclicBarrier(threads);
+            var winners = new java.util.concurrent.atomic.AtomicInteger();
+            var pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
+            for (int i = 0; i < threads; i++) {
+                pool.submit(() -> {
+                    try {
+                        barrier.await();
+                        Config.Instance.set(config);
+                        winners.incrementAndGet();
+                    } catch (Exception expected) {
+                        // everyone but one
+                    }
+                });
+            }
+            pool.shutdown();
+            pool.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS);
+            assertEquals(1, winners.get(), "exactly one thread should have set the instance");
+        }
     }
 }

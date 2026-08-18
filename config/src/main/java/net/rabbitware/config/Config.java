@@ -222,6 +222,114 @@ public interface Config {
         }
     }
 
+    /**
+     * A global holder for one {@code Config}, for applications that would
+     * rather not thread the instance through every constructor.
+     *
+     * <p><b>Take the instance once and keep it.</b> {@link #get()} is only a
+     * volatile read, so it is not expensive - but calling it for every
+     * property read is still the wrong shape. A {@code Config} is an immutable
+     * snapshot, and holding one is what guarantees everything you read came
+     * from the same configuration. Code that calls {@code get()} per read
+     * gives that up: if the instance is replaced in between, it can see one
+     * property from the old configuration and the next from the new one.
+     *
+     * <p>Passing the {@code Config} into constructors remains the better
+     * approach where it is practical, since it makes the dependency visible
+     * and the class testable without touching global state. This holder is the
+     * pragmatic alternative, not the recommended one.
+     *
+     * <p>The instance may only be set once. Replacing it is a separate,
+     * deliberately named operation, so that two components each initializing
+     * the library is an error rather than a silent race.
+     */
+    public static class Instance {
+        /**
+         * A lock of this class's own rather than its monitor, so that nothing
+         * outside can take part in it. It guards the writes only - reads never
+         * take it.
+         */
+        private static final Object LOCK = new Object();
+
+        /**
+         * Volatile rather than lock-guarded, so that {@link #get()} - which
+         * runs on every access - costs a plain read. Writes are rare and take
+         * {@link #LOCK}; without it, the check and the assignment in
+         * {@link #set(Config)} would be two steps that another thread could
+         * interleave, and "set once" would only hold most of the time.
+         */
+        private static volatile Config instance;
+
+        /**
+         * Set the instance. This may be done only once: a second call is an
+         * error, since it almost always means two parts of an application each
+         * believe they are responsible for initializing the config. To swap in
+         * a new configuration deliberately, use {@link #replace(Config)}.
+         *
+         * @param config
+         * the config instance to set
+         * @throws ConfigException
+         * if an instance has already been set, or {@code config} is null
+         */
+        public static void set(Config config) {
+            if (config == null) {
+                throw new ConfigException("the config instance cannot be null");
+            }
+            synchronized (LOCK) {
+                if (instance != null) {
+                    throw new ConfigException(
+                        "the config instance has already been set - use `replace` to swap in a new one"
+                    );
+                }
+                instance = config;
+            }
+        }
+
+        /**
+         * Swap in a new instance, for when a config source has changed and a
+         * fresh {@code Config} has been built from it.
+         *
+         * <p>Anything already holding the previous instance keeps reading it,
+         * and so keeps seeing a consistent snapshot; it moves to the new one
+         * when it next calls {@link #get()}. That is deliberate - a caller
+         * decides when it is ready for the new configuration rather than
+         * having values change underneath it mid-way through a piece of work.
+         *
+         * @param config
+         * the config instance to swap in
+         * @throws ConfigException
+         * if no instance has been set yet, or {@code config} is null
+         */
+        public static void replace(Config config) {
+            if (config == null) {
+                throw new ConfigException("the config instance cannot be null");
+            }
+            synchronized (LOCK) {
+                if (instance == null) {
+                    throw new ConfigException("no config instance has been set yet - use `set` first");
+                }
+                instance = config;
+            }
+        }
+
+        /**
+         * Get the instance. Take this once and hold it rather than calling it
+         * for every property read - see the note on this class.
+         *
+         * @return
+         * the config instance
+         * @throws ConfigException
+         * if no instance has been set
+         */
+        public static Config get() {
+            var config = instance; // one volatile read, no lock
+            if (config == null) {
+                throw new ConfigException("no config instance has been set");
+            }
+            return config;
+        }
+    }
+
     public static class ConfigException extends RuntimeException {
         public ConfigException(String message) {
             super(message);
