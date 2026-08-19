@@ -7,6 +7,13 @@
     <groupId>net.rabbitware.config</groupId>
     <artifactId>plugin-xml</artifactId>
 
+    <name>rwConfig XML plugin</name>
+    <description>
+        A config source that reads properties from an XML document, flattening
+        elements and attributes, using the rules specified in the plugins
+        documentation (PLUGINS.md).
+    </description>
+
     <parent>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>parent</artifactId>

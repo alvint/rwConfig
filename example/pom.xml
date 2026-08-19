@@ -13,6 +13,16 @@
         <version>0.1.0</version>
     </parent>
 
+    <properties>
+        <!--
+            not published: this module exists for this repo, not for anyone to
+            depend on
+        -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <gpg.skip>true</gpg.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>net.rabbitware.config</groupId>

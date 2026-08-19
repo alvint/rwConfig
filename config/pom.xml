@@ -7,6 +7,13 @@
     <groupId>net.rabbitware.config</groupId>
     <artifactId>config</artifactId>
 
+    <name>rwConfig</name>
+    <description>
+        Reads configuration from many sources and checks it against declarations
+        made up front, so a bad value stops the process at startup rather than
+        later.
+    </description>
+
     <parent>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>parent</artifactId>

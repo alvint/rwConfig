@@ -7,6 +7,12 @@
     <groupId>net.rabbitware.config</groupId>
     <artifactId>plugin-prefix</artifactId>
 
+    <name>rwConfig prefix plugin</name>
+    <description>
+        A config source that reads another source and adds a prefix on its
+        property names.
+    </description>
+
     <parent>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>parent</artifactId>

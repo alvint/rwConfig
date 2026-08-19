@@ -13,12 +13,20 @@
         <version>0.1.0</version>
     </parent>
 
+
     <!--
         Benchmarks for the speed claims in the README. These are not run as
         part of the build - see this module's README.md for how to run them.
     -->
 
     <properties>
+        <!-- 
+            not published: this module exists for this repo, not for anyone to
+            depend on
+        -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <gpg.skip>true</gpg.skip>
         <jmh.version>1.37</jmh.version>
     </properties>
 

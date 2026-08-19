@@ -7,6 +7,12 @@
     <groupId>net.rabbitware.config</groupId>
     <artifactId>plugin-api</artifactId>
 
+    <name>rwConfig plugin API</name>
+    <description>
+        The interface a config source plugin implements, and the helpers it is
+        given for loading a location.
+    </description>
+
     <parent>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>parent</artifactId>

@@ -7,6 +7,12 @@
     <groupId>net.rabbitware.config</groupId>
     <artifactId>plugin-json</artifactId>
 
+    <name>rwConfig JSON plugin</name>
+    <description>
+        A config source that reads properties from a JSON document, flattened by
+        the rules specified in the plugins documentation (PLUGINS.md).
+    </description>
+
     <parent>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>parent</artifactId>

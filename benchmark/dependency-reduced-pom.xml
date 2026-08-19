@@ -57,5 +57,8 @@
   </build>
   <properties>
     <jmh.version>1.37</jmh.version>
+    <gpg.skip>true</gpg.skip>
+    <maven.deploy.skip>true</maven.deploy.skip>
+    <maven.javadoc.skip>true</maven.javadoc.skip>
   </properties>
 </project>

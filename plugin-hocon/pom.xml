@@ -7,6 +7,12 @@
     <groupId>net.rabbitware.config</groupId>
     <artifactId>plugin-hocon</artifactId>
 
+    <name>rwConfig HOCON plugin</name>
+    <description>
+        A config source that reads properties from a HOCON document, flattened
+        by the rules specified in the plugins documentation (PLUGINS.md).
+    </description>
+
     <parent>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>parent</artifactId>

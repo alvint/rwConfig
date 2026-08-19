@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>rwconfig-maven-plugin</artifactId>
+
+    <name>rwConfig Maven plugin</name>
     <packaging>maven-plugin</packaging>
 
     <description>

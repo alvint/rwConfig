@@ -7,6 +7,11 @@
     <groupId>net.rabbitware.config</groupId>
     <artifactId>plugin-jdbc</artifactId>
 
+    <name>rwConfig JDBC plugin</name>
+    <description>
+        A config source that reads properties from a database table over JDBC.
+    </description>
+
     <parent>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>parent</artifactId>

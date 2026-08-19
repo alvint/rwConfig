@@ -11,7 +11,10 @@ mvn -q -f "$root/pom.xml" -pl rwconfig-analyzer -am install -DskipTests
 # - and the extension would then run with both on its class path.
 copy_one() {
     module=$1
-    set -- "$root/$module/target/$module"-*.jar
+    # Only the code jar. A release build also leaves `-sources` and `-javadoc`
+    # beside it, and neither belongs on the extension's class path.
+    set -- $(ls "$root/$module/target/$module"-*.jar 2>/dev/null \
+             | grep -v -e '-sources\.jar$' -e '-javadoc\.jar$')
     if [ ! -f "$1" ]; then
         echo "no jar for $module - run a build first" >&2
         exit 1

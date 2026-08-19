@@ -12,6 +12,8 @@
 
     <artifactId>rwconfig-analyzer</artifactId>
 
+    <name>rwConfig analyzer</name>
+
     <description>
         Checks Java sources against an `rwconfig` file. Shared by the Maven
         plugin and the editor extension so that both report the same things.

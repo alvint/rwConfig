@@ -7,6 +7,13 @@
     <groupId>net.rabbitware.config</groupId>
     <artifactId>plugin-yaml</artifactId>
 
+    <name>rwConfig YAML plugin</name>
+    <description>
+        A config source that reads properties from a YAML document, flattening
+        nested mappings and sequences, using the rules specified in the plugins
+        documentation (PLUGINS.md).
+    </description>
+
     <parent>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>parent</artifactId>

@@ -9,11 +9,46 @@
     <version>0.1.0</version>
     <packaging>pom</packaging>
 
+    <name>rwConfig parent</name>
+    <description>
+        Parent of the rwConfig modules: a configuration library that reads from
+        many sources and validates what it read against declarations made up
+        front.
+    </description>
+    <url>https://github.com/alvint/rwConfig</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Alvin Thompson</name>
+            <url>https://github.com/alvint</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/alvint/rwConfig.git</connection>
+        <developerConnection>scm:git:git@github.com:alvint/rwConfig.git</developerConnection>
+        <url>https://github.com/alvint/rwConfig</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.12.2</junit.version>
         <surefire.version>3.5.4</surefire.version>
+        <compiler.plugin.version>3.15.0</compiler.plugin.version>
+        <source.plugin.version>3.4.0</source.plugin.version>
+        <javadoc.plugin.version>3.12.0</javadoc.plugin.version>
+        <gpg.plugin.version>3.2.8</gpg.plugin.version>
+        <central.plugin.version>0.11.0</central.plugin.version>
     </properties>
 
     <modules>
@@ -109,6 +144,11 @@
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${compiler.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${surefire.version}</version>
                     <configuration>
@@ -124,5 +164,93 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <!--
+        Everything Maven Central asks for beyond an ordinary build: the sources and
+        javadoc jars, a signature for each artifact, and the upload itself. It is a
+        profile rather than part of the normal build because signing needs a key and
+        javadoc for twelve modules is slow - neither belongs in the loop you run while
+        working. Release with `mvn -Prelease deploy`.
+    -->
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${source.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals><goal>jar-no-fork</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${javadoc.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals><goal>jar</goal></goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!--
+                                The javadoc compiles clean; what it has is missing
+                                `@param` and `@return` tags, which doclint treats as
+                                errors under its default `all` group. Central wants a
+                                javadoc jar, not a complete one.
+                            -->
+                            <doclint>none</doclint>
+                            <quiet>true</quiet>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${gpg.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <!-- the server id whose credentials live in settings.xml -->
+                            <publishingServerId>central</publishingServerId>
+                            <!--
+                                These two are part of this repo, not things to depend
+                                on. The plugin does not honour `maven.deploy.skip`, so
+                                naming them here is what actually keeps them out of the
+                                bundle - and a published artifact can never be removed.
+                            -->
+                            <excludeArtifacts>
+                                <excludeArtifact>example</excludeArtifact>
+                                <excludeArtifact>benchmark</excludeArtifact>
+                            </excludeArtifacts>
+                            <!--
+                                Upload and stage, but do not release. The deployment
+                                waits in the portal until it is released by hand, so a
+                                mistake can still be dropped - a released version can
+                                never be replaced or withdrawn.
+                            -->
+                            <autoPublish>false</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
