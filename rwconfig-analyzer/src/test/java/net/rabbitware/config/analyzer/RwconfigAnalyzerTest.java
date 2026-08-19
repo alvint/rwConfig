@@ -28,7 +28,7 @@ class RwconfigAnalyzerTest {
         stringList hosts = a, b
         """;
 
-    /** Analyse one Java source against the declarations above. */
+    /** Analyze one Java source against the declarations above. */
     private List<Finding> analyze(String java) throws IOException {
         return analyze(DECLARATIONS, java);
     }

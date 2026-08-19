@@ -134,10 +134,10 @@ look at the exception below this one for the real reason.
 A plugin could not be found. The message names the Maven artifact to add and
 lists the plugins it did find, which distinguishes the usual causes:
 
-- **`plugins found: (none)`** - either no plugin jar is present, or the
-  application is running on the classpath instead of the module path. Plugins
-  are matched by module name and classpath jars have none, so every plugin is
-  invisible there.
+- **`plugins found: (none)`** - no plugin jar is present. A plugin must be on
+  either the module path or the class path. A plugin is found on the module path
+  by its module name, and on the class path by the package of its implementing
+  class.
 - **other plugins are listed** - the mechanism works, so this jar in particular
   is missing, or the type name is wrong. `yaml.plugin` resolves to the module
   `net.rabbitware.config.plugin.yaml`; a plugin of your own is named by its full

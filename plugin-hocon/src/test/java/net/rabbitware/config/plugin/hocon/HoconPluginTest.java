@@ -25,7 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * <p>The rest cover what HOCON adds - substitutions, object merging, dotted
  * paths - and, just as importantly, the two things it does <em>not</em> do
  * here: {@code include} and substitution against system properties. Both are
- * pinned by tests so that a change in behaviour shows up as a failure rather
+ * pinned by tests so that a change in behavior shows up as a failure rather
  * than as a surprise in production.
  */
 class HoconPluginTest {
@@ -84,7 +84,7 @@ class HoconPluginTest {
         }
 
         @Test
-        @DisplayName("scientific notation - HOCON normalises to a whole number where JSON keeps a decimal")
+        @DisplayName("scientific notation - HOCON normalizes to a whole number where JSON keeps a decimal")
         void scientificNotation() throws Exception {
             // the JSON plugin yields `1.0E+5,2.0E+5` for the same input, because
             // its parser hands back a BigDecimal. Typesafe Config unwraps these
@@ -234,7 +234,7 @@ class HoconPluginTest {
         }
 
         @Test
-        @DisplayName("numbers are normalised - `1.0` arrives as `1`, but a quoted value is untouched")
+        @DisplayName("numbers are normalized - `1.0` arrives as `1`, but a quoted value is untouched")
         void numbersAreNormalised() throws Exception {
             Map<String, String> properties =
                 load("a = 1.0\nb = 100.0\nc = 2.0e3\nd = 1.25\ne = \"1.0\"\n");

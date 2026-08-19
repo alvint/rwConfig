@@ -1,4 +1,4 @@
-"""Regenerate `icon.png`. No dependencies: it rasterises and writes the PNG itself."""
+"""Regenerate `icon.png`. No dependencies: it rasterizes and writes the PNG itself."""
 import zlib, struct, math
 
 def png(path, pix, w, h):

@@ -18,13 +18,18 @@ All artifacts are in the `net.rabbitware.config` group.
 > plugin may bring dependencies of its own. The "brings in" column is what each
 > costs you.
 
-> **Plugins must be on the module path.** They are located with `ServiceLoader`
-> and matched by module name, so a plugin jar on the classpath will not be
-> found--you'll get `no plugin provides config source type ...`. The plugin jars
-> declare their service in `module-info` and carry no `META-INF/services`
-> fallback, so the classpath has nothing to find them by. The error lists the
-> plugins it did find, which tells you whether the jar is missing entirely or
-> merely on the wrong path.
+> **Plugins must either be on the module path or the class path, or both.**
+> Either path works. Plugins are located with `ServiceLoader`; on the module
+> path a plugin is identified by its module name, and on the class path a plugin
+> is identified by its package name.
+>
+> If a plugin is not found you'll get `no plugin provides config source type
+> ...`, and the error lists the plugins it did find, which tells you whether the
+> jar is missing entirely or the type name is wrong.
+>
+> A plugin of your own should keep its module name and the package of its
+> implementing class identical. If they differ, the plugin answers to one name
+> on the module path and another on the classpath.
 
 ## Using a Plugin
 A plugin is just another config source. Name it in `rwc.sources`, give it
@@ -227,11 +232,11 @@ ambiguous bare `K`, `M` and `G`, which mean 1024-based units there and are
 routinely written meaning 1000-based ones. It is a rejection rather than a
 different answer, so nothing is silently misread.
 
-**Numbers are normalised, so what you write is not always what you get.**
+**Numbers are normalized, so what you write is not always what you get.**
 Typesafe Config drops a redundant fractional part and expands exponents, so
 `1.0` arrives as `1`, `100.0` as `100`, and `2.0e3` as `2000`; `1.5` and `1.25`
 are untouched. This is harmless for `int` and `double` properties, which parse
-either form, but a property declared as a `string` gets the normalised text. If
+either form, but a property declared as a `string` gets the normalized text. If
 you need the exact characters, quote the value - `"1.0"` stays `1.0`.
 
 **An unresolved substitution stops startup** rather than producing a blank -

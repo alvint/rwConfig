@@ -245,14 +245,12 @@ class, and one source is enough.
   is one more thing, and only this project's editor extension understands it.
 - **Limited types.** No durations, sizes, enums, or `URI`. `int timeoutSeconds`
   works but is not what most people want to write.
-- **Plugins require the module path**, which is a real constraint for
-  applications still on the classpath.
 
 ### When it is a good fit
 
 - A long-running service, not in a framework that already solves this.
 - You want configuration errors to stop the process at startup rather than
-  cause odd behaviour later.
+  cause odd behavior later.
 - You want the `rwconfig` file to be the documentation, so a new team member can
   read one file and know every property the application takes.
 - You want layered sources without assembling them yourself.

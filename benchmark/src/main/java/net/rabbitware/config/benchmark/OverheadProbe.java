@@ -15,7 +15,7 @@ import net.rabbitware.config.Config;
 import net.rabbitware.config.ConfigFactory;
 
 /**
- * Diagnostic: does merely initialising the other config libraries slow down an
+ * Diagnostic: does merely initializing the other config libraries slow down an
  * unrelated rwConfig read? The config is built identically in both cases; the
  * only difference is whether several megabytes of other libraries are loaded
  * into the same JVM afterwards.

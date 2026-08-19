@@ -263,7 +263,7 @@ class ConfigSourceTest {
                 warningsFrom("rwc.sources = sys", "rwc.sys.type = systemProperties",
                              "rwc.sys.ignoreUnknownProperties = true", "myProp = a")
                     .stream().noneMatch(w -> w.contains("ignoreUnknownProperties")),
-                "setting it on matches the behaviour, so it should pass quietly"
+                "setting it on matches the behavior, so it should pass quietly"
             );
         }
 
@@ -302,6 +302,56 @@ class ConfigSourceTest {
         }
     }
 
+
+    @Nested
+    @DisplayName("plugins loaded from the class path")
+    class ClassPathPlugins {
+
+        // These tests run on the class path, so `FixturePlugin` is in the unnamed
+        // module - the same place a plugin jar sits in an application that is not
+        // modular. A plugin there has no module name to be identified by, so its
+        // package name is what the declared type resolves against.
+
+        @Test
+        @DisplayName("a plugin with no module is found by its package, and its values are used")
+        void aClassPathPluginSuppliesValues() throws IOException {
+            Config config = config(
+                "rwc.sources = fix",
+                "rwc.fix.type = fixture.plugin",
+                "rwc.fix.greeting = hello",
+                "string fromPlugin = unset",
+                "string sourceName = unset"
+            );
+            assertEquals("hello", config.getString("fromPlugin"));
+            assertEquals("fix", config.getString("sourceName"), "the source name is handed to the plugin");
+        }
+
+        @Test
+        @DisplayName("the full package name works as a type, for a plugin outside the rwConfig namespace")
+        void theLongFormNameAlsoResolves() throws IOException {
+            Config config = config(
+                "rwc.sources = fix",
+                "rwc.fix.type = net.rabbitware.config.plugin.fixture",
+                "rwc.fix.greeting = hi",
+                "string fromPlugin = unset",
+                "string sourceName = unset"
+            );
+            assertEquals("hi", config.getString("fromPlugin"));
+        }
+
+        @Test
+        @DisplayName("a required plugin setting is still enforced")
+        void requiredSettingsAreStillChecked() throws IOException {
+            ConfigException e = rejected(
+                "rwc.sources = fix",
+                "rwc.fix.type = fixture.plugin",
+                "string fromPlugin = unset",
+                "string sourceName = unset"
+            );
+            assertTrue(e.getMessage().contains("greeting"),
+                "should name the missing plugin setting, but got: " + e.getMessage());
+        }
+    }
 
     @Nested
     @DisplayName("sources are prioritized in the order they are declared")
@@ -486,10 +536,10 @@ class ConfigSourceTest {
         }
 
         @Test
-        @DisplayName("a missing plugin names its artifact and the module path")
+        @DisplayName("a missing plugin names its artifact and where the jar has to go")
         void aMissingPluginExplainsItself() throws IOException {
-            // forgetting the jar, or putting it on the class path, are the two
-            // ways this happens - neither is obvious from "module not found"
+            // forgetting the jar is now the way this happens - it is no longer
+            // caused by choosing the wrong one of the two paths
             ConfigException e = rejected(
                 "rwc.sources = only",
                 "rwc.only.type = json.plugin",
@@ -498,8 +548,23 @@ class ConfigSourceTest {
             );
             String m = e.getMessage();
             assertTrue(m.contains("plugin-json"), "should name the Maven artifact, but got: " + m);
-            assertTrue(m.contains("module path"), "should mention the module path, but got: " + m);
+            assertTrue(m.contains("module path") && m.contains("class path"),
+                "should say either path will do, but got: " + m);
             assertTrue(m.contains("plugins found:"), "should list the plugins found, but got: " + m);
+        }
+
+        @Test
+        @DisplayName("a plugin found on the class path is listed by the name it can be asked for")
+        void foundPluginsAreListedByType() throws IOException {
+            ConfigException e = rejected(
+                "rwc.sources = only",
+                "rwc.only.type = json.plugin",
+                "rwc.only.location = file:nowhere.json",
+                "myProp = a"
+            );
+            // the fixture is on the class path, so it has no module to be named by
+            assertTrue(e.getMessage().contains("fixture.plugin"),
+                "should list the class-path plugin as `fixture.plugin`, but got: " + e.getMessage());
         }
 
         @Test

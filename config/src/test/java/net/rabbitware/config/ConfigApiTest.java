@@ -348,7 +348,7 @@ class ConfigApiTest {
         }
 
         @Test
-        @DisplayName("setting twice is an error - it usually means two components both initialised")
+        @DisplayName("setting twice is an error - it usually means two components both initialized")
         void setIsOnce() throws IOException {
             Config.Instance.set(configFrom("int port = 8080"));
             Config.ConfigException e = assertThrows(

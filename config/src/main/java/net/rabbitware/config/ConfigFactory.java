@@ -1164,17 +1164,29 @@ public class ConfigFactory {
         return value;
     }
 
+    /**
+     * What a plugin is called, for matching against a declared source type.
+     *
+     * <p>A plugin on the module path is named by its module. The same jar on the
+     * class path is in the unnamed module, which has no name at all, so its
+     * package stands in - the two are the same string for every plugin here, and
+     * a plugin whose package and module disagree is only reachable by whichever
+     * path it was loaded from.
+     */
+    private static String pluginIdentity(ServiceLoader.Provider<SimpleConfigSourcePlugin> provider) {
+        Module module = provider.type().getModule();
+        return module.isNamed() ? module.getName() : provider.type().getPackageName();
+    }
+
     private static SimpleConfigSourcePlugin loadPluginByModule(String name) {
         String shortName = name.endsWith(PLUGIN_TYPE_SUFFIX)
             ? name.substring(0, name.length() - PLUGIN_TYPE_SUFFIX.length())
             : null;
         String moduleName = shortName != null ? PLUGIN_MODULE_PREFIX + shortName : name;
         List<ServiceLoader.Provider<SimpleConfigSourcePlugin>> providers =
-            ServiceLoader.load(SimpleConfigSourcePlugin.class).stream()
-                .filter(provider -> provider.type().getModule().isNamed())
-                .toList();
+            ServiceLoader.load(SimpleConfigSourcePlugin.class).stream().toList();
         return providers.stream()
-            .filter(provider -> moduleName.equals(provider.type().getModule().getName()))
+            .filter(provider -> moduleName.equals(pluginIdentity(provider)))
             .findFirst()
             .map(ServiceLoader.Provider::get)
             .orElseThrow(() -> new ConfigException(unknownSourceTypeMessage(name, shortName, providers)));
@@ -1203,13 +1215,13 @@ public class ConfigFactory {
                 // would go stale, and a plugin always tracks the core version
                 .append("        <version>(same version as rwConfig)</version>\n")
                 .append("    </dependency>\n\n")
-                .append("and the jar has to be on the module path - plugins are not found on the class path.");
+                .append("and the jar has to be on the module path or the class path.");
         }
         message.append("\n\nplugins found: ").append(
             found.isEmpty()
                 ? "(none)"
                 : found.stream()
-                    .map(provider -> provider.type().getModule().getName())
+                    .map(ConfigFactory::pluginIdentity)
                     .map(m -> m.startsWith(PLUGIN_MODULE_PREFIX)
                         ? m.substring(PLUGIN_MODULE_PREFIX.length()) + PLUGIN_TYPE_SUFFIX
                         : m)

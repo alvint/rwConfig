@@ -136,9 +136,11 @@ rwc.settings.address = http://consul.internal:8500
 rwc.settings.prefix = myapp/
 ```
 
-> **The application must run on the module path.** Plugins are found by module
-> name, and a jar on the classpath is an unnamed module, so it will never
-> match. If a plugin is not being found, this is the first thing to check.
+> **Name your module and your package the same.** A plugin is found on the
+> module path by its module name, and on the class path by the package of the
+> class that implements the plugin. Keeping the two identical means one plugin
+> name works from either path. The bundled plugins all do this;
+> `net.rabbitware.config.plugin.json` is both.
 
 ## Returning properties
 
@@ -178,7 +180,7 @@ boolean ok = SimpleConfigSourcePlugin.isSupportedLocation(location);
 ```
 
 If your plugin takes a `location` property, use both - users then get the same
-set of prefixes and the same failure behaviour they get everywhere else. Check
+set of prefixes and the same failure behavior they get everywhere else. Check
 `isSupportedLocation` in `setPluginProperties` so a bad location is reported
 before any work is done.
 
@@ -226,4 +228,6 @@ module declaration and naming are right.
 - [ ] optional properties handled when absent (they arrive as `null`)
 - [ ] failures throw, with a message saying what was being attempted
 - [ ] uses `loadResource` if it takes a location
-- [ ] the application runs on the module path
+- [ ] the module name and the implementing class's package are the same
+- [ ] `META-INF/services` names the implementation, so the classpath can find
+      it, too

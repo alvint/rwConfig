@@ -55,7 +55,7 @@ import net.rabbitware.config.Config;
  * </ul>
  *
  * <p><b>Each library has its own {@code @State} class on purpose.</b> JMH only
- * initialises the states a benchmark declares, and forks per benchmark, so no
+ * initializes the states a benchmark declares, and forks per benchmark, so no
  * library's setup runs in the JVM that measures another. An earlier version of
  * this class built everything in one shared state, which inflated every
  * map-lookup read by about 1.3 ns: loading nine config libraries pushes shared

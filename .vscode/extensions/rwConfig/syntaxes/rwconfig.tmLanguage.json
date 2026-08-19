@@ -640,7 +640,7 @@
             ]
         },
         {
-            "comment": "A library setting: a property whose name starts with the config prefix. The prefix is `rwc.` unless a `rwc.prefix` line changes it, and this rule only claims the default - see the rule above. The scope is `entity.name.namespace` because these names live in the `rwc.` namespace, and - more practically - because it is one of the few scopes themes colour differently from both `storage.type` and `variable.other`, which the type and the property name next to it already use. `variable.language` was the obvious choice semantically but renders identically to the type in every default VS Code theme.",
+            "comment": "A library setting: a property whose name starts with the config prefix. The prefix is `rwc.` unless a `rwc.prefix` line changes it, and this rule only claims the default - see the rule above. The scope is `entity.name.namespace` because these names live in the `rwc.` namespace, and - more practically - because it is one of the few scopes themes color differently from both `storage.type` and `variable.other`, which the type and the property name next to it already use. `variable.language` was the obvious choice semantically but renders identically to the type in every default VS Code theme.",
             "match": "(?<=^\\s*)rwc\\.[\\w\\.\\\\-]*(?=\\s*=|\\s*$)",
             "name": "entity.name.namespace.library-setting.rwconfig"
         },
