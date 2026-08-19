@@ -1,0 +1,82 @@
+{
+  "name": "rwconfig",
+  "displayName": "rwConfig Support",
+  "description": "Syntax highlighting for `rwconfig` files, and checks that the Java code matches what they declare.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "rwconfig",
+        "aliases": [
+          "rwconfig",
+          "rw config"
+        ],
+        "extensions": [
+          ".rwconfig"
+        ],
+        "filenames": [
+          "rwconfig"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rwconfig",
+        "scopeName": "source.rwconfig",
+        "path": "./syntaxes/rwconfig.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "rwconfig.check",
+        "title": "rwConfig: Check code against the rwconfig file"
+      },
+      {
+        "command": "rwconfig.testSources",
+        "title": "rwConfig: Test config sources (loads them - opens files, URLs and databases)"
+      }
+    ],
+    "configuration": {
+      "title": "rwConfig",
+      "properties": {
+        "rwconfig.file": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the `rwconfig` file. Empty means look in `src/main/resources/rwconfig`, then `rwconfig`."
+        },
+        "rwconfig.sourceRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Directories of Java sources to check. Empty means find the module that owns each `rwconfig` file, which is what a multi-module build needs."
+        },
+        "rwconfig.javaPath": {
+          "type": "string",
+          "default": "",
+          "description": "The `java` to run the analyzer with. Empty means whatever is on the PATH."
+        }
+      }
+    }
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "workspaceContains:**/rwconfig"
+  ]
+}

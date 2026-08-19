@@ -20,6 +20,7 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config.ConfigException;
+import net.rabbitware.config.Config.PropertyType;
 
 import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 
@@ -142,14 +143,7 @@ public class ConfigFactory {
         //
         // If you find a valid config line that is not matched by this regex,
         // please report it as a bug.
-        String types = Stream.of(DeclaredType.values())
-            .map(t -> t.name)
-            .reduce((a, b) -> a + "|" + b)
-            .orElse("");
-        var pattern = Pattern.compile(
-"^[^\\S\\n\\r]*((?i:{types})(?=[^\\S\\n\\r]|\\[))?[^\\S\\n\\r]*(?:\\[\\s*((?:(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*)(?:\\.\\.\\s*(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*))?)(?:,\\s*(?:(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*)(?:\\.\\.\\s*(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*))?))*)\\])?\\s*([A-Za-z][\\w\\.\\\\-]*)\\s*(?:=[^\\S\\n\\r]*([^\\n\\r]*))?$"
-            .replace("{types}", types)
-        );
+        var pattern = configLinePattern();
         configFile.stream()
             .map(s -> s.replaceAll("^\\s*[!#].*$", "")) // remove comments
             .filter(s -> !s.trim().isEmpty()) // remove empty lines
@@ -489,6 +483,101 @@ public class ConfigFactory {
         logger.debug("using default config file path: {}", configFilePath);
         return configFilePath;
 
+    }
+
+    /** Built once - the type list comes from the enum, so it never drifts. */
+    private static Pattern configLinePattern;
+
+    /**
+     * The line regex, shared by {@link #create(String[])} and
+     * {@link #declaredTypes(String)} so that both agree on what a valid line
+     * is. A tool checking a file has to accept exactly what the library does.
+     */
+    private static synchronized Pattern configLinePattern() {
+        if (configLinePattern == null) {
+            String types = Stream.of(DeclaredType.values())
+                .map(t -> t.name)
+                .reduce((a, b) -> a + "|" + b)
+                .orElse("");
+            configLinePattern = Pattern.compile(
+    "^[^\\S\\n\\r]*((?i:{types})(?=[^\\S\\n\\r]|\\[))?[^\\S\\n\\r]*(?:\\[\\s*((?:(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*)(?:\\.\\.\\s*(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*))?)(?:,\\s*(?:(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*)(?:\\.\\.\\s*(?:(?:\\\\[\\\\\\],. enrtu]|(?!\\.\\.)[^\\\\\\],\\s])(?:\\\\[\\\\\\],.enrtu]|(?!\\.\\.)[^\\\\\\],])*))?))*)\\])?\\s*([A-Za-z][\\w\\.\\\\-]*)\\s*(?:=[^\\S\\n\\r]*([^\\n\\r]*))?$"
+                .replace("{types}", types)
+            );
+        }
+        return configLinePattern;
+    }
+
+    /**
+     * Read the property declarations out of an {@code rwconfig} file, without
+     * loading a single config source.
+     *
+     * <p>This exists for tooling - an editor or a build plugin that wants to
+     * know what an application declares, so it can check the code against it.
+     * {@link #create()} cannot be used for that: it loads every source and
+     * fails if a required value is missing, which is exactly the situation a
+     * developer is in while still writing the thing.
+     *
+     * <p>Only the declarations are returned, in the run-time types a caller
+     * would read them with - a property declared {@code duration} appears here
+     * as a {@code LONG}, because that is the getter that works. Library
+     * settings are not properties and are not included.
+     *
+     * @param location
+     * where to read the file from, in the same form as
+     * {@link #CONFIG_FILE_PATH_PROPERTY}
+     * @return
+     * every declared property name, with the type it is read as
+     * @throws ConfigException
+     * if the file cannot be read, or a line in it is not valid
+     */
+    public static Map<String, PropertyType> declaredTypes(String location) throws ConfigException {
+        List<String> configFile = loadConfigFile(location);
+        List<String> declarations = configFile.stream()
+            .map(s -> s.replaceAll("^\\s*[!#].*$", ""))
+            .filter(s -> !s.trim().isEmpty())
+            .toList();
+        String configPrefix = DEFAULT_CONFIG_PREFIX;
+        if (!declarations.isEmpty()) {
+            String[] parts = declarations.get(0).split("=", 2);
+            if (parts.length == 2 && parts[0].trim().equals(CONFIG_PREFIX_PROPERTY)) {
+                configPrefix = parts[1].trim();
+            }
+        }
+        Map<String, PropertyType> types = new HashMap<>();
+        Matcher matcher = configLinePattern().matcher("");
+        for (String line : configFile) {
+            if (line.replaceAll("^\\s*[!#].*$", "").trim().isEmpty()) {
+                continue;
+            }
+            matcher.reset(line);
+            if (!matcher.matches()) {
+                throw new ConfigException("invalid config line: " + line);
+            }
+            String name = matcher.group(3);
+            if (name.startsWith(configPrefix) || name.equals(CONFIG_PREFIX_PROPERTY)) {
+                continue; // a library setting, not an application property
+            }
+            String type = matcher.group(1);
+            types.put(name, runtimeTypeOf(
+                DeclaredType.fromString(type != null && !type.isEmpty() ? type : "string")));
+        }
+        return Map.copyOf(types);
+    }
+
+    /** The run-time type a declared type is read as. */
+    private static PropertyType runtimeTypeOf(DeclaredType declaredType) {
+        return switch (declaredType) {
+            case BOOLEAN -> PropertyType.BOOLEAN;
+            case INT -> PropertyType.INT;
+            case LONG, DURATION, SIZE, TIMESTAMP -> PropertyType.LONG;
+            case DOUBLE -> PropertyType.DOUBLE;
+            case STRING -> PropertyType.STRING;
+            case BOOLEAN_LIST -> PropertyType.BOOLEAN_LIST;
+            case INT_LIST -> PropertyType.INT_LIST;
+            case LONG_LIST, DURATION_LIST, SIZE_LIST, TIMESTAMP_LIST -> PropertyType.LONG_LIST;
+            case DOUBLE_LIST -> PropertyType.DOUBLE_LIST;
+            case STRING_LIST -> PropertyType.STRING_LIST;
+        };
     }
 
     private static PropertyInfo getPropertyInfo(String name, String type, String allowedValues, String defaultValue)

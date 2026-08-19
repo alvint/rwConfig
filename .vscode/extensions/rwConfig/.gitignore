@@ -1,0 +1,5 @@
+# Built jars, copied here only when packaging the extension for distribution.
+# Inside this repo the extension finds them in each module's `target` instead,
+# so they are never needed here and must never be committed - they would be a
+# stale copy of the library's own classes.
+lib/

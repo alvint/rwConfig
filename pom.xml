@@ -27,6 +27,8 @@
         <module>plugin-yaml</module>
         <module>plugin-jdbc</module>
         <module>plugin-hocon</module>
+        <module>rwconfig-analyzer</module>
+        <module>rwconfig-maven-plugin</module>
     </modules>
 
     <dependencyManagement>
