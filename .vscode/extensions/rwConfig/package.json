@@ -2,7 +2,7 @@
   "name": "rwconfig",
   "displayName": "rwConfig Support",
   "description": "Syntax highlighting for `rwconfig` files, and checks that the Java code matches what they declare.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "rabbitware",
   "engines": {
     "vscode": "^1.85.0"

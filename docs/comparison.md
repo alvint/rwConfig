@@ -228,7 +228,7 @@ class, and one source is enough.
 
 ### Weaknesses
 
-- **It is new and unproven.** Version 1.0.0-SNAPSHOT, one author, no production
+- **It is new and unproven.** Version 0.1.0, one author, no production
   track record, no community. Every other library here has years of use behind
   it. This is the strongest argument against adopting it, and no benchmark
   offsets it.

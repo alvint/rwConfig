@@ -173,7 +173,7 @@ most for Archaius, whose idiom is to obtain a `DynamicIntProperty` (1.x) or a
 `Property<Integer>` (2.x) once and hold it, and for Jackson, which stands in for "bind the config into a record at
 startup and read fields afterwards".
 
-Versions: rwConfig 1.0.0-SNAPSHOT, Typesafe Config 1.4.3, Commons
+Versions: rwConfig 0.1.0, Typesafe Config 1.4.3, Commons
 Configuration 2.11.0, Owner 1.0.12, Spring 6.1.14, SmallRye Config 3.10.2,
 Archaius 0.7.7 and 2.7.0, avaje-config 4.0, Jackson 2.18.2. JDK 26, Apple
 M-series laptop, 2 forks, 5 warmup and 5 measurement iterations.

@@ -46,7 +46,7 @@ Then add the dependency to your project:
 <dependency>
     <groupId>net.rabbitware.config</groupId>
     <artifactId>config</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
