@@ -1,6 +1,8 @@
+<img src=".vscode/extensions/rwConfig/icon.png" alt="" width="104" align="right">
+
 # rwConfig
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
-![Tests](https://img.shields.io/badge/tests-371-brightgreen)
+![Tests](https://img.shields.io/badge/tests-412-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
 
