@@ -6,3 +6,6 @@ lib/
 
 # byte-code from the icon generator
 __pycache__/
+
+# packaged extension builds
+*.vsix

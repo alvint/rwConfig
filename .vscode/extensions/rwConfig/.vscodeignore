@@ -12,3 +12,4 @@ package-lock.json
 extra.properties
 rwconfig
 **/*.map
+*.vsix
