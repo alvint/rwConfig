@@ -30,17 +30,9 @@ which is which.
 
 ## Install
 
-rwConfig isn't on Maven Central yet - that's waiting on a version stable enough
-to call `1.0.0`. Until then, clone the repo and install it into your local Maven
-repository:
+rwConfig requires Java 21 or later.
 
-```
-git clone https://github.com/alvint/rwConfig.git
-cd rwConfig
-mvn install
-```
-
-Then add the dependency to your project:
+Add the dependency to your project:
 
 ```xml
 <dependency>

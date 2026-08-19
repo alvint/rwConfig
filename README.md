@@ -1,8 +1,9 @@
 <img src=".vscode/extensions/rwConfig/icon.png" alt="" width="104" align="right">
 
 # rwConfig
+[![Maven Central](https://img.shields.io/maven-central/v/net.rabbitware.config/config)](https://central.sonatype.com/artifact/net.rabbitware.config/config)
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
-![Tests](https://img.shields.io/badge/tests-412-brightgreen)
+![Tests](https://img.shields.io/badge/tests-416-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
 
@@ -125,17 +126,7 @@ at the [takeaway](benchmark/README.md).
 
 ## Quick Start
 ### 1. Jar Installation (via Maven)
-rwConfig isn't on Maven Central yet - that's waiting on a version stable enough
-to call `1.0.0`. Until then, clone the repo and install it into your local Maven
-repository:
-
-```
-git clone https://github.com/alvint/rwConfig.git
-cd rwConfig
-mvn install
-```
-
-Then add this to your project's pom.xml:
+Add this to your project's pom.xml:
 
 ```xml
 <dependencies>
