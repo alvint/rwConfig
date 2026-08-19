@@ -250,8 +250,8 @@ me some feedback. See [Choosing a Configuration Library](docs/comparison.md).
 Not really. But some people like numbers. What _really_ matters is the design
 philosophy. It's better to define up-front what your config properties should
 look like and how they should be loaded. And it's _much_ better to test if your
-config is up to snuff at app start (when you're in the office), than to find out
-at 3am.
+config is up to snuff at coding time and app start (when you're in the office),
+than to find out at 3am.
 
 ## Project Goals
 - a simple interface with virtually no learning curve
@@ -289,8 +289,6 @@ at 3am.
   outside of Java Base
 
 ## TODOs
-- IDE/Maven support to detect missing properties and incorrect property types at
-  compile time
 - in-app notification of changed config sources
 - APIs for other languages
 
