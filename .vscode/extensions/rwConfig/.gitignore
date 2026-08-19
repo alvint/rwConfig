@@ -3,3 +3,6 @@
 # so they are never needed here and must never be committed - they would be a
 # stale copy of the library's own classes.
 lib/
+
+# byte-code from the icon generator
+__pycache__/
