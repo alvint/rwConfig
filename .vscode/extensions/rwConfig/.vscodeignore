@@ -1,0 +1,14 @@
+# Only what the extension needs at run time is published. `lib/` is deliberately
+# absent from this list: it holds the analyzer, and without it the extension can
+# only highlight syntax.
+.gitignore
+.vscode/**
+node_modules/**
+test/**
+package-jars.sh
+make-icon.py
+__pycache__/**
+package-lock.json
+extra.properties
+rwconfig
+**/*.map

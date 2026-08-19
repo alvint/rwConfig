@@ -9,6 +9,11 @@
  * is wrong. This file is the plumbing: find the jars, find the config file, run
  * the analyzer, turn what it says into diagnostics.
  *
+ * Nothing here runs in a workspace the user has not trusted: checking spawns a
+ * Java process, and which `java` that is can be set in configuration, so a
+ * repository could otherwise choose the binary. `rwconfig.javaPath` is a
+ * machine-scoped setting for the same reason.
+ *
  * Config sources are never loaded automatically. Loading them means opening
  * whatever the file describes - an intranet URL, a database - and an editor
  * must not do that because someone typed. `rwConfig: Test config sources` does
@@ -23,6 +28,22 @@ const path = require('node:path');
 let diagnostics;
 let output;
 
+/**
+ * Which check is current. Every run takes a copy, and results from a run that
+ * is no longer the current one are dropped: saving twice in quick succession
+ * otherwise lands the first run's findings on top of the second's, and the two
+ * sets are concatenated rather than replacing one another.
+ */
+let generation = 0;
+let debounce;
+
+/** Node's default is 1 MB, which a large project's findings can exceed. */
+const MAX_OUTPUT = 32 * 1024 * 1024;
+
+function enabled() {
+    return vscode.workspace.getConfiguration('rwconfig').get('enable') !== false;
+}
+
 function activate(context) {
     diagnostics = vscode.languages.createDiagnosticCollection('rwconfig');
     output = vscode.window.createOutputChannel('rwConfig');
@@ -33,21 +54,28 @@ function activate(context) {
         vscode.commands.registerCommand('rwconfig.testSources', testSources)
     );
 
-    // re-check when something that could change the answer is saved
+    // re-check when something that could change the answer is saved. A whole
+    // JVM starts per run, so a burst of saves waits for the burst to finish
+    // rather than starting a process for each one.
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((document) => {
             if (document.languageId === 'java' || path.basename(document.fileName) === 'rwconfig') {
-                checkWorkspace(false);
+                clearTimeout(debounce);
+                debounce = setTimeout(() => checkWorkspace(false), 400);
             }
-        })
+        }),
+        new vscode.Disposable(() => clearTimeout(debounce))
     );
     checkWorkspace(false);
 }
 
-/** The folder we are checking, or undefined when there is nothing to check. */
-function workspaceFolder() {
+/**
+ * Every folder we are checking. A multi-root workspace has more than one, and
+ * each is a project in its own right - its own config files, its own jars.
+ */
+function workspaceRoots() {
     const folders = vscode.workspace.workspaceFolders;
-    return folders && folders.length > 0 ? folders[0] : undefined;
+    return folders ? folders.map((f) => f.uri.fsPath) : [];
 }
 
 /** Directories that never hold a project's own `rwconfig`. */
@@ -165,59 +193,107 @@ function javaCommand() {
 
 /** Run the analyzer and turn what it says into diagnostics. */
 function checkWorkspace(announce) {
-    const folder = workspaceFolder();
-    if (!folder) {
+    if (!announce && !enabled()) {
         return;
     }
-    const root = folder.uri.fsPath;
-    const configFiles = findConfigFiles(root);
-    if (configFiles.length === 0) {
+    // Anything still in flight from an earlier save is now answering a question
+    // about code that has since changed.
+    const mine = ++generation;
+
+    const jobs = [];
+    for (const root of workspaceRoots()) {
+        for (const config of findConfigFiles(root)) {
+            jobs.push({ root, config });
+        }
+    }
+    if (jobs.length === 0) {
         diagnostics.clear();
         if (announce) {
             vscode.window.showInformationMessage('rwConfig: no `rwconfig` file in this workspace.');
         }
         return;
     }
-    const cpath = classpath(root);
-    if (!cpath) {
-        output.appendLine(
-            'rwConfig: the analyzer is not available, so only syntax highlighting is active. '
-            + 'An installed extension ships with it; when working in the rwConfig repo itself, '
-            + 'run `.vscode/extensions/rwConfig/package-jars.sh` once to build it.');
-        return;
-    }
-    // one run per config file, so a multi-module build checks each application
-    // against its own declarations rather than a merged set
-    diagnostics.clear();
-    let pending = configFiles.length;
+
+    const collected = new Map();
+    const failures = [];
+    let pending = jobs.length;
     let total = 0;
-    for (const config of configFiles) {
+
+    for (const { root, config } of jobs) {
+        const cpath = classpath(root);
+        if (!cpath) {
+            failures.push(
+                'the analyzer is not available, so only syntax highlighting is active. '
+                + 'An installed extension ships with it; when working in the rwConfig repo itself, '
+                + 'run `.vscode/extensions/rwConfig/package-jars.sh` once to build it.');
+            if (--pending === 0) {
+                finish(mine, collected, failures, total, jobs.length, announce);
+            }
+            continue;
+        }
         const args = ['-cp', cpath, 'net.rabbitware.config.analyzer.Main',
                       'check', '--rwconfig', config];
         for (const source of sourceRootsFor(config, root)) {
             args.push('--source', source);
         }
-        cp.execFile(javaCommand(), args, { cwd: root }, (error, stdout, stderr) => {
-            if (error && !stdout) {
-                output.appendLine('rwConfig: could not run the analyzer - ' + (stderr || error.message));
-            } else {
-                total += applyFindings(stdout, config, root);
+        cp.execFile(
+            javaCommand(), args, { cwd: root, maxBuffer: MAX_OUTPUT },
+            (error, stdout, stderr) => {
+                if (error && !stdout) {
+                    // A run that could not produce an answer is a failure, not a clean result -
+                    // reporting "nothing to report" here would be reporting a broken Java
+                    // installation as a healthy project.
+                    failures.push('could not run the analyzer for ' + path.relative(root, config)
+                        + ' - ' + ((stderr || '').trim() || error.message));
+                } else {
+                    if (error) {
+                        failures.push('the analyzer exited abnormally for '
+                            + path.relative(root, config) + ' - results may be incomplete.');
+                    }
+                    total += collectFindings(stdout, root, collected);
+                }
+                if (--pending === 0) {
+                    finish(mine, collected, failures, total, jobs.length, announce);
+                }
             }
-            if (--pending === 0 && announce) {
-                vscode.window.showInformationMessage(
-                    total === 0
-                        ? 'rwConfig: checked ' + configFiles.length
-                          + (configFiles.length === 1 ? ' file' : ' files') + ', nothing to report.'
-                        : 'rwConfig: ' + total + (total === 1 ? ' finding.' : ' findings.')
-                );
-            }
-        });
+        );
     }
 }
 
-/** Add the findings from one analyzer run. Returns how many there were. */
-function applyFindings(stdout, configFile, workspaceRoot) {
-    const byFile = new Map();
+/**
+ * Publish what the runs found, unless a newer check has started in the meantime.
+ * Diagnostics are replaced in one go rather than cleared up front, so a failed
+ * run leaves the previous answer standing instead of a misleading empty panel.
+ */
+function finish(mine, collected, failures, total, fileCount, announce) {
+    if (mine !== generation) {
+        return;
+    }
+    diagnostics.clear();
+    for (const [file, list] of collected) {
+        diagnostics.set(vscode.Uri.file(file), list);
+    }
+    for (const failure of failures) {
+        output.appendLine('rwConfig: ' + failure);
+    }
+    if (failures.length > 0 && announce) {
+        output.show(true);
+        vscode.window.showErrorMessage('rwConfig: the check did not complete. See the rwConfig output.');
+        return;
+    }
+    if (announce) {
+        vscode.window.showInformationMessage(
+            total === 0
+                ? 'rwConfig: checked ' + fileCount
+                  + (fileCount === 1 ? ' file' : ' files') + ', nothing to report.'
+                : 'rwConfig: ' + total + (total === 1 ? ' finding.' : ' findings.')
+        );
+    }
+}
+
+/** Collect the findings from one analyzer run. Returns how many there were. */
+function collectFindings(stdout, workspaceRoot, into) {
+    const skipped = new Set(vscode.workspace.getConfiguration('rwconfig').get('skipRules') || []);
     let count = 0;
     for (const line of stdout.split('\n')) {
         if (!line.trim().startsWith('{')) {
@@ -229,9 +305,12 @@ function applyFindings(stdout, configFile, workspaceRoot) {
         } catch (e) {
             continue;
         }
+        if (skipped.has(finding.rule)) {
+            continue;
+        }
         count++;
         const file = path.isAbsolute(finding.file) ? finding.file : path.resolve(workspaceRoot, finding.file);
-        const list = byFile.get(file) || [];
+        const list = into.get(file) || [];
         // the analyzer counts from 1, VS Code from 0. A finding with a length
         // underlines that span - the declared name, or the quoted name in a
         // call - and one without underlines the first character.
@@ -243,12 +322,7 @@ function applyFindings(stdout, configFile, workspaceRoot) {
         diagnostic.source = 'rwconfig';
         diagnostic.code = finding.rule;
         list.push(diagnostic);
-        byFile.set(file, list);
-    }
-    for (const [file, list] of byFile) {
-        const uri = vscode.Uri.file(file);
-        const existing = diagnostics.get(uri) || [];
-        diagnostics.set(uri, existing.concat(list));
+        into.set(file, list);
     }
     return count;
 }
@@ -267,27 +341,29 @@ function severityOf(name) {
  * asks for it.
  */
 function testSources() {
-    const folder = workspaceFolder();
-    if (!folder) {
-        return;
+    const jobs = [];
+    for (const root of workspaceRoots()) {
+        for (const config of findConfigFiles(root)) {
+            jobs.push({ root, config });
+        }
     }
-    const root = folder.uri.fsPath;
-    const configFiles = findConfigFiles(root);
-    if (configFiles.length === 0) {
+    if (jobs.length === 0) {
         vscode.window.showInformationMessage('rwConfig: no `rwconfig` file in this workspace.');
         return;
     }
-    if (configFiles.length > 1) {
-        vscode.window.showQuickPick(configFiles.map((f) => path.relative(root, f)), {
-            title: 'Which configuration should be loaded?'
-        }).then((picked) => {
-            if (picked) {
-                loadSources(root, path.join(root, picked));
-            }
-        });
+    if (jobs.length === 1) {
+        loadSources(jobs[0].root, jobs[0].config);
         return;
     }
-    loadSources(root, configFiles[0]);
+    const labels = jobs.map((job) => path.relative(job.root, job.config));
+    vscode.window.showQuickPick(labels, {
+        title: 'Which configuration should be loaded?'
+    }).then((picked) => {
+        const job = jobs[labels.indexOf(picked)];
+        if (job) {
+            loadSources(job.root, job.config);
+        }
+    });
 }
 
 /** Actually load every source of one config file. */
@@ -304,7 +380,7 @@ function loadSources(root, config) {
             cp.execFile(
                 javaCommand(),
                 ['-cp', cpath, 'net.rabbitware.config.analyzer.Main', 'test-sources', '--rwconfig', config],
-                { cwd: root },
+                { cwd: root, maxBuffer: MAX_OUTPUT },
                 (error, stdout, stderr) => {
                     let result;
                     try {

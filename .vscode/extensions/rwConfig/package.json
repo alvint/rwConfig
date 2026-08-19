@@ -8,10 +8,12 @@
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Linters"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "vscode:prepublish": "./package-jars.sh"
   },
   "devDependencies": {
     "vscode-oniguruma": "^2.0.1",
@@ -54,6 +56,11 @@
     "configuration": {
       "title": "rwConfig",
       "properties": {
+        "rwconfig.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check the code against the `rwconfig` file as you save."
+        },
         "rwconfig.file": {
           "type": "string",
           "default": "",
@@ -67,10 +74,19 @@
           "default": [],
           "description": "Directories of Java sources to check. Empty means find the module that owns each `rwconfig` file, which is what a multi-module build needs."
         },
+        "rwconfig.skipRules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Rules to ignore, by id - for example `unread-property`."
+        },
         "rwconfig.javaPath": {
           "type": "string",
           "default": "",
-          "description": "The `java` to run the analyzer with. Empty means whatever is on the PATH."
+          "description": "The `java` to run the analyzer with. Empty means whatever is on the PATH.",
+          "scope": "machine"
         }
       }
     }
@@ -78,5 +94,31 @@
   "main": "./extension.js",
   "activationEvents": [
     "workspaceContains:**/rwconfig"
-  ]
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alvint/rwConfig.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alvint/rwConfig/issues"
+  },
+  "homepage": "https://github.com/alvint/rwConfig#readme",
+  "keywords": [
+    "rwconfig",
+    "configuration",
+    "java",
+    "config",
+    "linter"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Syntax highlighting only. Checking the code runs a Java process, which is not done in a workspace you have not trusted.",
+      "restrictedConfigurations": [
+        "rwconfig.javaPath"
+      ]
+    }
+  },
+  "icon": "icon.png"
 }
