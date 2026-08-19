@@ -993,7 +993,7 @@ public class ConfigFactory {
      * offset such as {@code +02:00}.
      *
      * <p>A space is accepted in place of the {@code T}, since that is how people
-     * write these by hand. It is normalised before parsing; everything else has
+     * write these by hand. It is normalized before parsing; everything else has
      * to be ISO-8601.
      *
      * <p>A bare number is <em>not</em> read as milliseconds since the epoch,
