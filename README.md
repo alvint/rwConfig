@@ -94,14 +94,14 @@ Don't take my word for it. [Run the benchmarks yourself!](benchmark) Or just loo
 at the [takeaway](benchmark/README.md).
 
 ## Features
-- **VS Code and Maven plugin** - with these tools, most configuration errors
-  are caught at coding or compile time. Most of the rest are caught at startup.
 - **Every property declared in one file** - name, type, allowed values, default
   value, and where to look for it. The `rwconfig` file is a single source of
   truth, and doubles as your configuration documentation.
 - **Errors at startup, not at 3am** - missing values, unparseable values, values
   outside their allowed range, wrong types on the Java side, and requests for
   properties that no declaration mentions.
+- **VS Code and Maven plugin** - with these tools, even more configuration errors
+  are caught at coding or compile time. Most of the rest are caught at startup.
 - **Fast, uniform reads** - a read is one HashMap lookup of an already-parsed
   value: ~2.3 ns whether it's an `int`, a `String`, or a list.
 - **No `Optional`s, no fluent chains** - `config.getInt("port")` returns an
