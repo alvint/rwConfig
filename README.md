@@ -6,14 +6,15 @@
 
 ## What is rwConfig?
 rwConfig is a simple, lightweight library that provides a unified and _fast_
-interface for reading static configuration information from a wide range of
-config sources.
+interface for reading configuration information from a wide range of config
+sources.
 
 What distinguishes rwConfig from the pack is its design philosophy: define
 what you need and what it should look like ahead of time, and validate that
-you have what you need on startup. This means that you can rest easier knowing
-that you won't be surprised by configuration issues when it's too late to do
-something about it.
+you have what you need at coding/compile time (with the Maven plugin and/or
+the VS Code extension) and on startup. This means that you can rest easier
+knowing that you won't be surprised by configuration issues when it's too
+late to do something about it.
 
 ## In A Nutshell
 Declare what your app needs, in one file. This is a complete, working
@@ -93,6 +94,8 @@ Don't take my word for it. [Run the benchmarks yourself!](benchmark) Or just loo
 at the [takeaway](benchmark/README.md).
 
 ## Features
+- **VS Code and Maven plugin** - with these tools, most configuration errors
+  are caught at coding or compile time. Most of the rest are caught at startup.
 - **Every property declared in one file** - name, type, allowed values, default
   value, and where to look for it. The `rwconfig` file is a single source of
   truth, and doubles as your configuration documentation.
