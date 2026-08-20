@@ -1,13 +1,13 @@
 <img src=".vscode/extensions/rwConfig/icon.png" alt="" width="104" align="right">
 
-![Catching a typo before the app runs](docs/demo.gif)
-
 # rwConfig
 [![Maven Central](https://img.shields.io/maven-central/v/net.rabbitware.config/config)](https://central.sonatype.com/artifact/net.rabbitware.config/config)
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
 ![Tests](https://img.shields.io/badge/tests-416-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
+
+![Catching a typo before the app runs](docs/demo.gif)
 
 ## What is rwConfig?
 rwConfig is a simple, lightweight library that provides a unified and _fast_
