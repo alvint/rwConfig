@@ -1,6 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## 0.1.1
+
+- The marketplace listing now shows the editor catching a mistyped property
+  name. No functional change.
+
+## 0.1.0
 
 First release. Syntax highlighting for `rwconfig` files, and checks that a
 project's Java code matches what its `rwconfig` file declares:
