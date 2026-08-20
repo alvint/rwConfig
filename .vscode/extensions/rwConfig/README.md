@@ -1,5 +1,7 @@
 # rwConfig for VS Code
 
+![Catching a typo before the app runs](https://raw.githubusercontent.com/alvint/rwConfig/main/docs/demo.gif)
+
 rwConfig is a simple, lightweight library that provides a unified and _fast_
 interface for reading configuration information from a wide range of config
 sources.
