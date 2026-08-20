@@ -1,4 +1,5 @@
 <img src=".vscode/extensions/rwConfig/icon.png" alt="" width="104" align="right">
+![Catching a typo before the app runs](docs/demo.gif)
 
 # rwConfig
 [![Maven Central](https://img.shields.io/maven-central/v/net.rabbitware.config/config)](https://central.sonatype.com/artifact/net.rabbitware.config/config)
