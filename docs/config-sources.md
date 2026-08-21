@@ -103,11 +103,11 @@ rwc.secrets.type = directory
 rwc.secrets.path = /run/secrets
 ```
 
-This is the shape container runtimes and Kubernetes use for mounted secrets -
-see [Kubernetes and container secrets](#kubernetes-and-container-secrets). A
-file named `greeting` containing `Hello` gives you `greeting=Hello`. Whitespace
-in the file - including newlines - is kept exactly. Only regular files (and
-symlinks to them) are read; a file that cannot be read is an error.
+Container runtimes and Kubernetes use this strategy for mounted secrets - see
+[Kubernetes and container secrets](#kubernetes-and-container-secrets). A file
+named `greeting` containing `Hello` gives you `greeting=Hello`. Whitespace in
+the file (including newlines) is kept exactly. Only regular files (and symlinks
+to them) are read; a file that cannot be read is an error.
 
 Note this takes `path`, a plain filesystem path, not a `location`.
 
