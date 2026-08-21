@@ -95,18 +95,30 @@ may ultimately do a lot of reads, this definitely doesn't hurt.
 As a bonus, read times are consistent no matter what you're reading or where
 you're getting it from.
 
-Don't take my word for it. [Run the benchmarks yourself!](benchmark) Or just look
-at the [takeaway](benchmark/README.md).
+Don't take my word for it. [Run the benchmarks yourself!](benchmark) Or just
+look at the [takeaway](benchmark/README.md).
 
 ## Features
 - **Every property declared in one file** - name, type, allowed values, default
   value, and where to look for it. The `rwconfig` file is a single source of
   truth, and doubles as your configuration documentation.
-- **Errors at startup, not at 3am** - missing values, unparseable values, values
+- **Errors at startup, not at 3am** - missing values, unparsable values, values
   outside their allowed range, wrong types on the Java side, and requests for
   properties that no declaration mentions.
-- **VS Code and Maven plugins** - with these tools, even more configuration errors
-  are caught at coding or compile time. Most of the rest are caught at startup.
+- **All of your config sources in one place** - get all of your config info
+  through one interface with built-in support for command line arguments,
+  environment variables, system properties, `.properties` files, Kubernetes
+  secrets and config maps, and directories. Plus YAML, JSON, XML, HOCON, and
+  databases via the bundled plugins. File-based sources can load from the file
+  system, a `jar`, http(s), or the classpath.
+  
+  Need something else? Add your own source type with a small plugin API!
+- **Layered sources, with precedence you declare** - Want an environment
+  variable to trump the same property in your config file? No problem! You're in
+  control.
+- **VS Code and Maven plugins** - with these tools, even more configuration
+  errors are caught at coding or compile time. Most of the rest are caught at
+  startup.
 - **Fast, uniform reads** - a read is one HashMap lookup of an already-parsed
   value: ~2.3 ns whether it's an `int`, a `String`, or a list.
 - **No `Optional`s, no fluent chains** - `config.getInt("port")` returns an
@@ -115,12 +127,6 @@ at the [takeaway](benchmark/README.md).
 - **Types and lists** - `boolean`, `int`, `long`, `double`, `string`, `size`,
   `duration`, and `timestamp`. Also `booleanList`, `intList`, `longList`,
   `doubleList`, `stringList`, `sizeList`, `durationList`, and `timestampList`.
-- **Layered sources, with precedence you declare** - get all of your config info
-  through one interface with built-in support for command line arguments,
-  environment variables, system properties, `.properties` files, and directories.
-  Plus YAML, JSON, XML, HOCON, and databases via the bundled plugins. Need something
-  else? Add your own source type with a small plugin API. File-based sources can
-  load from the filesystem, a `jar`, http(s), or the classpath.
 - **Nearly dependency-free** - the Java Base module and slf4j, which itself only
   requires Java Base.
 - **Secure by omission** - values your app never declared are not added to the
@@ -238,8 +244,9 @@ but probably not". It's generally not worth the effort to make that kind of
 change in an existing project, frameworks normally have their own "blessed"
 config systems and it's best not to swim against the tide, and if you recommend
 an immature library for a new production-level project people will correctly
-think you're crazy. Maybe just play around with it on your home projects and give
-me some feedback. See [Choosing a Configuration Library](docs/comparison.md).
+think you're crazy. Maybe just play around with it on your home projects and
+give me some feedback. See
+[Choosing a Configuration Library](docs/comparison.md).
 
 ## Does It Matter How Fast A Config System Is?
 Not really. But some people like numbers. What _really_ matters is the design
@@ -345,8 +352,8 @@ than to find out at 3am.
   fix it
 - [Choosing a Configuration Library](docs/comparison.md) - how rwConfig
   compares with the alternatives, and when to use one of them instead
-- [Plugins](PLUGINS.md) - the YAML, JSON, XML, HOCON, JDBC, and prefix plugins that
-  ship with the project
+- [Plugins](PLUGINS.md) - the YAML, JSON, XML, HOCON, JDBC, and prefix plugins
+  that ship with the project
 
 There is also a [minimal `rwconfig`](example/src/main/resources/rwconfig-minimal)
 and a heavily commented [sample `rwconfig`
