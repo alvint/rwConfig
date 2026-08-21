@@ -103,7 +103,8 @@ rwc.secrets.type = directory
 rwc.secrets.path = /run/secrets
 ```
 
-This is the shape container runtimes and Kubernetes use for mounted secrets. A
+This is the shape container runtimes and Kubernetes use for mounted secrets -
+see [Kubernetes and container secrets](#kubernetes-and-container-secrets). A
 file named `greeting` containing `Hello` gives you `greeting=Hello`. Whitespace
 in the file - including newlines - is kept exactly. Only regular files (and
 symlinks to them) are read; a file that cannot be read is an error.
@@ -192,9 +193,32 @@ Anywhere a setting is called `location`, it takes a prefix:
 
 `file:` paths may be relative, resolved against the working directory.
 
-`http:` and `https:` use a 10 second connect timeout and a 10 second read
-timeout, so a config server that stops responding fails the startup rather than
-hanging it forever.
+### Loading config over HTTP
+
+Any file-based source can read from a URL instead of a disk, so a config server
+serving JSON is a config source with no extra machinery:
+
+```
+rwc.sources = remote
+rwc.remote.type = json.plugin
+rwc.remote.location = https://config.internal/app.json
+```
+
+Three things to know before relying on it:
+
+- **It is fetched once, at startup.** There is no polling and no reload; the
+  values are whatever the endpoint returned when the process began. Restart to
+  pick up a change.
+- **A failure is a startup failure.** If the endpoint is down, returns an error,
+  or is slow, the process does not start. `http:` and `https:` use a 10 second
+  connect timeout and a 10 second read timeout, so a config server that stops
+  responding fails the startup rather than hanging it forever. This is usually
+  what you want, but it does make the config server something your application
+  cannot start without - give it a local file earlier in `rwc.sources` if you
+  would rather degrade than fail.
+- **No credentials are sent.** There is no setting for a header or a token, so
+  this suits an endpoint your network already protects. An endpoint that needs
+  authentication needs a [plugin](writing-a-plugin.md) that can supply it.
 
 ## Keeping secrets out of shared files
 
@@ -234,6 +258,76 @@ know how far back the search went:
 library setting `rwc.db.password` is set to `<<`, but no config source loaded
 before `db` contains this property
 ```
+
+## Kubernetes and container secrets
+
+Kubernetes mounts a Secret or a ConfigMap as a directory with one file per key,
+which is exactly what the [`directory`](#directory) source reads. No adapter is
+involved - the runtime's own format is already a config source.
+
+Given a Secret:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+stringData:
+  dbPassword: s3cret-value
+  apiKey: AKIAEXAMPLE
+```
+
+mounted into the pod:
+
+```yaml
+volumes:
+  - name: secrets
+    secret:
+      secretName: app-secrets
+containers:
+  - name: app
+    volumeMounts:
+      - name: secrets
+        mountPath: /run/secrets
+        readOnly: true
+```
+
+the `rwconfig` file needs three lines and the declarations:
+
+```
+rwc.sources = secrets
+rwc.secrets.type = directory
+rwc.secrets.path = /run/secrets
+
+string dbPassword
+string apiKey
+```
+
+A ConfigMap works the same way; mount it at a different path and declare it as
+a second source.
+
+### Why the mount layout does not matter
+
+Kubernetes does not write those files directly. It writes a hidden timestamped
+directory and fills the mount with symlinks pointing into it, so the mount
+really looks like this:
+
+```
+..2026_08_19_12_00_00.data/    <- the real files
+..data -> ..2026_08_19_12_00_00.data
+dbPassword -> ..data/dbPassword
+apiKey -> ..data/apiKey
+```
+
+It is laid out this way so that an update swaps one symlink atomically rather
+than leaving a half-written file on disk. The `directory` source reads through
+it correctly: symlinks to regular files are followed, and `..data` and the
+timestamped directory are skipped because they are directories, not files.
+Neither shows up as a property.
+
+The same layout is why the values are a snapshot. Kubernetes updates a mounted
+Secret in place, but rwConfig reads the directory once at startup, so a changed
+Secret reaches the application when the pod restarts.
 
 ## Changing the `rwc.` prefix
 
