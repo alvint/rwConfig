@@ -102,9 +102,9 @@ look at the [takeaway](benchmark/README.md).
 - **Every property declared in one file** - name, type, allowed values, default
   value, and where to look for it. The `rwconfig` file is a single source of
   truth, and doubles as your configuration documentation.
-- **Errors at startup, not at 3am** - missing values, unparsable values, values
-  outside their allowed range, wrong types on the Java side, and requests for
-  properties that no declaration mentions.
+- **Errors at startup, not at 3am** - missing values, unparsable values, and
+  values outside their allowed range. Wrong types on the Java side and requests
+  for properties that no declaration mentions are caught as you write your code.
 - **All of your config sources in one place** - get all of your config info
   through one interface with built-in support for command line arguments,
   environment variables, system properties, `.properties` files, Kubernetes
