@@ -57,6 +57,18 @@ rwc.args.type = commandLineArguments
 If you declare this source you **must** use `create(args)`. Calling `create()`
 with no arguments while this source is declared is an error.
 
+> **Do not pass secrets this way.** A process's arguments are readable by every
+> user on the machine - `ps` shows them, and so does `/proc` on Linux - for as
+> long as the process runs. They also tend to be recorded in shell history, in
+> container specifications, and in whatever launched the process. Give a secret
+> to a source that keeps it out of sight instead: a
+> [mounted secret](#kubernetes-and-container-secrets), a file the application
+> can read and others cannot, or a
+> [deferred value](#keeping-secrets-out-of-shared-files).
+
+`systemProperties` has the same problem when the properties are set with `-D` on
+the command line, for the same reason: `-Ddb.password=...` is an argument.
+
 ### `systemProperties`
 
 JVM system properties, the `-D` ones.
@@ -298,6 +310,10 @@ Three things to know before relying on it:
   supply it.
 
 ## Keeping secrets out of shared files
+
+Two places a secret should never go, before anything else: the **command line**,
+because a process's arguments are readable by every user on the machine, and a
+**file that gets committed**. The rest of this section is about the second.
 
 A source setting's value can be `<<` - a **deferred value**, meaning "the real
 value is in a config source that was loaded before this one":
