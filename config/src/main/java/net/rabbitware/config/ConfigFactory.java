@@ -280,6 +280,11 @@ public class ConfigFactory {
         // If you find a valid config line that is not matched by this regex,
         // please report it as a bug.
         var pattern = configLinePattern();
+        // The file's own settings are not known until it has been read, so a
+        // default written in the file is judged by its name alone. That is the
+        // default behaviour, and the only value at stake is one the author wrote
+        // in a file they control.
+        final Redaction redaction = Redaction.DEFAULT;
         configFile.stream()
             .map(s -> s.replaceAll("^\\s*[!#].*$", "")) // remove comments
             .filter(s -> !s.trim().isEmpty()) // remove empty lines
@@ -316,7 +321,7 @@ public class ConfigFactory {
                         "loading property info for `{}`: type=`{}`, allowedValues=`{}`, defaultValue=`{}`",
                         propertyName, type, allowedValues, defaultValue
                     );
-                    propertyInfoMap.put(propertyName, getPropertyInfo(propertyName, type, allowedValues, defaultValue));
+                    propertyInfoMap.put(propertyName, getPropertyInfo(redaction, propertyName, type, allowedValues, defaultValue));
                 }
             });
         logger.info(
@@ -463,6 +468,28 @@ public class ConfigFactory {
                 // add to the config sources map
                 configSources.put(sourceName, Map.copyOf(configSourceProperties));
             });
+        // Now the whole file has been read, so what counts as secret is known:
+        // the sources declared secret, plus - unless turned off - the properties
+        // whose names read like secrets.
+        Set<String> secretSources = configSources.keySet().stream()
+            .filter(source -> configProperties
+                .getOrDefault(configPrefix + source + ".secret", "false")
+                .matches("(?i)true|yes|on|1"))
+            .collect(Collectors.toSet());
+        boolean redactSecretsByName = configProperties
+            .getOrDefault(configPrefix + "redactSecretsByName", "true")
+            .matches("(?i)true|yes|on|1");
+        if (!secretSources.isEmpty()) {
+            logger.info("config sources declared secret: {}", secretSources);
+        }
+        if (!redactSecretsByName) {
+            logger.warn(
+                "`{}redactSecretsByName` is off - a value that fails validation will be shown in the error,"
+                + " whatever the property is called",
+                configPrefix
+            );
+        }
+        final Redaction sourceRedaction = new Redaction(secretSources, redactSecretsByName);
         // set the values from the config sources into the config implementation
         configSources.entrySet().stream()
             .forEach(entry -> {
@@ -497,7 +524,8 @@ public class ConfigFactory {
                                 propertyName,
                                 valueString,
                                 propertyInfo.propertyType,
-                                propertyInfo.allowedValues
+                                propertyInfo.allowedValues,
+                                sourceRedaction
                             );
                             // do not log the value of the property - it may contain
                             // sensitive information
@@ -695,6 +723,83 @@ public class ConfigFactory {
         return Map.copyOf(types);
     }
 
+    /**
+     * How to decide whether a value may be shown in a message.
+     *
+     * <p>Passed down rather than held statically, so that two configs being
+     * built at once cannot see each other's settings.
+     */
+    record Redaction(Set<String> secretSources, boolean byName) {
+        /** What is used before the file's own settings have been read. */
+        static final Redaction DEFAULT = new Redaction(Set.of(), true);
+
+        /** The value, or {@link #REDACTED} if it should not be shown. */
+        String show(String propertyName, String sourceName, String value) {
+            return isSecret(propertyName, sourceName, secretSources, byName) ? REDACTED : value;
+        }
+    }
+
+    /** What a redacted value is shown as. */
+    static final String REDACTED = "****";
+
+    /**
+     * Property name segments that make a value secret when
+     * {@code redactSecretsByName} is on. Matched against the words of a name,
+     * so {@code dbPassword} and {@code db.password} are both covered while a
+     * property that merely contains the letters is not.
+     */
+    private static final Set<String> SECRET_WORDS =
+        Set.of("password", "passwd", "pwd", "secret", "token", "credential", "credentials");
+
+    /**
+     * Whether a property's value should be kept out of messages.
+     *
+     * <p>Two ways to be secret, and either is enough. A source declared with
+     * {@code rwc.<source>.secret = true} makes everything it supplies secret,
+     * which is how secrets usually arrive - a mounted directory or a protected
+     * endpoint is secret in its entirety. On top of that, a name that reads like
+     * a secret is treated as one, because the property nobody remembered to
+     * cover is exactly the one that ends up in a log.
+     *
+     * @param propertyName
+     * the property whose value is about to be shown
+     * @param sourceName
+     * the source it came from, or null if it came from the `rwconfig` file
+     * @param secretSources
+     * the sources declared secret
+     * @param redactSecretsByName
+     * whether to also judge by the property's name
+     * @return
+     * true if the value should be replaced with {@link #REDACTED}
+     */
+    static boolean isSecret(
+        String propertyName, String sourceName, Set<String> secretSources, boolean redactSecretsByName
+    ) {
+        if (sourceName != null && secretSources.contains(sourceName)) {
+            return true;
+        }
+        return redactSecretsByName && nameLooksSecret(propertyName);
+    }
+
+    /**
+     * Whether a property name reads like it holds a secret.
+     *
+     * <p>The name is split into words - on camel case, dots, dashes and
+     * underscores - and a word has to match in full. {@code key} counts only
+     * when something comes before it, so {@code apiKey} and {@code privateKey}
+     * are secret while {@code keyCount} and {@code keyStore} are not.
+     */
+    private static boolean nameLooksSecret(String propertyName) {
+        String[] words = propertyName.split("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[._\\\\-]");
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i].toLowerCase();
+            if (SECRET_WORDS.contains(word) || (i > 0 && word.equals("key"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The run-time type a declared type is read as. */
     private static PropertyType runtimeTypeOf(DeclaredType declaredType) {
         return switch (declaredType) {
@@ -711,20 +816,20 @@ public class ConfigFactory {
         };
     }
 
-    private static PropertyInfo getPropertyInfo(String name, String type, String allowedValues, String defaultValue)
+    private static PropertyInfo getPropertyInfo(Redaction redaction, String name, String type, String allowedValues, String defaultValue)
             throws ConfigException {
         DeclaredType propertyType = DeclaredType.fromString(type);
-        List<Range> allowedValuesList = parseAllowedValues(name, propertyType, allowedValues);
+        List<Range> allowedValuesList = parseAllowedValues(redaction, name, propertyType, allowedValues);
         Value value;
         if (defaultValue == null) {
             value = null;
         } else {
-            value = parseValue(null,name, defaultValue, propertyType, allowedValuesList);
+            value = parseValue(null, name, defaultValue, propertyType, allowedValuesList, redaction);
         }
         return new PropertyInfo(propertyType, allowedValuesList, value);
     }
 
-    private static List<Range> parseAllowedValues(String name, DeclaredType propertyType, String allowedValues)
+    private static List<Range> parseAllowedValues(Redaction redaction, String name, DeclaredType propertyType, String allowedValues)
             throws ConfigException {
         List<Range> ranges = new LinkedList<>();
         if (allowedValues != null) {
@@ -747,8 +852,8 @@ public class ConfigFactory {
                             "invalid allowed value range for property `" + name + "`: " + rangeString
                         );
                     }
-                    Value min = parseValue(null, name, minMax[0], rangeType, List.of());
-                    Value max = minMax.length == 2 ? parseValue(null, name, minMax[1], rangeType, List.of()) : min;
+                    Value min = parseValue(null, name, minMax[0], rangeType, List.of(), redaction);
+                    Value max = minMax.length == 2 ? parseValue(null, name, minMax[1], rangeType, List.of(), redaction) : min;
                     ranges.add(new Range(min, max));
                 });
         }
@@ -764,7 +869,8 @@ public class ConfigFactory {
         String propertyName,
         String valueString,
         DeclaredType propertyType,
-        List<Range> allowedValues
+        List<Range> allowedValues,
+        Redaction redaction
     ) throws ConfigException {
         try {
             return switch (propertyType) {
@@ -790,7 +896,7 @@ public class ConfigFactory {
                         value = false;
                     } else {
                         throw new NumberFormatException(
-                            "invalid boolean value for property `" + propertyName + "`: " + unescapedValueString
+                            "invalid boolean value for property `" + propertyName + "`: " + redaction.show(propertyName, sourceName, unescapedValueString)
                         );
                     }
                     // check if value is allowed
@@ -800,7 +906,7 @@ public class ConfigFactory {
                         String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
-                            + unescapedValueString
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
                         );
                     }
                     // value is allowed; return it
@@ -819,7 +925,7 @@ public class ConfigFactory {
                         String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
-                            + unescapedValueString
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
                         );
                     }
                     // value is allowed; return it
@@ -834,7 +940,7 @@ public class ConfigFactory {
                         String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
-                            + unescapedValueString
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
                         );
                     }
                     yield new Value.Long(value);
@@ -856,7 +962,7 @@ public class ConfigFactory {
                         String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
-                            + unescapedValueString
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
                         );
                     }
                     // value is allowed; return it
@@ -875,7 +981,7 @@ public class ConfigFactory {
                         String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
-                            + unescapedValueString
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
                         );
                     }
                     // value is allowed; return it
@@ -894,7 +1000,7 @@ public class ConfigFactory {
                         String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): "
-                            + unescapedValueString
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
                         );
                     }
                     // value is allowed; return it
@@ -911,7 +1017,7 @@ public class ConfigFactory {
                         String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
                         throw new ConfigException(
                             "value is not allowed for property `" + propertyName + "` (in " + source + "): \""
-                            + unescapedValueString + "\""
+                            + redaction.show(propertyName, sourceName, unescapedValueString) + "\""
                         );
                     }
                     // value is allowed; return it
@@ -924,7 +1030,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s ->(Value.Boolean)
-                                parseValue(sourceName, propertyName, s, DeclaredType.BOOLEAN, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.BOOLEAN, allowedValues, redaction))
                             .toList();
                     yield new Value.BooleanList(list);
                 }
@@ -933,7 +1039,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s ->(Value.Integer)
-                                parseValue(sourceName, propertyName, s, DeclaredType.INT, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.INT, allowedValues, redaction))
                             .toList();
                     yield new Value.IntegerList(list);
                 }
@@ -942,7 +1048,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s ->(Value.Long)
-                                parseValue(sourceName, propertyName, s, DeclaredType.LONG, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.LONG, allowedValues, redaction))
                             .toList();
                     yield new Value.LongList(list);
                 }
@@ -951,7 +1057,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s ->(Value.Double)
-                                parseValue(sourceName, propertyName, s, DeclaredType.DOUBLE, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.DOUBLE, allowedValues, redaction))
                             .toList();
                     yield new Value.DoubleList(list);
                 }
@@ -960,7 +1066,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s -> (Value.Long)
-                                parseValue(sourceName, propertyName, s, DeclaredType.TIMESTAMP, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.TIMESTAMP, allowedValues, redaction))
                             .toList();
                     yield new Value.LongList(list);
                 }
@@ -972,7 +1078,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
                             .map(s -> (Value.Long)
-                                parseValue(sourceName, propertyName, s, itemType, allowedValues))
+                                parseValue(sourceName, propertyName, s, itemType, allowedValues, redaction))
                             .toList();
                     yield new Value.LongList(list);
                 }
@@ -983,7 +1089,7 @@ public class ConfigFactory {
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),\\s*", -1))
                             .map(s ->(Value.String)
-                                parseValue(sourceName, propertyName, s, DeclaredType.STRING, allowedValues))
+                                parseValue(sourceName, propertyName, s, DeclaredType.STRING, allowedValues, redaction))
                             .toList();
                     yield new Value.StringList(list);
                 }

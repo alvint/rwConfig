@@ -315,11 +315,23 @@ in `getPropertyNames()` and your code cannot read them.
 | `rwc.prefix` | changes the `rwc.` prefix itself - see below |
 | `rwc.sources` | the sources to load, in precedence order |
 | `rwc.<source>.type` | which kind of source `<source>` is |
-| `rwc.<source>.<setting>` | whatever that source type needs - `location`, `path`, and so on |
+| `rwc.<source>.ignoreUnknownProperties` | accept properties from that source that nothing declares, default false |
+| `rwc.<source>.secret` | withhold every value from that source from error messages, default false |
+| `rwc.<source>.<setting>` | whatever that source *type* needs - `location`, `path`, `query`, and so on |
 | `rwc.changeDetectionPollingInterval` | milliseconds between checks for changed sources, default 5000 |
+| `rwc.redactSecretsByName` | withhold values whose property name reads like a secret, default true |
 
-The source settings are covered in [Config sources](config-sources.md), and the
-polling interval in [The Java
+`type`, `ignoreUnknownProperties`, and `secret` can be set on any source,
+whatever kind it is. `rwc.<source>.<setting>` is the other sort: the settings a
+particular *type* requires, which differ from one to the next - a `properties`
+source needs a `location`, a `directory` source needs a `path`, a `jdbc.plugin`
+source needs a `connectionString` and a `query`. Those are listed with
+[each type](config-sources.md#built-in-source-types).
+
+Unknown properties are covered in [Config
+sources](config-sources.md#unknown-properties), withholding values in [Keeping
+values out of error messages](config-sources.md#keeping-values-out-of-error-messages),
+and the polling interval in [The Java
 API](java-api.md#noticing-that-a-source-has-changed).
 
 If `rwc.` collides with a property name you need, change the prefix:

@@ -424,6 +424,59 @@ pod restarts, or when the app builds a new `Config` object. With [change
 detection](java-api.md#noticing-that-a-source-has-changed) turned on you are
 told the directory changed and can rebuild without waiting for a restart.
 
+## Keeping values out of error messages
+
+When a value fails its type or its allowed values, the error says so - and by
+default it says what the value was, because that is usually the fastest way to
+see what is wrong:
+
+```
+value is not allowed for property `port` (in source `f`): 70000
+```
+
+That is exactly what you do not want for a password. Two rules decide whether a
+value is shown, and either one is enough to withhold it.
+
+### A source can be declared secret
+
+```
+rwc.vault.type = directory
+rwc.vault.path = /run/secrets
+rwc.vault.secret = true
+```
+
+Every value from that source is withheld, whatever the property is called. This
+is the rule to reach for, because secrets usually arrive in bulk from somewhere
+that is secret in its entirety - a mounted secret directory, a credentialed
+endpoint - and it covers the property nobody remembered to name carefully. It is
+off unless you ask for it.
+
+### A property whose name reads like a secret
+
+On by default. The name is split into words, and a value is withheld when one of
+them is `password`, `passwd`, `pwd`, `secret`, `token`, `credential`, or
+`credentials` - or when `key` follows something else, so `apiKey` and
+`privateKey` are covered while `keyCount` and `keyStore` are not.
+
+It is a guess, and it will sometimes be wrong in both directions: a secret called
+`pin` is not covered, and a `sortKey` is withheld for no reason. Turn it off with:
+
+```
+rwc.redactSecretsByName = false
+```
+
+A source declared secret is unaffected by that setting - the two rules are
+independent.
+
+### What is still shown
+
+The property name, the source it came from, and what was expected. Only the
+value is replaced, by `****`, so an error stays diagnosable:
+
+```
+value is not allowed for property `dbPassword` (in source `vault`): ****
+```
+
 ## Which sources can be watched
 
 With [change detection](java-api.md#noticing-that-a-source-has-changed) turned
