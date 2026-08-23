@@ -33,7 +33,13 @@ as the wrong type, using `Config.Instance.get()` when nothing sets it, and a
 `commandLineArguments` source with only a no-argument `create()`. The `rwconfig`
 file is checked too - a source named in `rwc.sources` with no `type`, or a
 built-in type missing a setting it needs, is underlined where the source is
-named. Properties that nothing reads are reported as information - though only
+named. The library settings are checked too: a misspelled setting, one for a
+source that is not declared, or one the source's type has no use for, all of
+which rwConfig itself accepts silently. So is change detection - a polling
+interval nothing enables, a listener on a Config that never asked for it, a
+listener for a source that does not exist - and credentials that would go
+unencrypted or never be sent at all. Properties that nothing reads are reported
+as information - though only
 when every read in the project names a property it can pin down, whether written
 at the call site or held in a constant, since a name worked out at run time could
 be reading any of them.

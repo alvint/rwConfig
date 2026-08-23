@@ -14,6 +14,17 @@ the same wherever you meet it.
 | `command-line-source-without-args` | error | a `commandLineArguments` source declared, but only `ConfigFactory.create()` called |
 | `source-without-type` | error | a source named in `rwc.sources` with no `type` setting |
 | `source-missing-setting` | error | a built-in source type missing something it needs, such as a `properties` source with no `location` |
+| `unknown-setting` | warning | an `rwc.` setting rwConfig does not know, which is silently ignored |
+| `setting-for-unknown-source` | warning | a setting for a source `rwc.sources` does not list |
+| `setting-not-used-by-type` | warning | a setting the source's type has no use for |
+| `change-detection-not-enabled` | warning | a polling interval set, but nothing asks for change detection |
+| `listener-without-change-detection` | error | `addChangeListener` on a Config built without it, which throws at startup |
+| `listener-for-unknown-source` | warning | a listener for a source that is not declared, so it can never fire |
+| `nothing-to-watch` | warning | change detection enabled with no source that can change |
+| `credentials-unused` | warning | a `username`/`password` on a location that is not an http(s) URL |
+| `credentials-over-http` | warning | credentials that would be sent unencrypted |
+| `password-without-username` | error | a `password` with no `username`, rejected at startup |
+| `secret-default-in-file` | warning | a secret-looking property given a default in the committed file |
 | `unread-property` | info | a property declared and never read |
 
 **No config source is ever loaded.** Only the declarations in the `rwconfig`

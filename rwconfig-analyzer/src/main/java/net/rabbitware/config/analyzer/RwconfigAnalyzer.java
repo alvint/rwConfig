@@ -257,6 +257,300 @@ public final class RwconfigAnalyzer {
      * without loading it, so a source of a plugin type is checked only for
      * having a type at all.
      */
+    /** Settings that stand alone, rather than belonging to a source. */
+    private static final Set<String> GLOBAL_SETTINGS =
+        Set.of("prefix", "sources", "changeDetectionPollingInterval", "redactSecretsByName");
+
+    /** Settings any source takes, whatever its type. */
+    private static final Set<String> ANY_SOURCE_SETTINGS =
+        Set.of("type", "ignoreUnknownProperties", "secret");
+
+    /** What each built-in type accepts beyond {@link #ANY_SOURCE_SETTINGS}. */
+    private static final Map<String, Set<String>> BUILT_IN_SETTINGS = Map.of(
+        "commandLineArguments", Set.of(),
+        "systemProperties", Set.of(),
+        "environmentVariables", Set.of(),
+        "properties", Set.of("location", "username", "password"),
+        "directory", Set.of("path"),
+        "dotenv", Set.of("location", "username", "password"));
+
+    /**
+     * Check the library settings themselves: that each one is a setting, that it
+     * belongs to a source that exists, and that the source's type has a use for
+     * it. None of these stops the library - an unrecognised setting is simply
+     * ignored - which is what makes them worth reporting here.
+     */
+    private void checkSettings(List<Finding> findings) {
+        String prefix = settings.prefix();
+        for (Map.Entry<String, String> entry : settings.values().entrySet()) {
+            String key = entry.getKey();
+            String rest = key.substring(prefix.length());
+            if (GLOBAL_SETTINGS.contains(rest)) {
+                continue;
+            }
+            int dot = rest.indexOf('.');
+            if (dot < 0) {
+                Position at = lineOf(key);
+                findings.add(new Finding(
+                    Finding.Severity.WARNING, Finding.Rule.UNKNOWN_SETTING, configFilePath,
+                    at.line(), at.column(), at.length(),
+                    "`" + key + "` is not a setting rwConfig knows, so it does nothing"
+                        + suggestionFrom(rest, GLOBAL_SETTINGS)
+                ));
+                continue;
+            }
+            String source = rest.substring(0, dot);
+            String setting = rest.substring(dot + 1);
+            if (!settings.sources().contains(source)) {
+                Position at = lineOf(key);
+                findings.add(new Finding(
+                    Finding.Severity.WARNING, Finding.Rule.SETTING_FOR_UNKNOWN_SOURCE, configFilePath,
+                    at.line(), at.column(), at.length(),
+                    "`" + key + "` is for a config source `" + source + "` that `" + prefix
+                        + "sources` does not list, so it does nothing"
+                        + suggestionFrom(source, Set.copyOf(settings.sources()))
+                ));
+                continue;
+            }
+            if (ANY_SOURCE_SETTINGS.contains(setting)) {
+                continue;
+            }
+            String type = settings.typeOf(source);
+            // only a built-in type's settings are known - what a plugin accepts
+            // is the plugin's business, and it would have to be loaded to ask
+            Set<String> accepted = type == null ? null : BUILT_IN_SETTINGS.get(type);
+            if (accepted != null && !accepted.contains(setting)) {
+                Position at = lineOf(key);
+                findings.add(new Finding(
+                    Finding.Severity.WARNING, Finding.Rule.SETTING_NOT_USED_BY_TYPE, configFilePath,
+                    at.line(), at.column(), at.length(),
+                    "config source `" + source + "` is of type `" + type + "`, which has no use for `"
+                        + setting + "`" + suggestionFrom(setting, union(accepted, ANY_SOURCE_SETTINGS))
+                ));
+            }
+        }
+    }
+
+    /** Levenshtein distance, for the "did you mean" suggestions. */
+    private static int distance(String a, String b) {
+        int[] previous = new int[b.length() + 1];
+        int[] current = new int[b.length() + 1];
+        for (int j = 0; j <= b.length(); j++) {
+            previous[j] = j;
+    }
+        for (int i = 1; i <= a.length(); i++) {
+            current[0] = i;
+            for (int j = 1; j <= b.length(); j++) {
+                int cost = a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1;
+                current[j] = Math.min(Math.min(current[j - 1] + 1, previous[j] + 1), previous[j - 1] + cost);
+            }
+            int[] swap = previous; previous = current; current = swap;
+    }
+        return previous[b.length()];
+    }
+
+    private static Set<String> union(Set<String> a, Set<String> b) {
+        Set<String> all = new HashSet<>(a);
+        all.addAll(b);
+        return all;
+    }
+
+    /** " - did you mean `x`?", when something close enough exists. */
+    private static String suggestionFrom(String actual, Set<String> candidates) {
+        String best = null;
+        int bestDistance = Integer.MAX_VALUE;
+        for (String candidate : candidates) {
+            int distance = distance(actual.toLowerCase(), candidate.toLowerCase());
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = candidate;
+            }
+        }
+        // close enough to be a typo rather than a different word entirely
+        return best != null && bestDistance <= Math.max(2, actual.length() / 3)
+            ? " - did you mean `" + best + "`?"
+            : "";
+    }
+
+    /** Name words that mean a value should not be written into a committed file. */
+    private static final Set<String> SECRET_WORDS =
+        Set.of("password", "passwd", "pwd", "secret", "token", "credential", "credentials");
+
+    /**
+     * Report a declaration that gives a secret-looking property a default. The
+     * default lives in the `rwconfig` file, which is normally committed - so this
+     * is a credential in version control.
+     */
+    private void checkSecretDefaults(List<Finding> findings) {
+        for (Map.Entry<String, String> entry : declaredDefaults().entrySet()) {
+            String name = entry.getKey();
+            if (!nameLooksSecret(name)) {
+                continue;
+            }
+            Position at = lineOf(name);
+            findings.add(new Finding(
+                Finding.Severity.WARNING, Finding.Rule.SECRET_DEFAULT_IN_FILE, configFilePath,
+                at.line(), at.column(), at.length(),
+                "`" + name + "` reads like a secret and has a default written here - the `rwconfig` file is"
+                    + " usually committed, so give it no default and supply it from a config source instead"
+            ));
+        }
+    }
+
+    /** Whether a property name reads like it holds a secret - the library's own rule. */
+    private static boolean nameLooksSecret(String propertyName) {
+        String[] words = propertyName.split("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[._\\\\-]");
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i].toLowerCase();
+            if (SECRET_WORDS.contains(word) || (i > 0 && word.equals("key"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Declared properties that carry a default value, by name. */
+    private Map<String, String> declaredDefaults() {
+        Map<String, String> defaults = new HashMap<>();
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(Path.of(configFilePath), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            return defaults;
+        }
+        for (String line : lines) {
+            String stripped = line.replaceAll("^\\s*[!#].*$", "");
+            if (stripped.isBlank() || stripped.trim().startsWith(settings.prefix())) {
+                continue;
+            }
+            int equals = stripped.indexOf('=');
+            if (equals < 0) {
+                continue;
+            }
+            String beforeEquals = stripped.substring(0, equals).trim();
+            String value = stripped.substring(equals + 1).trim();
+            if (value.isEmpty()) {
+                continue;
+            }
+            // the property name is the last word before the `=`
+            String[] words = beforeEquals.split("\\s+");
+            defaults.put(words[words.length - 1], value);
+        }
+        return defaults;
+    }
+
+    /** Locations whose contents can change while the process runs. */
+    private boolean isWatchable(String source) {
+        String type = settings.typeOf(source);
+        if (type == null) {
+            return false;
+        }
+        if (type.equals("jdbc.plugin")) {
+            return settings.has(source, "changeQuery");
+        }
+        String location = settings.values().get(settings.prefix() + source + ".location");
+        if (location == null) {
+            // `directory` watches a path; the fixed sources cannot change
+            return type.equals("directory");
+        }
+        return location.startsWith("file:") || location.startsWith("jar:file:")
+            || location.startsWith("http:") || location.startsWith("https:");
+    }
+
+    /**
+     * Check what the `rwconfig` file says about change detection against what the
+     * code actually asks for. Every mismatch here is silent at run time: a
+     * listener that never fires, or a setting that nothing reads.
+     */
+    private void checkChangeDetection(List<Finding> findings, FileScan scan) {
+        String prefix = settings.prefix();
+        String intervalKey = prefix + "changeDetectionPollingInterval";
+        boolean intervalSet = settings.values().containsKey(intervalKey);
+
+        if (intervalSet && !scan.changeDetectionAsked() && !scan.computedName()) {
+            Position at = lineOf(intervalKey);
+            findings.add(new Finding(
+                Finding.Severity.WARNING, Finding.Rule.CHANGE_DETECTION_NOT_ENABLED, configFilePath,
+                at.line(), at.column(), at.length(),
+                "`" + intervalKey + "` is set, but nothing calls `ConfigFactory.create` asking for change"
+                    + " detection - pass `true`, or the interval does nothing"
+            ));
+        }
+        if (scan.listenerAdded() && !scan.changeDetectionAsked()) {
+            findings.add(new Finding(
+                Finding.Severity.ERROR, Finding.Rule.LISTENER_WITHOUT_CHANGE_DETECTION, configFilePath, 0, 0, 0,
+                "`addChangeListener` is called on a Config built without change detection, which throws at"
+                    + " startup - use `ConfigFactory.create(true, ...)`"
+            ));
+        }
+        for (String listened : scan.listenedSources()) {
+            if (!settings.sources().contains(listened)) {
+                findings.add(new Finding(
+                    Finding.Severity.WARNING, Finding.Rule.LISTENER_FOR_UNKNOWN_SOURCE, configFilePath, 0, 0, 0,
+                    "a change listener is registered for config source `" + listened + "`, which `" + prefix
+                        + "sources` does not list - it can never fire"
+                ));
+            }
+        }
+        if (scan.changeDetectionAsked() && !settings.sources().isEmpty()
+                && settings.sources().stream().noneMatch(this::isWatchable)) {
+            Position at = lineOf(prefix + "sources");
+            findings.add(new Finding(
+                Finding.Severity.WARNING, Finding.Rule.NOTHING_TO_WATCH, configFilePath,
+                at.line(), at.column(), at.length(),
+                "change detection is enabled, but no declared source can be watched - the environment,"
+                    + " system properties, the command line and `classpath:` locations never change while"
+                    + " the process runs"
+            ));
+        }
+    }
+
+    /**
+     * Check credentials against the location they would be sent to. Both of these
+     * are quiet at run time: credentials for something that is not a URL are
+     * never used, and over plain HTTP they are sent in the clear.
+     */
+    private void checkCredentials(List<Finding> findings) {
+        String prefix = settings.prefix();
+        for (String source : settings.sources()) {
+            boolean hasUser = settings.has(source, "username");
+            boolean hasPassword = settings.has(source, "password");
+            if (!hasUser && !hasPassword) {
+                continue;
+            }
+            String key = prefix + source + "." + (hasUser ? "username" : "password");
+            Position at = lineOf(key);
+            if (hasPassword && !hasUser) {
+                findings.add(new Finding(
+                    Finding.Severity.ERROR, Finding.Rule.PASSWORD_WITHOUT_USERNAME, configFilePath,
+                    at.line(), at.column(), at.length(),
+                    "config source `" + source + "` has a `password` but no `username`, which is rejected"
+                        + " at startup because it would never be sent"
+                ));
+                continue;
+            }
+            String location = settings.values().get(prefix + source + ".location");
+            if (location == null) {
+                continue;
+            }
+            if (location.startsWith("http:")) {
+                findings.add(new Finding(
+                    Finding.Severity.WARNING, Finding.Rule.CREDENTIALS_OVER_HTTP, configFilePath,
+                    at.line(), at.column(), at.length(),
+                    "credentials for config source `" + source + "` would be sent unencrypted - basic"
+                        + " authentication is base64, so use `https:`"
+                ));
+            } else if (!location.startsWith("https:")) {
+                findings.add(new Finding(
+                    Finding.Severity.WARNING, Finding.Rule.CREDENTIALS_UNUSED, configFilePath,
+                    at.line(), at.column(), at.length(),
+                    "config source `" + source + "` has credentials, but its location is not an http(s) URL"
+                        + " - they are never used"
+                ));
+            }
+        }
+    }
+
     private void checkSources(List<Finding> findings) {
         for (String source : settings.sources()) {
             Position at = sourceNameIn(source);
@@ -365,6 +659,10 @@ public final class RwconfigAnalyzer {
             ));
         }
         checkSources(findings);
+        checkSettings(findings);
+        checkCredentials(findings);
+        checkSecretDefaults(findings);
+        checkChangeDetection(findings, scan);
 
         List<String> commandLineSources = settings.sources().stream()
             .filter(source -> "commandLineArguments".equals(settings.typeOf(source)))
@@ -398,7 +696,8 @@ public final class RwconfigAnalyzer {
 
     private record FileScan(
         boolean instanceGet, boolean instanceSet, boolean createWithArgs, boolean createWithoutArgs,
-        boolean computedName
+        boolean computedName, boolean changeDetectionAsked, boolean listenerAdded,
+        Set<String> listenedSources
     ) {}
 
     private FileScan scan(List<Path> sources, List<Finding> findings, Set<String> readProperties) {
@@ -409,7 +708,7 @@ public final class RwconfigAnalyzer {
         if (sources.isEmpty()) {
             // javac refuses a task with nothing to compile, and a project whose sources have not
             // been found yet is a reason to check the file alone rather than to fail.
-            return new FileScan(false, false, false, false, false);
+            return new FileScan(false, false, false, false, false, false, false, Set.of());
         }
         List<JavaFileObject> files = new ArrayList<>();
         Map<String, Path> pathsByUri = new HashMap<>();
@@ -456,19 +755,25 @@ public final class RwconfigAnalyzer {
         }
 
         Trees trees = Trees.instance(task);
-        FileScan total = new FileScan(false, false, false, false, false);
+        Set<String> listenedSources = new HashSet<>();
+        FileScan total =
+            new FileScan(false, false, false, false, false, false, false, listenedSources);
         for (CompilationUnitTree unit : units) {
             Path source = pathsByUri.getOrDefault(
                 unit.getSourceFile().toUri().toString(), Path.of(unit.getSourceFile().toUri()));
             Visitor visitor = new Visitor(
                 trees, attributed, unit, source, findings, readProperties);
             visitor.scan(unit, null);
+            listenedSources.addAll(visitor.listenedSources);
             total = new FileScan(
                 total.instanceGet | visitor.instanceGet,
                 total.instanceSet | visitor.instanceSet,
                 total.createWithArgs | visitor.createWithArgs,
                 total.createWithoutArgs | visitor.createWithoutArgs,
-                total.computedName | visitor.computedName);
+                total.computedName | visitor.computedName,
+                total.changeDetectionAsked | visitor.changeDetectionAsked,
+                total.listenerAdded | visitor.listenerAdded,
+                listenedSources);
         }
         return total;
     }
@@ -514,6 +819,9 @@ public final class RwconfigAnalyzer {
         boolean createWithArgs;
         boolean createWithoutArgs;
         boolean computedName;
+        boolean changeDetectionAsked;
+        boolean listenerAdded;
+        final Set<String> listenedSources = new HashSet<>();
 
         Visitor(Trees trees, boolean attributed, CompilationUnitTree unit, Path source,
                 List<Finding> findings, Set<String> readProperties) {
@@ -548,6 +856,26 @@ public final class RwconfigAnalyzer {
                 }
                 if (GETTERS.containsKey(method) || NAME_ONLY.contains(method)) {
                     checkGetter(node, method);
+                }
+                if (method.equals("create") && receiver.endsWith("ConfigFactory")) {
+                    // `create(true, args)` or `create("name", true, args)` - a
+                    // literal `true` anywhere in the arguments is the request
+                    for (ExpressionTree argument : node.getArguments()) {
+                        if (argument instanceof LiteralTree literal
+                                && java.lang.Boolean.TRUE.equals(literal.getValue())) {
+                            changeDetectionAsked = true;
+                        }
+                    }
+                }
+                if (method.equals("addChangeListener")) {
+                    listenerAdded = true;
+                    // the three-argument form names a source; the two-argument
+                    // form listens to all of them
+                    if (node.getArguments().size() == 3
+                            && node.getArguments().get(0) instanceof LiteralTree literal
+                            && literal.getValue() instanceof String listened) {
+                        listenedSources.add(listened);
+                    }
                 }
             }
             return super.visitMethodInvocation(node, unused);
@@ -627,22 +955,6 @@ public final class RwconfigAnalyzer {
                 : "";
         }
 
-        private int distance(String a, String b) {
-            int[] previous = new int[b.length() + 1];
-            int[] current = new int[b.length() + 1];
-            for (int j = 0; j <= b.length(); j++) {
-                previous[j] = j;
-            }
-            for (int i = 1; i <= a.length(); i++) {
-                current[0] = i;
-                for (int j = 1; j <= b.length(); j++) {
-                    int cost = a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1;
-                    current[j] = Math.min(Math.min(current[j - 1] + 1, previous[j] + 1), previous[j - 1] + cost);
-                }
-                int[] swap = previous; previous = current; current = swap;
-            }
-            return previous[b.length()];
-        }
 
         /** Anchored on the given tree, so the quoted name is what gets underlined. */
         private Finding finding(com.sun.source.tree.Tree at, Finding.Severity severity, Finding.Rule rule,

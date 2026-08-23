@@ -591,4 +591,208 @@ class RwconfigAnalyzerTest {
             """), Finding.Rule.UNKNOWN_PROPERTY);
         assertEquals(1, findings.size());
     }
+
+    @Nested
+    @DisplayName("library settings, which the library itself accepts without complaint")
+    class LibrarySettings {
+
+        private static final String APP =
+            "class App { void m(net.rabbitware.config.Config c) { c.getInt(\"port\"); } }\n";
+        private static final String BASE =
+            "rwc.sources = f\nrwc.f.type = properties\nrwc.f.location = file:app.properties\n";
+
+        @Test
+        @DisplayName("a misspelled global setting is reported, since it would otherwise do nothing")
+        void unknownSetting() throws IOException {
+            List<Finding> found = of(analyze(
+                BASE + "rwc.changeDetectionPollingIntervals = 500\nint port = 1\n", APP),
+                Finding.Rule.UNKNOWN_SETTING);
+            assertEquals(1, found.size());
+            assertTrue(found.get(0).message().contains("did you mean"), found.get(0).message());
+        }
+
+        @Test
+        @DisplayName("a setting for a source that is not declared")
+        void settingForUnknownSource() throws IOException {
+            List<Finding> found = of(analyze(
+                BASE + "rwc.typo.location = file:x\nint port = 1\n", APP),
+                Finding.Rule.SETTING_FOR_UNKNOWN_SOURCE);
+            assertEquals(1, found.size());
+            assertTrue(found.get(0).message().contains("`typo`"), found.get(0).message());
+        }
+
+        @Test
+        @DisplayName("a setting the source's type has no use for")
+        void settingNotUsedByType() throws IOException {
+            assertEquals(1, of(analyze(
+                BASE + "rwc.f.changeQuery = SELECT 1\nint port = 1\n", APP),
+                Finding.Rule.SETTING_NOT_USED_BY_TYPE).size());
+        }
+
+        @Test
+        @DisplayName("settings every source takes are not reported")
+        void anySourceSettingsAreFine() throws IOException {
+            assertEquals(List.of(), of(analyze(
+                BASE + "rwc.f.ignoreUnknownProperties = true\nrwc.f.secret = true\nint port = 1\n", APP),
+                Finding.Rule.SETTING_NOT_USED_BY_TYPE));
+        }
+
+        @Test
+        @DisplayName("a plugin's settings are not second-guessed - only the plugin knows them")
+        void pluginSettingsAreLeftAlone() throws IOException {
+            assertEquals(List.of(), of(analyze(
+                "rwc.sources = p\nrwc.p.type = json.plugin\nrwc.p.location = file:x\n"
+                + "rwc.p.somethingOnlyThePluginKnows = 1\nint port = 1\n", APP),
+                Finding.Rule.SETTING_NOT_USED_BY_TYPE));
+        }
+    }
+
+    @Nested
+    @DisplayName("change detection, where a mismatch is silent at run time")
+    class ChangeDetection {
+
+        private static final String BASE =
+            "rwc.sources = f\nrwc.f.type = properties\nrwc.f.location = file:app.properties\n";
+        private static final String PLAIN =
+            "class App { void m(net.rabbitware.config.Config c) { c.getInt(\"port\"); } }\n";
+        private static final String ASKS =
+            "import net.rabbitware.config.*;\nclass App { void m(String[] a) {"
+            + " Config c = ConfigFactory.create(true, a); c.getInt(\"port\"); } }\n";
+
+        @Test
+        @DisplayName("a polling interval nothing enables")
+        void intervalWithoutChangeDetection() throws IOException {
+            assertEquals(1, of(analyze(
+                BASE + "rwc.changeDetectionPollingInterval = 500\nint port = 1\n", PLAIN),
+                Finding.Rule.CHANGE_DETECTION_NOT_ENABLED).size());
+        }
+
+        @Test
+        @DisplayName("and none when it is enabled")
+        void intervalWithChangeDetection() throws IOException {
+            assertEquals(List.of(), of(analyze(
+                BASE + "rwc.changeDetectionPollingInterval = 500\nint port = 1\n", ASKS),
+                Finding.Rule.CHANGE_DETECTION_NOT_ENABLED));
+        }
+
+        @Test
+        @DisplayName("a listener on a Config that never asked for change detection throws at startup")
+        void listenerWithoutChangeDetection() throws IOException {
+            List<Finding> found = of(analyze(BASE + "int port = 1\n",
+                "import net.rabbitware.config.*;\nclass App { void m(String[] a) {"
+                + " Config c = ConfigFactory.create(a); c.addChangeListener(\"l\", null);"
+                + " c.getInt(\"port\"); } }\n"),
+                Finding.Rule.LISTENER_WITHOUT_CHANGE_DETECTION);
+            assertEquals(1, found.size());
+            assertEquals(Finding.Severity.ERROR, found.get(0).severity());
+        }
+
+        @Test
+        @DisplayName("a listener for a source that does not exist can never fire")
+        void listenerForUnknownSource() throws IOException {
+            assertEquals(1, of(analyze(BASE + "int port = 1\n",
+                "import net.rabbitware.config.*;\nclass App { void m(String[] a) {"
+                + " Config c = ConfigFactory.create(true, a); c.addChangeListener(\"nosuch\", \"l\", null);"
+                + " c.getInt(\"port\"); } }\n"),
+                Finding.Rule.LISTENER_FOR_UNKNOWN_SOURCE).size());
+        }
+
+        @Test
+        @DisplayName("change detection with nothing that can ever change")
+        void nothingToWatch() throws IOException {
+            assertEquals(1, of(analyze(
+                "rwc.sources = e\nrwc.e.type = environmentVariables\nint port = 1\n", ASKS),
+                Finding.Rule.NOTHING_TO_WATCH).size());
+        }
+
+        @Test
+        @DisplayName("a watchable source means no complaint")
+        void watchableSource() throws IOException {
+            assertEquals(List.of(), of(analyze(BASE + "int port = 1\n", ASKS),
+                Finding.Rule.NOTHING_TO_WATCH));
+        }
+
+        @Test
+        @DisplayName("a jdbc source counts only when it has a change query")
+        void jdbcNeedsAChangeQuery() throws IOException {
+            String withoutQuery = "rwc.sources = d\nrwc.d.type = jdbc.plugin\nrwc.d.connectionString = x\n"
+                + "rwc.d.query = SELECT k,v FROM c\nint port = 1\n";
+            assertEquals(1, of(analyze(withoutQuery, ASKS), Finding.Rule.NOTHING_TO_WATCH).size());
+            assertEquals(List.of(), of(analyze(
+                withoutQuery.replace("int port", "rwc.d.changeQuery = SELECT MAX(u) FROM c\nint port"), ASKS),
+                Finding.Rule.NOTHING_TO_WATCH));
+        }
+    }
+
+    @Nested
+    @DisplayName("credentials and secrets")
+    class Credentials {
+
+        private static final String APP =
+            "class App { void m(net.rabbitware.config.Config c) { c.getInt(\"port\"); } }\n";
+
+        private String source(String location, String extra) {
+            return "rwc.sources = f\nrwc.f.type = properties\nrwc.f.location = " + location + "\n"
+                + extra + "int port = 1\n";
+        }
+
+        @Test
+        @DisplayName("credentials for something that is not a URL are never sent")
+        void credentialsOnAFile() throws IOException {
+            assertEquals(1, of(analyze(
+                source("file:app.properties", "rwc.f.username = u\nrwc.f.password = p\n"), APP),
+                Finding.Rule.CREDENTIALS_UNUSED).size());
+        }
+
+        @Test
+        @DisplayName("credentials over plain http go in the clear")
+        void credentialsOverHttp() throws IOException {
+            assertEquals(1, of(analyze(
+                source("http://host/app.properties", "rwc.f.username = u\nrwc.f.password = p\n"), APP),
+                Finding.Rule.CREDENTIALS_OVER_HTTP).size());
+        }
+
+        @Test
+        @DisplayName("over https they are fine")
+        void credentialsOverHttps() throws IOException {
+            List<Finding> all = analyze(
+                source("https://host/app.properties", "rwc.f.username = u\nrwc.f.password = p\n"), APP);
+            assertEquals(List.of(), of(all, Finding.Rule.CREDENTIALS_OVER_HTTP));
+            assertEquals(List.of(), of(all, Finding.Rule.CREDENTIALS_UNUSED));
+        }
+
+        @Test
+        @DisplayName("a password with no username is rejected at startup")
+        void passwordWithoutUsername() throws IOException {
+            List<Finding> found = of(analyze(
+                source("https://host/app.properties", "rwc.f.password = p\n"), APP),
+                Finding.Rule.PASSWORD_WITHOUT_USERNAME);
+            assertEquals(1, found.size());
+            assertEquals(Finding.Severity.ERROR, found.get(0).severity());
+        }
+
+        @Test
+        @DisplayName("a secret-looking property with a default is a credential in a committed file")
+        void secretDefaultInFile() throws IOException {
+            assertEquals(1, of(analyze(
+                source("file:app.properties", "string dbPassword = hunter2\n"), APP),
+                Finding.Rule.SECRET_DEFAULT_IN_FILE).size());
+        }
+
+        @Test
+        @DisplayName("a secret with no default is exactly right, and not reported")
+        void secretWithoutADefault() throws IOException {
+            assertEquals(List.of(), of(analyze(
+                source("file:app.properties", "string dbPassword\n"), APP),
+                Finding.Rule.SECRET_DEFAULT_IN_FILE));
+        }
+
+        @Test
+        @DisplayName("an ordinary property with a default is not reported")
+        void ordinaryDefault() throws IOException {
+            assertEquals(List.of(), of(analyze(
+                source("file:app.properties", "string hostname = localhost\n"), APP),
+                Finding.Rule.SECRET_DEFAULT_IN_FILE));
+        }
+    }
 }

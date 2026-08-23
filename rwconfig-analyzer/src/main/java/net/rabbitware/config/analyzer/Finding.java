@@ -29,7 +29,18 @@ public record Finding(
         COMMAND_LINE_SOURCE_WITHOUT_ARGS,
         UNREAD_PROPERTY,
         SOURCE_WITHOUT_TYPE,
-        SOURCE_MISSING_SETTING;
+        SOURCE_MISSING_SETTING,
+        UNKNOWN_SETTING,
+        SETTING_FOR_UNKNOWN_SOURCE,
+        SETTING_NOT_USED_BY_TYPE,
+        CHANGE_DETECTION_NOT_ENABLED,
+        LISTENER_WITHOUT_CHANGE_DETECTION,
+        LISTENER_FOR_UNKNOWN_SOURCE,
+        NOTHING_TO_WATCH,
+        CREDENTIALS_UNUSED,
+        CREDENTIALS_OVER_HTTP,
+        PASSWORD_WITHOUT_USERNAME,
+        SECRET_DEFAULT_IN_FILE;
 
         /** The name used in configuration, e.g. `unknown-property`. */
         public String id() {
