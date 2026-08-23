@@ -1,5 +1,6 @@
 package net.rabbitware.config.plugin.api;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -151,8 +152,16 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
             filePath.getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
         } else if (resourceLocation.startsWith("http:") || resourceLocation.startsWith("https:")) { // use timestamps
             url = URI.create(resourceLocation).toURL();
-            URLConnection connection = url.openConnection();
-            lastModifiedTime = connection.getLastModified();
+            lastModifiedTime = fetchLastModified();
+            if (lastModifiedTime == 0) {
+                // Nothing to compare against, and nothing will ever differ from
+                // it - so say so now rather than letting the source look stable
+                // forever.
+                logger.warn(
+                    "`{}` did not report a Last-Modified header, so changes to it cannot be detected",
+                    location
+                );
+            }
         } else {
             throw new Exception("unsupported location: " + location);
         }
@@ -211,8 +220,7 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
                 return false; // not enough time has passed since the last check
             }
             logger.trace("checking HTTP/HTTPS resource at location `{}` for changes", location);
-            URLConnection connection = url.openConnection();
-            long urlModifiedTime = connection.getLastModified();
+            long urlModifiedTime = fetchLastModified();
             if (urlModifiedTime > lastModifiedTime) {
                 logger.debug("HTTP/HTTPS resource at location `{}` has changed", location);
                 lastModifiedTime = urlModifiedTime;
@@ -227,6 +235,50 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
         }
     }
 
+
+    /**
+     * Ask the server when the watched resource last changed.
+     *
+     * <p>Uses {@code HEAD}: the only thing wanted is the {@code Last-Modified}
+     * header, and this runs on every polling cycle for the life of the process -
+     * a {@code GET} would have the body sent and discarded every time.
+     *
+     * <p>The timeouts matter more here than they do when loading. Loading
+     * happens once, where a hang is at least visible; this runs on the polling
+     * thread, which checks every source of a config in turn, so one unresponsive
+     * URL would quietly stop change detection for all of them. Java's default is
+     * to wait forever.
+     *
+     * @return
+     * the time the server reports, or 0 if it does not report one
+     * @throws Exception
+     * if the resource cannot be reached
+     */
+    private long fetchLastModified() throws Exception {
+        URLConnection connection = url.openConnection();
+        connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
+        connection.setReadTimeout(READ_TIMEOUT_MILLIS);
+        if (connection instanceof HttpURLConnection httpConnection) {
+            httpConnection.setRequestMethod("HEAD");
+        }
+        try {
+            if (connection instanceof HttpURLConnection httpConnection) {
+                // Forces the request and reports a failure. `getLastModified`
+                // alone swallows the IOException and answers 0, which is
+                // indistinguishable from a server that simply does not send the
+                // header - so a URL that has stopped responding would look
+                // unchanged forever instead of raising an error event.
+                httpConnection.getResponseCode();
+            }
+            return connection.getLastModified();
+        } finally {
+            // Nothing reads the body, so without this the connection is left in
+            // the keep-alive pool with a response still pending on it.
+            if (connection instanceof HttpURLConnection httpConnection) {
+                httpConnection.disconnect();
+            }
+        }
+    }
 
     /**
      * Get the value of the `location` property.

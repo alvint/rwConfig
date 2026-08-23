@@ -264,6 +264,13 @@ Three things to know before relying on it:
   what you want, but it does make the config server something your application
   cannot start without - give it a local file earlier in `rwc.sources` if you
   would rather degrade than fail.
+- **Change detection asks the server, and needs it to answer.** A watched URL is
+  checked with a `HEAD` request and its `Last-Modified` header compared with the
+  last one seen. A server that does not send that header cannot be watched - the
+  source is reported as unchanged forever - so a warning is logged at startup
+  when the first check finds no header. The same 10 second timeouts apply, so an
+  endpoint that stops responding raises an error event rather than blocking the
+  polling thread.
 - **No credentials are sent.** There is no setting for a header or a token, so
   this suits an endpoint your network already protects. An endpoint that needs
   authentication needs a [plugin](writing-a-plugin.md) that can supply it.
@@ -393,7 +400,7 @@ which type it is:
 | database sources via the provided `database` plugin | yes |
 | file-based sources (`.properties` files, HOCON, YAML, etc.) on a `file:` location | yes |
 | the same on a `jar:file:` location | yes - the jar is watched |
-| the same on an `http:` or `https:` location | yes, by polling |
+| the same on an `http:` or `https:` location | yes - a `HEAD` request, comparing `Last-Modified` |
 | the same on a `classpath:` location | no |
 | `dotenv` on a watchable location | yes - it is a file like any other |
 | `jdbc.plugin` | only with a `changeQuery` - see [PLUGINS.md](../PLUGINS.md#jdbc-jdbcplugin) |
