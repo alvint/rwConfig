@@ -192,4 +192,45 @@ class DotEnvPluginTest {
             assertEquals(Map.of("A", "$OTHER"), parse("A=\"$OTHER\"\n"));
         }
     }
+
+    @Nested
+    @DisplayName("optional HTTP credentials, which every location-based source shares")
+    class Credentials {
+
+        private DotEnvPlugin configured(Map<String, String> properties) throws Exception {
+            DotEnvPlugin plugin = new DotEnvPlugin(java.util.Set.of());
+            plugin.setSourceName("s");
+            plugin.setPluginProperties(properties);
+            return plugin;
+        }
+
+        @Test
+        @DisplayName("`username` and `password` are optional properties")
+        void listedAsOptional() throws Exception {
+            java.util.Set<String> optional =
+                configured(Map.of("location", "file:/tmp/x")).getOptionalPluginPropertyNames();
+            assertTrue(optional.contains("username"), optional.toString());
+            assertTrue(optional.contains("password"), optional.toString());
+        }
+
+        @Test
+        @DisplayName("neither is required")
+        void bothOptional() throws Exception {
+            configured(Map.of("location", "file:/tmp/x"));   // no exception
+        }
+
+        @Test
+        @DisplayName("a password without a username is refused, since it would never be sent")
+        void passwordWithoutUsername() {
+            Exception e = assertThrows(Exception.class,
+                () -> configured(Map.of("location", "file:/tmp/x", "password", "secret")));
+            assertTrue(e.getMessage().contains("without a `username`"), e.getMessage());
+        }
+
+        @Test
+        @DisplayName("a username with no password is allowed - some endpoints want an empty one")
+        void usernameWithoutPassword() throws Exception {
+            configured(Map.of("location", "file:/tmp/x", "username", "alvin"));
+        }
+    }
 }

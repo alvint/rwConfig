@@ -55,7 +55,7 @@ public class PrefixPlugin extends LocationBasedConfigSourcePlugin {
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
         logger.debug("loading resource from location: {}", getLocation());
-        String sourceContent = LocationBasedConfigSourcePlugin.loadResource(getLocation());
+        String sourceContent = loadLocation();
         Properties properties = new Properties();
         try (StringReader reader = new StringReader(sourceContent)) {
             properties.load(reader);

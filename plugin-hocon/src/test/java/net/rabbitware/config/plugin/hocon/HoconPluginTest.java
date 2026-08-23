@@ -340,7 +340,10 @@ class HoconPluginTest {
         void requiredAndOptionalPropertyNames() {
             HoconPlugin plugin = new HoconPlugin();
             assertEquals(java.util.Set.of("location"), plugin.getRequiredPluginPropertyNames());
-            assertTrue(plugin.getOptionalPluginPropertyNames().isEmpty());
+            // inherited from LocationBasedConfigSourcePlugin: a source with a
+            // location can also be given HTTP credentials for it
+            assertEquals(
+                java.util.Set.of("username", "password"), plugin.getOptionalPluginPropertyNames());
         }
 
         @Test

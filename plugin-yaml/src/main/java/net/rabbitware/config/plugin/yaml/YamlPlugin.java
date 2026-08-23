@@ -49,7 +49,7 @@ public class YamlPlugin extends LocationBasedConfigSourcePlugin {
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
         logger.debug("loading resource from location: {}", getLocation());
-        String sourceContent = LocationBasedConfigSourcePlugin.loadResource(getLocation());
+        String sourceContent = loadLocation();
         // parse the YAML content and flatten it into a map of properties
         LoadSettings settings = LoadSettings.builder().setLabel("rwConfig YAML plugin").build();
         Load load = new Load(settings);

@@ -33,7 +33,7 @@ public class HoconPlugin extends LocationBasedConfigSourcePlugin {
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
         logger.debug("loading HOCON source from location: {}", getLocation());
-        String sourceContent = LocationBasedConfigSourcePlugin.loadResource(getLocation());
+        String sourceContent = loadLocation();
         // parse the HOCON content and flatten it into a map of properties
         Config config = ConfigFactory.parseString(sourceContent);
         config = config.resolve();

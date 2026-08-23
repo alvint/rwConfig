@@ -63,7 +63,9 @@ class PrefixPluginTest {
     void theRequiredPropertiesAreDeclared() {
         PrefixPlugin plugin = new PrefixPlugin();
         assertEquals(java.util.Set.of("mediaType", "location"), plugin.getRequiredPluginPropertyNames());
-        assertEquals(java.util.Set.of(), plugin.getOptionalPluginPropertyNames());
+        // inherited from LocationBasedConfigSourcePlugin: any source that takes a
+        // location can also be given HTTP credentials for it
+        assertEquals(java.util.Set.of("username", "password"), plugin.getOptionalPluginPropertyNames());
     }
 
     @Test

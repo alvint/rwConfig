@@ -65,7 +65,7 @@ public class DotEnvPlugin extends LocationBasedConfigSourcePlugin {
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
         logger.debug("loading dotenv source from location: {}", getLocation());
-        Map<String, String> entries = parse(LocationBasedConfigSourcePlugin.loadResource(getLocation()));
+        Map<String, String> entries = parse(loadLocation());
 
         Map<String, String> out = new HashMap<>();
         Set<String> consumed = new java.util.HashSet<>();

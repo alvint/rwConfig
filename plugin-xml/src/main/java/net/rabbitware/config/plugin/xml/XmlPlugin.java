@@ -29,7 +29,7 @@ public class XmlPlugin extends LocationBasedConfigSourcePlugin {
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
         logger.debug("loading resource from location: {}", getLocation());
-        String sourceContent = LocationBasedConfigSourcePlugin.loadResource(getLocation());
+        String sourceContent = loadLocation();
         // parse the XML content into a JSON object and flatten it into a map of properties
         JSONObject json = XML.toJSONObject(sourceContent);
         logger.info("loaded XML content from source: {}", getSourceName());

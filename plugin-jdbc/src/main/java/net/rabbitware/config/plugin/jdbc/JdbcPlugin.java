@@ -152,7 +152,9 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public void setPluginProperties(Map<String, String> properties) throws Exception {
-        logger.info("setting plugin properties: {}", properties);
+        // The map holds the database password. Logging it whole would put a
+        // credential in every log file that ever captured a startup.
+        logger.info("setting plugin properties: {}", withoutSecrets(properties));
         // set and validate required properties
         connectionString = properties.get("connectionString");
         if (connectionString == null || connectionString.isBlank()) {
@@ -168,6 +170,13 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
         if (changeQuery != null && changeQuery.isBlank()) {
             throw new Exception("`changeQuery` is set but empty - remove it, or give it a query");
         }
+    }
+
+    /** The properties, with the password replaced, for logging. */
+    private static Map<String, String> withoutSecrets(Map<String, String> properties) {
+        Map<String, String> safe = new java.util.LinkedHashMap<>(properties);
+        safe.replaceAll((key, value) -> "password".equals(key) ? "****" : value);
+        return safe;
     }
 
     @Override

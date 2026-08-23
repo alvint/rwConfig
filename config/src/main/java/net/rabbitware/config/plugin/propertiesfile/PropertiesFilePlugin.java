@@ -18,7 +18,7 @@ public class PropertiesFilePlugin extends LocationBasedConfigSourcePlugin{
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
         logger.debug("loading properties source from location: {}", getLocation());
-        String sourceContent = LocationBasedConfigSourcePlugin.loadResource(getLocation());
+        String sourceContent = loadLocation();
         Properties properties = new Properties();
         properties.load(new StringReader(sourceContent));
         Map<String, String> out = properties.stringPropertyNames().stream()

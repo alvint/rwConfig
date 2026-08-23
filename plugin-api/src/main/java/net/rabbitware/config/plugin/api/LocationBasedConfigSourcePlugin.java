@@ -5,6 +5,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
@@ -64,6 +65,8 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
 
     private String sourceName;
     private String location;
+    private String username;
+    private String password;
 
     @Override
     public void setSourceName(String sourceName) {
@@ -103,7 +106,7 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
      */
     @Override
     public Set<String> getOptionalPluginPropertyNames() {
-        return Set.of();
+        return Set.of("username", "password");
     }
 
     /**
@@ -116,13 +119,27 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
      */
     @Override
     public void setPluginProperties(Map<String, String> properties) throws Exception {
-        logger.debug("setting plugin properties: {}", properties);
+        logger.debug("setting plugin properties: {}", withoutSecrets(properties));
         location = properties.get("location");
         if (location == null || location.isBlank()) {
             throw new Exception("missing required property: location");
         }
         if (!LocationBasedConfigSourcePlugin.isSupportedLocation(location)) {
             throw new Exception("unsupported location: " + location);
+        }
+        username = properties.get("username");
+        password = properties.get("password");
+        if (username == null && password != null) {
+            throw new Exception("`password` is set without a `username`");
+        }
+        if (username != null && location.startsWith("http:")) {
+            // Basic authentication is the credentials in base64, which is
+            // encoding rather than encryption. Warned rather than refused,
+            // because plain HTTP inside a trusted network is a real deployment.
+            logger.warn(
+                "credentials for `{}` will be sent unencrypted - `http:` offers no protection, use `https:`",
+                location
+            );
         }
     }
 
@@ -258,6 +275,7 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
         URLConnection connection = url.openConnection();
         connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
         connection.setReadTimeout(READ_TIMEOUT_MILLIS);
+        applyCredentials(connection, username, password);
         if (connection instanceof HttpURLConnection httpConnection) {
             httpConnection.setRequestMethod("HEAD");
         }
@@ -278,6 +296,36 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
                 httpConnection.disconnect();
             }
         }
+    }
+
+    /**
+     * Load this source's location, with whatever credentials it was given.
+     *
+     * <p>Subclasses should call this rather than {@link #loadResource(String)}:
+     * the static form has no source to take credentials from, so a `username`
+     * set in the `rwconfig` file would be silently ignored.
+     *
+     * @return
+     * the contents of the location
+     * @throws Exception
+     * if the location cannot be read
+     */
+    protected String loadLocation() throws Exception {
+        return loadResource(location, username, password);
+    }
+
+    /** Property names whose values are never logged. */
+    private static final Set<String> SECRET_PROPERTY_NAMES = Set.of("password");
+
+    /**
+     * The properties, with anything secret replaced. Plugin properties are
+     * logged to help with a source that will not load, and a password in a log
+     * file outlives the problem it was printed for.
+     */
+    private static Map<String, String> withoutSecrets(Map<String, String> properties) {
+        Map<String, String> safe = new java.util.LinkedHashMap<>(properties);
+        safe.replaceAll((key, value) -> SECRET_PROPERTY_NAMES.contains(key) ? "****" : value);
+        return safe;
     }
 
     /**
@@ -331,6 +379,24 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
      * if an error occurs while loading the resource
      */
     public static String loadResource(String location) throws Exception {
+        return loadResource(location, null, null);
+    }
+
+    /**
+     * Load a resource, sending HTTP basic credentials if a username is given.
+     *
+     * @param location
+     * where to load from
+     * @param username
+     * the user to authenticate as, or null for no authentication
+     * @param password
+     * that user's password, or null for an empty one
+     * @return
+     * the contents of the location
+     * @throws Exception
+     * if the location cannot be read
+     */
+    public static String loadResource(String location, String username, String password) throws Exception {
         URL url;
         // check if the location has a `classpath:` prefix - if so, remove it
         // and load the resource from the classpath
@@ -363,6 +429,7 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
         URLConnection connection = url.openConnection();
         connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
         connection.setReadTimeout(READ_TIMEOUT_MILLIS);
+        applyCredentials(connection, username, password);
         try (InputStream in = connection.getInputStream()) {
             // check if the resource is readable
             if (in == null) {
@@ -435,6 +502,22 @@ public abstract class LocationBasedConfigSourcePlugin implements SimpleConfigSou
     //
     // private helper methods
     //
+
+    /**
+     * Add an HTTP basic {@code Authorization} header, when there is a user to
+     * authenticate as. Set on any connection: protocols that do not understand
+     * request properties ignore it.
+     */
+    private static void applyCredentials(URLConnection connection, String username, String password) {
+        if (username == null) {
+            return;
+        }
+        String credentials = username + ":" + (password == null ? "" : password);
+        connection.setRequestProperty(
+            "Authorization",
+            "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8))
+        );
+    }
 
     private static String stripJarStuff(String location) {
         if (location.startsWith("jar:")) {

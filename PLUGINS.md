@@ -39,6 +39,11 @@ All artifacts are in the `net.rabbitware.config` group.
 > [`changeQuery`](#jdbc-jdbcplugin). See [Which sources can be
 > watched](docs/config-sources.md#which-sources-can-be-watched).
 
+> **Every source that takes a `location` also takes an optional `username` and
+> `password`**, used for HTTP basic authentication when the location is an
+> http(s) URL. See [Loading config over
+> HTTP](docs/config-sources.md#loading-config-over-http).
+
 ## Using a Plugin
 A plugin is just another config source. Name it in `rwc.sources`, give it
 a `type`, and set whatever properties that type requires:

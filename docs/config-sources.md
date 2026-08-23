@@ -271,9 +271,26 @@ Three things to know before relying on it:
   when the first check finds no header. The same 10 second timeouts apply, so an
   endpoint that stops responding raises an error event rather than blocking the
   polling thread.
-- **No credentials are sent.** There is no setting for a header or a token, so
-  this suits an endpoint your network already protects. An endpoint that needs
-  authentication needs a [plugin](writing-a-plugin.md) that can supply it.
+- **Credentials are optional.** An endpoint behind HTTP basic authentication
+  takes a `username` and a `password`:
+
+  ```
+  rwc.remote.type = json.plugin
+  rwc.remote.location = https://config.internal/app.json
+  rwc.remote.username = config-reader
+  rwc.remote.password = <<
+  ```
+
+  Both are optional and available on every source that takes a `location`. The
+  password should be a [deferred value](#keeping-secrets-out-of-shared-files),
+  as above, rather than written in a file that gets committed. Setting a
+  `password` without a `username` is an error, since it would never be sent.
+
+  Only basic authentication is supported, and only over `https:`, in practice:
+  the credentials are base64, which is encoding and not encryption, so rwConfig
+  logs a warning if you send them over plain `http:`. Anything else - a bearer
+  token, mTLS, a signed request - needs a [plugin](writing-a-plugin.md) that can
+  supply it.
 
 ## Keeping secrets out of shared files
 
