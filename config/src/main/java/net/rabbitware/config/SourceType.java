@@ -5,7 +5,8 @@ enum SourceType {
     SYSTEM_PROPERTIES("systemProperties"),
     ENVIRONMENT_VARIABLES("environmentVariables"),
     PROPERTIES("properties"),
-    DIRECTORY("directory");
+    DIRECTORY("directory"),
+    DOTENV("dotenv");
 
     public final String name;
     private static final java.util.Map<String, SourceType> nameToTypeMap = new java.util.HashMap<>();

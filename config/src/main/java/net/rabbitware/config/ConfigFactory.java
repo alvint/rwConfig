@@ -20,6 +20,7 @@ import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
 import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 import net.rabbitware.config.plugin.commandline.CommandLinePlugin;
 import net.rabbitware.config.plugin.directory.DirectoryPlugin;
+import net.rabbitware.config.plugin.dotenv.DotEnvPlugin;
 import net.rabbitware.config.plugin.environmentvariables.EnvironmentVariablesPlugin;
 import net.rabbitware.config.plugin.propertiesfile.PropertiesFilePlugin;
 import net.rabbitware.config.plugin.systemproperties.SystemPropertiesPlugin;
@@ -396,6 +397,10 @@ public class ConfigFactory {
                     plugin = new PropertiesFilePlugin();
                 } else if (type.equals("directory")) {
                     plugin = new DirectoryPlugin();
+                } else if (type.equals("dotenv")) {
+                    // needs the declared names, so that `dbHost` can be
+                    // satisfied by a `DB_HOST` in the file
+                    plugin = new DotEnvPlugin(propertyInfoMap.keySet());
                 } else { // external plugin
                     plugin = loadPluginByModule(type);
                 }

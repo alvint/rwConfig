@@ -93,12 +93,30 @@ public class EnvironmentVariablesPlugin implements SimpleConfigSourcePlugin {
     public static String getEnvironmentVariable(String propertyName) {
         String value = System.getenv(propertyName); // try to get the property value from the environment variables
         if (value == null) { // not found - retry after converting the property name to an environment variable name
-            String envName = propertyName
-                .replaceAll("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[\\.-]", "_")
-                .toUpperCase();
-            value = System.getenv(envName);
+            value = System.getenv(toEnvironmentVariableName(propertyName));
         }
         return value;
+    }
+
+    /**
+     * Convert a property name to the environment variable name it conventionally
+     * corresponds to: {@code dbHost} becomes {@code DB_HOST}. The word boundaries
+     * of camel case become underscores, as do dots and dashes, and the result is
+     * upper cased.
+     *
+     * <p>Public because a {@code .env} file stands in for the environment, and
+     * has to resolve names the same way this does or the two would disagree
+     * about what {@code dbHost} is called.
+     *
+     * @param propertyName
+     * the property name to convert
+     * @return
+     * the conventional environment variable name for it
+     */
+    public static String toEnvironmentVariableName(String propertyName) {
+        return propertyName
+            .replaceAll("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[\\.-]", "_")
+            .toUpperCase();
     }
 
 

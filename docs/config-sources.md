@@ -111,6 +111,51 @@ to them) are read; a file that cannot be read is an error.
 
 Note this takes `path`, a plain filesystem path, not a `location`.
 
+### `dotenv`
+
+A `.env` file - the `KEY=value` format Docker Compose, container runtimes, and
+local development tooling all use.
+
+```
+rwc.local.type = dotenv
+rwc.local.location = file:.env
+```
+
+A `.env` file stands in for the environment, so names resolve the way
+[`environmentVariables`](#environmentvariables) resolves them: a property
+declared as `dbHost` is satisfied by `DB_HOST`, and by `dbHost` if that is what
+the file happens to call it. Keys the file contains that no declaration claims
+are passed through under their own names, so a typo in the file is still
+reported as an unknown property rather than quietly ignored.
+
+The format has no specification and implementations disagree at the edges. These
+rules follow Docker Compose, which is the dialect most likely to have produced
+the file:
+
+```
+# a comment
+export DB_HOST=prod.example.com     # `export` is allowed, and ignored
+DB_PORT = 5432                      # space around the `=` and value is ignored
+PASSWORD=pa#ssword                  # a `#` not preceded by a space is part of the value
+NOTE=value # this is a comment      # one that is preceded by a space is not
+LITERAL='no \n escapes here'        # single quotes are literal
+ESCAPED="a\tb"                      # double quotes process \n \r \t \\ and quotes
+PADDED="  kept  "                   # quotes preserve spaces the value should have
+CERT="line one
+line two"                           # a quoted value may span lines
+```
+
+Two things it will not do:
+
+- **Variables are not expanded.** `KEY=${OTHER}` is the literal text
+  `${OTHER}`. Docker Compose expands them; rwConfig layers sources and has
+  [deferred values](#keeping-secrets-out-of-shared-files) for this, and a value
+  that quietly means something else depending on the environment is what this
+  library exists to prevent.
+- **It does not guess at a broken file.** A line that is not blank, a comment,
+  or an assignment is an error naming the line, as is a quote that is never
+  closed - rather than a value silently truncated at the end of the line.
+
 ### Plugin types
 
 Anything with a dot in the type name is a plugin:
@@ -350,6 +395,7 @@ which type it is:
 | the same on a `jar:file:` location | yes - the jar is watched |
 | the same on an `http:` or `https:` location | yes, by polling |
 | the same on a `classpath:` location | no |
+| `dotenv` on a watchable location | yes - it is a file like any other |
 | `jdbc.plugin` | only with a `changeQuery` - see [PLUGINS.md](../PLUGINS.md#jdbc-jdbcplugin) |
 | `environmentVariables`, `systemProperties`, `commandLineArguments` | no |
 

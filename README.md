@@ -107,8 +107,8 @@ look at the [takeaway](benchmark/README.md).
   for properties that no declaration mentions are caught as you write your code.
 - **All of your config sources in one place** - get all of your config info
   through one interface with built-in support for command line arguments,
-  environment variables, system properties, `.properties` files, Kubernetes
-  secrets and config maps, and directories. Plus YAML, JSON, XML, HOCON, and
+  environment variables, system properties, `.properties` files, `.env` files,
+  Kubernetes secrets and config maps, and directories. Plus YAML, JSON, XML, HOCON, and
   databases via the bundled plugins. File-based sources can load from the file
   system, a `jar`, http(s), or the classpath.
   

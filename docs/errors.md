@@ -197,3 +197,21 @@ configuration problem rather than something to discover later.
 Logged, not thrown, while a `Config` is being discarded. The discard finishes
 either way. It means a source could not release whatever it was watching, which
 generally means it had already gone.
+
+## `.env` files
+
+### `line N is not a comment or a \`KEY=value\` assignment`
+
+A line in a [`dotenv`](config-sources.md#dotenv) source is none of the three
+things a line may be. The line number is the file's, counting from one.
+
+### `the value starting on line N opens with " and is never closed`
+
+A quoted value has no closing quote anywhere in the rest of the file. Reported
+rather than truncated at the end of the line, because a value that silently
+loses its tail is worse than one that fails.
+
+### `line N has text after the closing "`
+
+Something follows a quoted value that is not a comment. Either it belongs inside
+the quotes, or it needs a `#`.
