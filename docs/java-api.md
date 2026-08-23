@@ -158,6 +158,7 @@ A source can be watched only if its location can be:
 | a `jar:file:` location | yes - the jar itself is watched |
 | an `http:` or `https:` location | yes, by polling `Last-Modified` |
 | a `classpath:` location | no - it cannot change while the JVM runs |
+| a `jdbc.plugin` source | only if it declares a `changeQuery` |
 | `environmentVariables`, `systemProperties`, `commandLineArguments` | no - fixed at startup |
 
 Sources that cannot be watched are simply never reported as changed. Nothing

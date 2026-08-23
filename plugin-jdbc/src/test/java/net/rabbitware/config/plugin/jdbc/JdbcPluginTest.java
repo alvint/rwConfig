@@ -14,6 +14,7 @@ import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -96,7 +97,7 @@ class JdbcPluginTest {
     void theDeclaredRequiredAndOptionalProperties() {
         JdbcPlugin plugin = new JdbcPlugin();
         assertEquals(Set.of("connectionString", "query"), plugin.getRequiredPluginPropertyNames());
-        assertEquals(Set.of("username", "password"), plugin.getOptionalPluginPropertyNames());
+        assertEquals(Set.of("username", "password", "changeQuery"), plugin.getOptionalPluginPropertyNames());
     }
 
     @Test
@@ -146,5 +147,111 @@ class JdbcPluginTest {
     @Test
     void theVersionIsReported() {
         assertTrue(new JdbcPlugin().getPluginVersion() != null);
+    }
+
+    @Nested
+    @DisplayName("change detection through an optional `changeQuery`")
+    class ChangeDetection {
+
+        private JdbcPlugin plugin(String changeQuery) throws Exception {
+            JdbcPlugin plugin = new JdbcPlugin();
+            plugin.setSourceName("db");
+            Map<String, String> properties = new HashMap<>(Map.of(
+                "connectionString", URL,
+                "query", "SELECT property_key, property_value FROM config_properties",
+                "username", USER,
+                "password", PASSWORD));
+            if (changeQuery != null) {
+                properties.put("changeQuery", changeQuery);
+            }
+            plugin.setPluginProperties(properties);
+            return plugin;
+        }
+
+        private void execute(String sql) throws Exception {
+            try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+                 Statement statement = connection.createStatement()) {
+                statement.execute(sql);
+            }
+        }
+
+        @Test
+        @DisplayName("is unsupported without one - a database cannot be asked portably")
+        void unsupportedWithoutAChangeQuery() throws Exception {
+            assertEquals(false, plugin(null).isChangeDetectionSupported());
+        }
+
+        @Test
+        @DisplayName("is supported with one")
+        void supportedWithAChangeQuery() throws Exception {
+            assertEquals(true,
+                plugin("SELECT COUNT(*) FROM config_properties").isChangeDetectionSupported());
+        }
+
+        @Test
+        @DisplayName("`changeQuery` is listed as an optional property")
+        void listedAsOptional() throws Exception {
+            assertTrue(plugin(null).getOptionalPluginPropertyNames().contains("changeQuery"));
+        }
+
+        @Test
+        @DisplayName("an empty `changeQuery` is rejected rather than quietly ignored")
+        void emptyChangeQueryIsRejected() {
+            JdbcPlugin plugin = new JdbcPlugin();
+            Exception e = assertThrows(Exception.class, () -> plugin.setPluginProperties(Map.of(
+                "connectionString", URL,
+                "query", "SELECT property_key, property_value FROM config_properties",
+                "changeQuery", "   ")));
+            assertTrue(e.getMessage().contains("changeQuery"), e.getMessage());
+        }
+
+        @Test
+        @DisplayName("nothing changed means no change reported")
+        void quietWhenNothingChanges() throws Exception {
+            JdbcPlugin plugin = plugin("SELECT COUNT(*) FROM config_properties");
+            plugin.startChangeDetection();
+            assertEquals(false, plugin.isChanged());
+            assertEquals(false, plugin.isChanged());
+        }
+
+        @Test
+        @DisplayName("a row added is a change, reported once")
+        void aChangeIsReportedOnce() throws Exception {
+            JdbcPlugin plugin = plugin("SELECT COUNT(*) FROM config_properties");
+            plugin.startChangeDetection();
+
+            execute("INSERT INTO config_properties VALUES ('added', 'value')");
+
+            assertEquals(true, plugin.isChanged(), "the insert should be noticed");
+            assertEquals(false, plugin.isChanged(),
+                "and reported once - otherwise every poll fires until something rebuilds");
+        }
+
+        @Test
+        @DisplayName("a value edited is a change when the query looks at values")
+        void anEditedValueIsSeen() throws Exception {
+            // COUNT(*) would miss this, which is why the query is the user's to write
+            JdbcPlugin plugin = plugin("SELECT MAX(property_value) FROM config_properties");
+            plugin.startChangeDetection();
+
+            execute("UPDATE config_properties SET property_value = 'zzz-changed' WHERE property_key = 'greeting'");
+
+            assertEquals(true, plugin.isChanged());
+        }
+
+        @Test
+        @DisplayName("starting without a change query is refused")
+        void startingUnsupportedDetectionIsRefused() throws Exception {
+            JdbcPlugin plugin = plugin(null);
+            assertThrows(IllegalStateException.class, plugin::startChangeDetection);
+        }
+
+        @Test
+        @DisplayName("a change query returning no rows is stable, not a change")
+        void emptyResultIsStable() throws Exception {
+            JdbcPlugin plugin = plugin("SELECT property_value FROM config_properties WHERE property_key = 'nope'");
+            plugin.startChangeDetection();
+            assertEquals(false, plugin.isChanged());
+        }
     }
 }

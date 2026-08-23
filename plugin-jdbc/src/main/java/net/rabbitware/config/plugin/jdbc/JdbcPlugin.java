@@ -41,6 +41,16 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
     private String username;
     private String password;
 
+    /**
+     * An optional query whose result says whether the config has changed - see
+     * {@link #isChanged()}. This is ull when the source was declared without
+     * one, which is what makes change detection unsupported for this source.
+     */
+    private String changeQuery;
+
+    /** The last value {@code changeQuery} returned, or null before the first check. */
+    private String lastChangeValue;
+
     public JdbcPlugin() {
         logger.info("JDBC plugin instantiated");
     } 
@@ -57,24 +67,77 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
         return sourceName;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Supported only when the source declares a {@code changeQuery}. There is
+     * no portable way to ask a database whether a table has changed; the answer
+     * has to come either from something vendor-specific or from the data
+     * itself.
+     */
     @Override
     public boolean isChangeDetectionSupported() {
-        return false;
+        return changeQuery != null;
     }
 
     @Override
     public void startChangeDetection() throws Exception {
-        // logger.info("JDBC plugin started change detection");
+        if (changeQuery == null) {
+            throw new IllegalStateException("change detection needs a `changeQuery` property");
+        }
+        // take the reading the first check will be compared against, so that a
+        // value which has not changed since startup is not reported as a change
+        lastChangeValue = runChangeQuery();
+        logger.debug("change detection started for source `{}`, initial value: {}", sourceName, lastChangeValue);
     }
 
     @Override
     public void stopChangeDetection() throws Exception {
-        // logger.info("JDBC plugin stopped change detection");
+        lastChangeValue = null;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Run the {@code changeQuery} and compares its result with the previous
+     * one. The new value is kept whether or not it differs, so a change is
+     * reported once rather than on every poll.
+     */
     @Override
-    public boolean isChanged() {
-        return false;
+    public boolean isChanged() throws Exception {
+        String current = runChangeQuery();
+        boolean changed = !java.util.Objects.equals(current, lastChangeValue);
+        if (changed) {
+            logger.debug(
+                "source `{}` changed - change query returned `{}`, was `{}`", sourceName, current, lastChangeValue
+            );
+        }
+        lastChangeValue = current;
+        return changed;
+    }
+
+    /**
+     * Run the change query and return its first column of its first row as
+     * text.
+     * <p>
+     * Read as a string whatever the column's type, because the value is only
+     * ever compared with the previous one - a timestamp, a row count, a version
+     * number and a checksum all work, and none of them needs interpreting.
+     *
+     * @return
+     * the value, or null if the query returned no rows
+     * @throws Exception
+     * if the query cannot be run
+     */
+    private String runChangeQuery() throws Exception {
+        try (var connection = DriverManager.getConnection(connectionString, username, password);
+             var statement = connection.prepareStatement(changeQuery);
+             var resultSet = statement.executeQuery()) {
+            if (!resultSet.next()) {
+                return null; // an empty result is a legitimate answer, and a stable one
+            }
+            return resultSet.getString(1);
+        }
     }
 
     @Override
@@ -84,7 +147,7 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public Set<String> getOptionalPluginPropertyNames() {
-        return Set.of("username", "password"); // optional properties for JDBC plugin
+        return Set.of("username", "password", "changeQuery"); // optional properties for JDBC plugin
     }
 
     @Override
@@ -101,6 +164,10 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
         }
         username = properties.get("username");
         password = properties.get("password");
+        changeQuery = properties.get("changeQuery");
+        if (changeQuery != null && changeQuery.isBlank()) {
+            throw new Exception("`changeQuery` is set but empty - remove it, or give it a query");
+        }
     }
 
     @Override

@@ -350,6 +350,7 @@ which type it is:
 | the same on a `jar:file:` location | yes - the jar is watched |
 | the same on an `http:` or `https:` location | yes, by polling |
 | the same on a `classpath:` location | no |
+| `jdbc.plugin` | only with a `changeQuery` - see [PLUGINS.md](../PLUGINS.md#jdbc-jdbcplugin) |
 | `environmentVariables`, `systemProperties`, `commandLineArguments` | no |
 
 The last two rows are not gaps. A classpath resource is inside the running

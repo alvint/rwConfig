@@ -8,7 +8,7 @@ These plugins are currently available and are built with the project.
 | [YAML](#yaml-yamlplugin) | `yaml.plugin` | `plugin-yaml` | `org.snakeyaml:snakeyaml-engine` | `location` | by location |
 | [XML](#xml-xmlplugin) | `xml.plugin` | `plugin-xml` | `org.json:json` | `location` | by location |
 | [Prefix](#prefix-prefixplugin) | `prefix.plugin` | `plugin-prefix` | nothing | `mediaType`, `location` | by location |
-| [JDBC](#jdbc-jdbcplugin) | `jdbc.plugin` | `plugin-jdbc` | nothing - you supply the driver | `connectionString`, `query` | yes |
+| [JDBC](#jdbc-jdbcplugin) | `jdbc.plugin` | `plugin-jdbc` | nothing - you supply the driver | `connectionString`, `query` | yes (with a `changeQuery`) |
 
 All artifacts are in the `net.rabbitware.config` group.
 
@@ -31,10 +31,12 @@ All artifacts are in the `net.rabbitware.config` group.
 > implementing class identical. If they differ, the plugin answers to one name
 > on the module path and another on the classpath.
 
-> **"By location" in the change detection column** means the plugin takes part
-> when its `location` is one that can be watched - a file, a `jar:file:`, or an
-> http(s) URL - and does not when it is a `classpath:` resource, which cannot
-> change while the JVM runs. See [Which sources can be
+> **The change detection column is conditional, not a plain yes.** "By location"
+> means the plugin takes part when its `location` is one that can be watched - a
+> file, a `jar:file:`, or an http(s) URL - and does not when it is a
+> `classpath:` resource, which cannot change while the JVM runs. The JDBC plugin
+> takes part only when the source declares a
+> [`changeQuery`](#jdbc-jdbcplugin). See [Which sources can be
 > watched](docs/config-sources.md#which-sources-can-be-watched).
 
 ## Using a Plugin
@@ -416,9 +418,49 @@ JDBC driver of the database you're trying to connect to is on your classpath.
     that gets loaded before this one. See
     [Config Sources](docs/config-sources.md#keeping-secrets-out-of-shared-files)
     for details.
+- `changeQuery`
+  - A query that answers "has the configuration changed?". Set it to turn on
+    [change detection](docs/java-api.md#noticing-that-a-source-has-changed) for
+    this source; leave it out and the source is never reported as changed.
 ### Details
 The plugin works as you would expect. It executes the supplied query and gathers
 the results to be used as properties.
+
+#### Change detection
+There is no portable way to ask a database whether a table has changed. The
+answer has to come from something vendor-specific, or from the data itself -
+so rather than guess, the plugin asks you for a query that says so:
+
+```
+rwc.db.type = jdbc.plugin
+rwc.db.connectionString = jdbc:postgresql://db/app
+rwc.db.query = SELECT key, value FROM config
+rwc.db.changeQuery = SELECT MAX(updated_at) FROM config
+```
+
+The first column of the first row is read as text and compared with the previous
+reading. Anything that moves when the configuration moves will do - a timestamp,
+a row count, a version number, a checksum - and none of it needs interpreting,
+because the value is only ever compared with the last one. A query returning no
+rows is a stable answer, not a change.
+
+The query runs on every polling cycle, five seconds apart by default, so keep it
+cheap. It is a second round trip to your database - the main `query` is not
+re-run, and the properties are not re-read.
+
+**Choosing the query is the part that needs thought**, because it decides what
+counts as a change:
+
+| query | notices |
+| --- | --- |
+| `SELECT COUNT(*) FROM config` | rows added or removed, but not an edited value |
+| `SELECT MAX(updated_at) FROM config` | inserts and updates, but not deletes |
+| `SELECT COUNT(*) \|\| MAX(updated_at) FROM config` | all three |
+
+The last needs an `updated_at` your writes actually maintain. If your schema has
+no such column, a checksum over the table works too, at the cost of being
+vendor-specific SQL - which is fine here, because this query is yours, not the
+plugin's.
 
 ## Prefix (`prefix.plugin`)
 This is an example plugin which prefixes the source name to all properties that it
