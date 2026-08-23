@@ -13,8 +13,9 @@ Config config = ConfigFactory.create(args);   // command line arguments usable
 Config config = ConfigFactory.create();       // not
 ```
 
-Use the `args` form if your `rwconfig` declares a `commandLineArguments`
-source; it is an error to declare that source and then call `create()`.
+Use the `args` parameter if your `rwconfig` declares a `commandLineArguments`
+source; it is an error to declare that source and then call a version of
+`create()` that does not provide command line arguments.
 
 Everything happens here: the file is read, the sources are loaded, every value
 is parsed and checked against its type and allowed values, and any property
@@ -22,9 +23,27 @@ without a value is reported. If `create` returns, the configuration is complete
 and valid.
 
 Create it once at startup and hold on to it. The result is effectively
-immutable, so it can be shared across threads freely, and there is no reload -
-if configuration changes, build a new `Config`.
+immutable, so it can be shared across threads freely. A `Config` is a snapshot
+and stays one: if configuration changes, build a new one.
 
+Speaking of changes, rwConfig can tell you when your config has changed if you
+set the `enableChangeDetection` flag to `true`:
+```java
+Config config = ConfigFactory.create(true, args);
+```
+
+It is up to you to reload your config when you decide that has become worth
+doing - see 
+[Noticing that a source has changed](#noticing-that-a-source-has-changed).
+
+There is also an optional `name` parameter, which is what appears in log
+messages and in change events. It is worth setting when an application builds
+more than one `Config` object. If you don't set your own name, the default name
+is a random UUID:
+
+```java
+Config config = ConfigFactory.create("app config", true, args);
+```
 ## Reading values
 
 One method per type, each returning a primitive or a `List`:
@@ -94,6 +113,94 @@ for (String name : config.getPropertyNames()) {
     System.out.println(name + " (" + config.getType(name).name + ")");
 }
 ```
+
+## Noticing that a source has changed
+
+Change detection is off unless you ask for it, because it starts a thread:
+
+```java
+Config config = ConfigFactory.create(true, args);   // `true` turns it on
+```
+
+Then register a listener. It is called when a watched source changes - not when
+a particular property changes, since rwConfig does not re-read the source for
+you:
+
+```java
+config.addChangeListener("reloader", new Config.ChangeListener() {
+    @Override
+    public void onChange(Config.ChangeEvent event) {
+        logger.info("config source `{}` changed at {}", event.source(), event.timestamp());
+        Config replacement = ConfigFactory.create(true, args);
+        Config.Instance.replace(replacement);       // discards the old one for you
+    }
+
+    @Override
+    public void onError(Config.ErrorEvent event) {
+        logger.warn("could not check `{}` for changes", event.source(), event.exception());
+    }
+});
+```
+
+`addChangeListener(sourceName, listenerName, listener)` narrows a listener to a
+single source, and `removeChangeListener` takes it off again.
+
+Asking for a listener on a `Config` built without change detection is an error
+rather than a listener that can never fire.
+
+### What takes part
+
+A source can be watched only if its location can be:
+
+| source | watched |
+| --- | --- |
+| a `file:` location | yes, through the filesystem's watch service |
+| a `jar:file:` location | yes - the jar itself is watched |
+| an `http:` or `https:` location | yes, by polling `Last-Modified` |
+| a `classpath:` location | no - it cannot change while the JVM runs |
+| `environmentVariables`, `systemProperties`, `commandLineArguments` | no - fixed at startup |
+
+Sources that cannot be watched are simply never reported as changed. Nothing
+fails.
+
+### The polling interval
+
+Sources are checked every five seconds by default. To change it, set the
+library setting in the `rwconfig` file:
+
+```
+rwc.changeDetectionPollingInterval = 30000
+```
+
+The value is milliseconds and must be positive. Setting it without asking for
+change detection logs a warning, since nothing would use it.
+
+Detection is not instant, and cannot be: on top of this interval, a filesystem
+watch has a latency of its own - on macOS the JDK polls the filesystem, which
+adds a second or so.
+
+### Discarding a config you are finished with
+
+A `Config` with change detection running holds a polling thread, and the library
+holds the `Config`. Neither is collected while that is true, so a config you
+have replaced has to be told it is finished:
+
+```java
+config.discard();
+```
+
+After that it stops watching and stops firing events. Its values stay readable,
+so anything still holding it keeps working - `discard` retires the watching, not
+the configuration.
+
+`Config.Instance.replace(...)` calls `discard()` on the instance it swaps out,
+so the common case is handled for you.
+
+<!-- deliberate: this is the one place the library needs something back from -->
+<!-- the caller, and the failure mode is a silent leak rather than an error. -->
+> **Forgetting `discard` leaks.** A `Config` built with change detection and
+> never discarded keeps its thread and its memory for the life of the process.
+> If you never replace your configuration, you never need to call it.
 
 ## Errors
 

@@ -308,8 +308,19 @@ Two things to know:
 
 Lines beginning with `rwc.` are *library settings*: they configure rwConfig
 itself rather than declaring properties of your application. They never appear
-in `getPropertyNames()` and your code cannot read them. They are covered in
-[Config sources](config-sources.md).
+in `getPropertyNames()` and your code cannot read them.
+
+| setting | what it does |
+| --- | --- |
+| `rwc.prefix` | changes the `rwc.` prefix itself - see below |
+| `rwc.sources` | the sources to load, in precedence order |
+| `rwc.<source>.type` | which kind of source `<source>` is |
+| `rwc.<source>.<setting>` | whatever that source type needs - `location`, `path`, and so on |
+| `rwc.changeDetectionPollingInterval` | milliseconds between checks for changed sources, default 5000 |
+
+The source settings are covered in [Config sources](config-sources.md), and the
+polling interval in [The Java
+API](java-api.md#noticing-that-a-source-has-changed).
 
 If `rwc.` collides with a property name you need, change the prefix:
 

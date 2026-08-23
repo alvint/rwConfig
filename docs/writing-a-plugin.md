@@ -13,10 +13,11 @@ page.
 
 ## The pieces
 
-A plugin is a Java module that:
+A plugin is a jar that:
 
 1. implements `SimpleConfigSourcePlugin` from the `plugin-api` artifact
-2. declares itself as a service provider in its `module-info.java`
+2. declares itself as a service provider - in `module-info.java`, in
+   `META-INF/services`, or both
 3. is named so the library can find it
 
 ### 1. The class
@@ -72,20 +73,28 @@ public class ConsulPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public boolean isChangeDetectionSupported() {
-        return false;
+        return false; // see `Change detection` below
     }
 
     @Override
-    public void addChangeListener(SimpleConfigSourcePlugin.ChangeListener listener) {
-        // nothing to do while change detection is unsupported
+    public void startChangeDetection() { }
+
+    @Override
+    public void stopChangeDetection() { }
+
+    @Override
+    public boolean isChanged() {
+        return false;
     }
 }
 ```
 
-The library calls these in order: constructor, `getPluginVersion`,
-`setSourceName`, `getRequiredPluginPropertyNames`,
-`getOptionalPluginPropertyNames`, `setPluginProperties`, then
-`getConfigSourceProperties` once.
+The library calls these in order: constructor, `getPluginVersion`, `setSourceName`,
+`getRequiredPluginPropertyNames`, `getOptionalPluginPropertyNames`,
+`setPluginProperties`, `isChangeDetectionSupported`, `startChangeDetection` if
+`isChangeDetectionSupported` returned true, and then `getConfigSourceProperties` once. After that
+`isChanged` is called on every polling cycle until the config is discarded, when
+`stopChangeDetection` is called.
 
 A few things worth getting right:
 
@@ -98,10 +107,20 @@ A few things worth getting right:
 - **Throw on anything you cannot handle.** The library wraps your exception
   with the source name, so the user is told which source failed. Never return a
   partial map.
-- **Change detection is not wired up yet.** Return `false` and leave
-  `addChangeListener` empty, as the bundled plugins do.
+- **You do not have to implement `getPluginVersion`.** It defaults to the
+version of the plugin API you built against. Override it if you want to use your
+own version.
+- **Change detection is optional.** If you return `false` from
+`isChangeDetectionSupported`, then `startChangeDetection`, `isChanged`, and
+`stopChangeDetection` are never called.
 
-### 2. The module declaration
+### 2. Declaring the service
+
+Plugins are found with `ServiceLoader`, which looks in a different place
+depending on how the application runs. Declaring both costs two files and makes
+one jar work either way, which is what the bundled plugins do.
+
+**On the module path**, in `module-info.java`:
 
 ```java
 module com.example.config.plugin.consul {
@@ -114,15 +133,31 @@ module com.example.config.plugin.consul {
 }
 ```
 
-The `provides` clause is what makes the plugin discoverable. Without it the
-library will not find the class no matter what the `rwconfig` file says.
+**On the class path**, in a file named after the interface, containing the
+implementing class:
+
+```
+src/main/resources/META-INF/services/net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin
+```
+
+```
+com.example.config.plugin.consul.ConsulPlugin
+```
+
+A `module-info.java` is ignored when its jar is on the class path, and
+`META-INF/services` is ignored when it is on the module path - so the two never
+collide, and a jar carrying both is discoverable from either.
+
+Declare at least one. Without it the library will not find the class no matter
+what the `rwconfig` file says, and the error will say the type is unknown rather
+than that the jar is unregistered.
 
 ### 3. Naming, and how the library finds it
 
-Plugins are located **by module name**, through `ServiceLoader`. A type in the
-`rwconfig` file is resolved one of two ways:
+A type in the `rwconfig` file is resolved to a plugin by name - the module name
+on the module path, the implementing class's package on the class path:
 
-| in `rwconfig` | module the library looks for |
+| in `rwconfig` | name the library looks for |
 |---|---|
 | `consul.plugin` | `net.rabbitware.config.plugin.consul` |
 | `com.example.config.plugin.consul` | exactly that |
@@ -141,6 +176,70 @@ rwc.settings.prefix = myapp/
 > class that implements the plugin. Keeping the two identical means one plugin
 > name works from either path. The bundled plugins all do this;
 > `net.rabbitware.config.plugin.json` is both.
+
+## Change detection
+
+rwConfig polls; a plugin does not push. There is no listener to call and no
+thread to start - the library asks `isChanged()` on its own schedule, and your
+answer is a plain boolean:
+
+```java
+@Override
+public boolean isChangeDetectionSupported() {
+    return true;
+}
+
+@Override
+public void startChangeDetection() throws Exception {
+    lastSeen = fetchRevision();          // whatever "unchanged" means for you
+}
+
+@Override
+public boolean isChanged() throws Exception {
+    long current = fetchRevision();
+    if (current == lastSeen) {
+        return false;
+    }
+    lastSeen = current;                  // report a change once, not every poll
+    return true;
+}
+
+@Override
+public void stopChangeDetection() throws Exception {
+    // release whatever `start` acquired
+}
+```
+
+There are three things implementing change detection asks of you:
+
+- **`isChanged` must report a change once.** It is called repeatedly. Returning
+  `true` until someone rebuilds would fire an event on every cycle.
+- **It runs on the polling thread, so keep it cheap.** It is called every five
+  seconds by default, for every source. If checking means a network call, use
+  something conditional - a `HEAD`, an ETag, a revision number - rather than
+  fetching the whole document.
+- **Throwing is allowed.** The library turns it into an error event and carries
+  on polling; one unhappy source does not stop the others.
+
+### Extending `LocationBasedConfigSourcePlugin` for document-based plugins 
+**If your source is in a file, a jar, or a URL, you can get all of this for free.** Extend
+`LocationBasedConfigSourcePlugin` instead of implementing the interface: it
+takes the `location` property, validates it, watches it, and leaves you one
+method to write.
+
+```java
+public class ConsulPlugin extends LocationBasedConfigSourcePlugin {
+    @Override
+    public Map<String, String> getConfigSourceProperties() throws Exception {
+        String content = LocationBasedConfigSourcePlugin.loadResource(getLocation());
+        return flatten(content);
+    }
+}
+```
+
+That is how all the bundled file-based plugins are written. It handles `file:`,
+`jar:file:`, `classpath:`, `http:`, and `https:`, and reports change detection
+as supported for exactly the ones that can be watched.
 
 ## Returning properties
 
@@ -222,7 +321,8 @@ module declaration and naming are right.
 ## Checklist
 
 - [ ] implements every method of `SimpleConfigSourcePlugin`
-- [ ] `provides ... with ...` in `module-info.java`
+- [ ] declared as a service provider: `provides ... with ...` in
+      `module-info.java`, `META-INF/services`, or both
 - [ ] module named so the `rwconfig` file can reach it
 - [ ] required properties listed, and checked in `setPluginProperties`
 - [ ] optional properties handled when absent (they arrive as `null`)
@@ -231,3 +331,9 @@ module declaration and naming are right.
 - [ ] the module name and the implementing class's package are the same
 - [ ] `META-INF/services` names the implementation, so the classpath can find
       it, too
+- [ ] `isChangeDetectionSupported` either reports `false`, **or**:
+  - [ ] `startChangeDetection` does any setup needed to start change detection
+  - [ ] `isChanged` reports each change only once and is cheap enough to run
+        every polling cycle
+  - [ ] `stopChangeDetection` removes any resources allocation by
+        `startChangeDetection`

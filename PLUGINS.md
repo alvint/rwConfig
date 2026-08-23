@@ -1,14 +1,14 @@
 # Plugins
 These plugins are currently available and are built with the project.
 
-| plugin | type | artifact | brings in | required properties |
-|---|---|---|---|---|
-| [JSON](#json-jsonplugin) | `json.plugin` | `plugin-json` | `org.json:json` | `location` |
-| [HOCON](#hocon-hoconplugin) | `hocon.plugin` | `plugin-hocon` | `com.typesafe:config` | `location` |
-| [YAML](#yaml-yamlplugin) | `yaml.plugin` | `plugin-yaml` | `org.snakeyaml:snakeyaml-engine` | `location` |
-| [XML](#xml-xmlplugin) | `xml.plugin` | `plugin-xml` | `org.json:json` | `location` |
-| [JDBC](#jdbc-jdbcplugin) | `jdbc.plugin` | `plugin-jdbc` | nothing - you supply the driver | `connectionString`, `query` |
-| [Prefix](#prefix-prefixplugin) | `prefix.plugin` | `plugin-prefix` | nothing | `mediaType`, `location` |
+| plugin | type | artifact | brings in | required properties | change detection |
+|---|---|---|---|---|---|
+| [JSON](#json-jsonplugin) | `json.plugin` | `plugin-json` | `org.json:json` | `location` | by location |
+| [HOCON](#hocon-hoconplugin) | `hocon.plugin` | `plugin-hocon` | `com.typesafe:config` | `location` | by location |
+| [YAML](#yaml-yamlplugin) | `yaml.plugin` | `plugin-yaml` | `org.snakeyaml:snakeyaml-engine` | `location` | by location |
+| [XML](#xml-xmlplugin) | `xml.plugin` | `plugin-xml` | `org.json:json` | `location` | by location |
+| [Prefix](#prefix-prefixplugin) | `prefix.plugin` | `plugin-prefix` | nothing | `mediaType`, `location` | by location |
+| [JDBC](#jdbc-jdbcplugin) | `jdbc.plugin` | `plugin-jdbc` | nothing - you supply the driver | `connectionString`, `query` | yes |
 
 All artifacts are in the `net.rabbitware.config` group.
 
@@ -30,6 +30,12 @@ All artifacts are in the `net.rabbitware.config` group.
 > A plugin of your own should keep its module name and the package of its
 > implementing class identical. If they differ, the plugin answers to one name
 > on the module path and another on the classpath.
+
+> **"By location" in the change detection column** means the plugin takes part
+> when its `location` is one that can be watched - a file, a `jar:file:`, or an
+> http(s) URL - and does not when it is a `classpath:` resource, which cannot
+> change while the JVM runs. See [Which sources can be
+> watched](docs/config-sources.md#which-sources-can-be-watched).
 
 ## Using a Plugin
 A plugin is just another config source. Name it in `rwc.sources`, give it

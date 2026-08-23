@@ -22,7 +22,7 @@ application at startup rather than surprise you later.
 | you use Quarkus, or want the MicroProfile standard | SmallRye Config |
 | you use Akka, Pekko, or Play | Typesafe Config - it is already there |
 | your config is a YAML or JSON document mapping to a class | Jackson (or your framework's binder) |
-| values must change while the application runs | Archaius 2, or Commons Configuration's reloading |
+| values must be swapped in without a restart | Archaius 2, or Commons Configuration's reloading |
 | you must read INI, plist, XML, or other legacy formats | Commons Configuration |
 | you have a handful of values and want zero dependencies | `java.util.Properties` |
 | you want one file that declares, types, and validates every property, and fails fast | **rwConfig** |
@@ -35,7 +35,7 @@ system to use a different one is rarely worth it.
 
 | | learning curve | read | load | validation | layered sources | reload | maturity |
 |---|---|---|---|---|---|---|---|
-| **rwConfig** | small, but a new file format | 3.3 ns | 209 us | **types + allowed values, at startup** | built in | no | **new, unproven** |
+| **rwConfig** | small, but a new file format | 3.3 ns | 209 us | **types + allowed values, at startup** | built in | notification only | **new, unproven** |
 | Typesafe Config | moderate - HOCON, path semantics | 17 ns | 62 us | optional, limited | merge/fallback | no | very mature, widely used |
 | Commons Configuration | large, sprawling API | 44 ns | 84 us | none | composite config | yes | very mature |
 | Spring `Environment` | large, if you are not already in Spring | 35 ns | n/a | via binding + JSR-380 | property sources | yes | very mature, huge ecosystem |
@@ -234,9 +234,14 @@ class, and one source is enough.
   offsets it.
 - **The slowest to load** - about 210 microseconds for 100 properties, roughly
   9x plain `Properties`. It is doing more, but it is still the slowest.
-- **No runtime reload.** The plugin API has the hooks and the README plans it,
-  but nothing implements it. If values must change without a restart, this is
-  the wrong library today.
+- **Change detection notifies; it does not reload.** A watched source that
+  changes fires an event, and rebuilding is left to you: the `Config` you are
+  holding never changes underneath you. That is deliberate - a value cannot
+  change halfway through a piece of work - but it does mean this is not a
+  drop-in replacement for a library that swaps values in for you. Only sources
+  with a location that can be watched or polled take part: files, `jar:file:`,
+  and http(s). A classpath resource cannot change while the JVM runs, and the
+  environment, system properties, and command line are fixed at startup.
 - **No framework integration.** Nothing binds it to Spring, Quarkus, Micronaut,
   or anything else.
 - **No binding to a class.** Reads are by name, so you get neither compile-time
@@ -259,8 +264,9 @@ class, and one source is enough.
 ### When to pick something else
 
 - **You use Spring, Quarkus, Micronaut, Akka, or Play.** Use what is there.
-- **Values must change without a restart.** Archaius 2, or Commons
-  Configuration.
+- **You want values swapped in for you, without a restart.** rwConfig tells you
+  a source changed and leaves the rebuild to you. If you want the library to do
+  it, Archaius 2 or Commons Configuration.
 - **You cannot take a risk on a young library.** Entirely reasonable - take
   Typesafe Config or Commons Configuration.
 - **You want config bound to a class** with compile-time names. Jackson,

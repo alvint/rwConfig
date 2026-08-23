@@ -206,9 +206,12 @@ rwc.remote.location = https://config.internal/app.json
 
 Three things to know before relying on it:
 
-- **It is fetched once, at startup.** There is no polling and no reload; the
-  values are whatever the endpoint returned when the process began. Restart to
-  pick up a change.
+- **It is fetched once, at startup.** The values are whatever the endpoint
+  returned when the process began. With [change
+  detection](java-api.md#noticing-that-a-source-has-changed) turned on rwConfig
+  will poll the endpoint and tell you it has changed, but it still does not
+  re-read it into the `Config` object you are holding. You must build a new
+  Config to get the new values.
 - **A failure is a startup failure.** If the endpoint is down, returns an error,
   or is slow, the process does not start. `http:` and `https:` use a 10 second
   connect timeout and a 10 second read timeout, so a config server that stops
@@ -325,9 +328,34 @@ it correctly: symlinks to regular files are followed, and `..data` and the
 timestamped directory are skipped because they are directories, not files.
 Neither shows up as a property.
 
-The same layout is why the values are a snapshot. Kubernetes updates a mounted
-Secret in place, but rwConfig reads the directory once at startup, so a changed
-Secret reaches the application when the pod restarts.
+The values are a snapshot: rwConfig reads the directory once at startup, so a
+Secret that Kubernetes updates in place reaches the application either when the
+pod restarts, or when the app builds a new `Config` object. With [change
+detection](java-api.md#noticing-that-a-source-has-changed) turned on you are
+told the directory changed and can rebuild without waiting for a restart.
+
+## Which sources can be watched
+
+With [change detection](java-api.md#noticing-that-a-source-has-changed) turned
+on, rwConfig checks the sources that can be checked and tells you when one has
+changed. Whether a source takes part depends on where it reads from, not on
+which type it is:
+
+| | watched |
+| --- | --- |
+| third-party plugins | up to the plugin provider |
+| the built-in `directory` source | yes |
+| database sources via the provided `database` plugin | yes |
+| file-based sources (`.properties` files, HOCON, YAML, etc.) on a `file:` location | yes |
+| the same on a `jar:file:` location | yes - the jar is watched |
+| the same on an `http:` or `https:` location | yes, by polling |
+| the same on a `classpath:` location | no |
+| `environmentVariables`, `systemProperties`, `commandLineArguments` | no |
+
+The last two rows are not gaps. A classpath resource is inside the running
+program and cannot change while it runs, and the environment, system properties,
+and command line are fixed when the process starts. A source that cannot be
+watched is never reported as changed, and nothing fails on its account.
 
 ## Changing the `rwc.` prefix
 

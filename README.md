@@ -131,6 +131,10 @@ look at the [takeaway](benchmark/README.md).
   requires Java Base.
 - **Secure by omission** - values your app never declared are not added to the
   Config object, even when the config source contains them.
+- **Change detection, opt in** - ask for it and rwConfig watches the sources
+  that can be watched, then tells you when one changes. It notifies rather than
+  reloads: the `Config` you hold stays the snapshot it was, and you decide when
+  to build a new one.
 
 ## Quick Start
 ### 1. Jar Installation (via Maven)
@@ -291,7 +295,6 @@ than to find out at 3am.
   outside of Java Base
 
 ## TODOs
-- in-app notification of changed config sources
 - APIs for other languages
 
 ## Design Choices and Miscellaneous Rants

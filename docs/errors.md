@@ -166,3 +166,34 @@ to check at runtime.
 
 Both are unchecked, because both are bugs to fix rather than conditions to
 handle.
+
+## Change detection
+
+### `change detection is not enabled for this Config object`
+
+A change listener was registered on a `Config` built without change detection.
+It is refused rather than accepted, because a listener that can never fire is a
+bug that would otherwise show up as silence:
+
+```java
+Config config = ConfigFactory.create(true, args);   // `true` turns it on
+```
+
+### `a change detection polling interval was set in the rwconfig file but the Config object was not created with change detection support`
+
+A warning, not an error. `rwc.changeDetectionPollingInterval` is set but nothing
+is polling, so the setting has no effect. Either pass `true` to
+`ConfigFactory.create`, or remove the line.
+
+### `error starting change detection for config source ...`
+
+A source that reports it can be watched failed to start watching - a file whose
+directory is not readable, or a URL that could not be reached. This stops
+startup, on the grounds that a source you asked to watch and cannot is a
+configuration problem rather than something to discover later.
+
+### `unable to stop change detection for config source ...`
+
+Logged, not thrown, while a `Config` is being discarded. The discard finishes
+either way. It means a source could not release whatever it was watching, which
+generally means it had already gone.
