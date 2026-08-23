@@ -1,16 +1,14 @@
 package net.rabbitware.config.plugin.hocon;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
 
 /**
  * A simple HOCON plugin implementation. It leverages Typesafe Config to read
@@ -24,73 +22,26 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * </li>
  * </ul>
  */
-public class HoconPlugin implements SimpleConfigSourcePlugin {
+public class HoconPlugin extends LocationBasedConfigSourcePlugin {
     private static final Logger logger = LoggerFactory.getLogger(HoconPlugin.class);
-    private String sourceName;
-    private String location;
 
     public HoconPlugin() {
         logger.info("HOCON plugin instantiated");
     }
 
-    @Override
-    public String getPluginVersion() {
-        return "1.0.0";
-    }
-
-    @Override
-    public void setSourceName(String sourceName) {
-        this.sourceName = sourceName;
-        logger.info("source name set to: {}", this.sourceName);
-    }
-
-    @Override
-    public boolean isChangeDetectionSupported() {
-        return false;
-    }
-
-    @Override
-    public void addChangeListener(SimpleConfigSourcePlugin.ChangeListener listener) {
-        // not supported
-    }
-
-    @Override
-    public Set<String> getRequiredPluginPropertyNames() {
-        return Set.of("location");
-    }
-
-    @Override
-    public Set<String> getOptionalPluginPropertyNames() {
-        return Set.of(); // no optional properties
-    }
-
-    @Override
-    public void setPluginProperties(Map<String, String> properties) throws Exception {
-        location = properties.get("location");
-        if (location == null) {
-            throw new Exception("missing required property: location");
-        }
-        logger.info("setting plugin properties: location={}", location);
-        if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
-            throw new Exception("unsupported location: " + location);
-        }
-    }
 
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
-        // load the HOCON content from the specified source (as a String)
-        String sourceContent = SimpleConfigSourcePlugin.loadResource(location);
+        logger.debug("loading HOCON source from location: {}", getLocation());
+        String sourceContent = LocationBasedConfigSourcePlugin.loadResource(getLocation());
         // parse the HOCON content and flatten it into a map of properties
         Config config = ConfigFactory.parseString(sourceContent);
         config = config.resolve();
         Map<String, String> properties = new HashMap<>();
         getContents("", config.root(), properties);
-        logger.info("loaded {} properties from HOCON source: {}", properties.size(), sourceName);
-        logger.debug(
-            "\nproperties: {}", properties.toString().replaceAll("(?:\\{|\\}|, )", "\n")
-        );
+        logger.info("loaded {} properties from HOCON source: {}", properties.size(), getSourceName());
         return properties;
-    }   
+    }
 
     // WARNING: this method is recursive and may throw a StackOverflowError for
     // deeply nested HOCON structures

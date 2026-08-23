@@ -2,6 +2,7 @@ package net.rabbitware.config;
 import java.util.TreeSet;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,6 +11,10 @@ import org.slf4j.LoggerFactory;
 
 public class ConfigImpl implements Config {
     private static final Logger logger = LoggerFactory.getLogger(ConfigImpl.class);
+
+    private final String name;
+    private boolean changeDetectionEnabled;
+
     private final Map<String, PropertyType> types = new HashMap<>();
     private final Map<String, Value.Boolean> booleanValues = new HashMap<>();
     private final Map<String, Value.Integer> integerValues = new HashMap<>();
@@ -22,13 +27,23 @@ public class ConfigImpl implements Config {
     private final Map<String, List<Double>> doubleListValues = new HashMap<>();
     private final Map<String, List<String>> stringListValues = new HashMap<>();
 
-    /**
-     * The property names, in order, set once the config has been fully built.
-     * Holding this rather than building it on demand keeps
-     * {@link #getPropertyNames()} from rebuilding a sorted set on every call,
-     * and lets it hand out something that cannot be modified.
-     */
+    private final Object changeListenersLock = new Object();
+    private final Map<String, ChangeListener> changeListeners = new LinkedHashMap<>();
+    private final Map<String, Map<String, ChangeListener>> sourceChangeListeners = new LinkedHashMap<>();
+    private final Map<String, ChangeEvent> mostRecentChangeEvent = new HashMap<>();
+    private final Map<String, ErrorEvent> mostRecentErrorEvent = new HashMap<>();
+
     private Set<String> propertyNames = Set.of();
+
+    public ConfigImpl(String name, boolean changeDetectionEnabled) {
+        this.name = name;
+        this.changeDetectionEnabled = changeDetectionEnabled;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
 
     @Override
     public Set<String> getPropertyNames() {
@@ -209,10 +224,189 @@ public class ConfigImpl implements Config {
         return getStringList(name);
     }
 
+    @Override
+    public boolean isChangeDetectionEnabled() {
+        return changeDetectionEnabled;
+    }
+
+    @Override
+    public void addChangeListener(String listenerName, ChangeListener listener) {
+        if (!changeDetectionEnabled) {
+            throw new ConfigException("change detection is not enabled for this Config object");
+        }
+        logger.info("adding change listener with name \"{}\"", listenerName);
+        if (listenerName == null || listener == null) {
+            throw new ConfigException("listener name and listener must not be null");
+        }
+        if (changeListeners.containsKey(listenerName)) {
+            throw new ConfigException("listener with name '" + listenerName + "' already exists");
+        }
+        synchronized (changeListenersLock) {
+            changeListeners.put(listenerName, listener);
+        }
+        // notify listener of the most recent change and error events, if any
+        ChangeEvent changeEvent;
+        synchronized (changeListenersLock) { 
+            changeEvent = mostRecentChangeEvent.values().stream()
+                .sorted((ce1, ce2) -> ce2.timestamp().compareTo(ce1.timestamp())) // reverse chronological order
+                .findFirst() // most recent change event
+                .orElse(null);
+        }
+        if (changeEvent != null) {
+            notifyChangeListener(listenerName, listener, changeEvent);
+        }
+        ErrorEvent errorEvent;
+        synchronized (changeListenersLock) {
+            errorEvent = mostRecentErrorEvent.values().stream()
+                .sorted((ee1, ee2) -> ee2.timestamp().compareTo(ee1.timestamp())) // reverse chronological order
+                .findFirst() // most recent error event
+                .orElse(null);
+        }
+        if (errorEvent != null) {
+            notifyErrorListener(listenerName, listener, errorEvent);
+        }
+    }
+
+    @Override
+    public void removeChangeListener(String listenerName) {
+        if (!changeDetectionEnabled) {
+            throw new ConfigException("change detection is not enabled for this Config object");
+        }
+        if (listenerName == null) {
+            throw new ConfigException("listener name must not be null");
+        }
+        if (!changeListeners.containsKey(listenerName)) {
+            throw new ConfigException("listener with name '" + listenerName + "' does not exist");
+        }
+        synchronized (changeListenersLock) {
+            changeListeners.remove(listenerName);
+        }
+    }
+
+    @Override
+    public void addChangeListener(String sourceName, String listenerName, ChangeListener listener) {
+        if (!changeDetectionEnabled) {
+            throw new ConfigException("change detection is not enabled for this Config object");
+        }
+        logger.info("adding change listener with name \"{}\" for source \"{}\"", listenerName, sourceName);
+        if (sourceName == null || listenerName == null || listener == null) {
+            throw new ConfigException("source name, listener name, and listener must not be null");
+        }
+        Map<String, ChangeListener> listeners = sourceChangeListeners.computeIfAbsent(
+            sourceName, k -> new LinkedHashMap<>()
+        );
+        if (listeners.containsKey(listenerName)) {
+            throw new ConfigException(
+                "listener with name '" + listenerName + "' already exists for source '" + sourceName + "'"
+            );
+        }
+        synchronized (changeListenersLock) {
+            listeners.put(listenerName, listener);
+        }
+        // notify the listener of the most recent change and error events for
+        // this source, if any
+        ChangeEvent changeEvent;
+        synchronized (changeListenersLock) {
+            changeEvent = mostRecentChangeEvent.get(sourceName);
+        }
+        if (changeEvent != null) {
+            notifyChangeListener(listenerName, listener, changeEvent);
+        }
+        ErrorEvent errorEvent;
+        synchronized (changeListenersLock) {
+            errorEvent = mostRecentErrorEvent.get(sourceName);
+        }
+        if (errorEvent != null) {
+            notifyErrorListener(listenerName, listener, errorEvent);
+        }
+    }
+
+    @Override
+    public void removeChangeListener(String sourceName, String listenerName) {
+        if (!changeDetectionEnabled) {
+            throw new ConfigException("change detection is not enabled for this Config object");
+        }
+        if (sourceName == null || listenerName == null) {
+            throw new ConfigException("source name and listener name must not be null");
+        }
+        Map<String, ChangeListener> listeners = sourceChangeListeners.get(sourceName);
+        if (listeners == null || !listeners.containsKey(listenerName)) {
+            throw new ConfigException(
+                "listener with name '" + listenerName + "' does not exist for source '" + sourceName + "'"
+            );
+        }
+        synchronized (changeListenersLock) {
+            listeners.remove(listenerName);
+        }
+    }
+
+    @Override
+    public void discard() {
+        // stop change detection and release associated resources
+        synchronized (changeListenersLock) {
+            changeListeners.clear();
+            sourceChangeListeners.clear();
+            mostRecentChangeEvent.clear();
+            mostRecentErrorEvent.clear();
+        }
+        // ugh - circular dependency with ConfigFactory - refactor?
+        ConfigFactory.changeWatcher.discard(this);
+        changeDetectionEnabled = false;
+    }
 
     //
     // package-private stuff
     //
+
+    void fireChangeEvent(ChangeEvent event) {
+        logger.info("change event received: {}", event);
+        // add the change event to the most recent change events map
+        synchronized (changeListenersLock) {
+            mostRecentChangeEvent.put(event.source(), event);
+        }
+        // notify all change listeners for this source of the change
+        Map<String, ChangeListener> listeners;
+        synchronized (changeListenersLock) {
+            listeners = Map.copyOf(sourceChangeListeners.computeIfAbsent(
+                event.source(), k -> new LinkedHashMap<>()
+            ));
+        }
+        for (Map.Entry<String, ChangeListener> entry : listeners.entrySet()) {
+            notifyChangeListener(entry.getKey(), entry.getValue(), event);
+        }
+        // notify all global change listeners of the change
+        synchronized (changeListenersLock) {
+            listeners = Map.copyOf(changeListeners);
+        }
+        for (Map.Entry<String, ChangeListener> entry : listeners.entrySet()) {
+            notifyChangeListener(entry.getKey(), entry.getValue(), event);
+        }
+    }
+
+    void fireErrorEvent(ErrorEvent event) {
+        logger.error("error event received - change detection stopped: {}", event, event.exception());
+        // add the error event to the most recent error events map
+        synchronized (changeListenersLock) {
+            mostRecentErrorEvent.put(event.source(), event);
+        }
+        // notify all change listeners for this source of the error
+        Map<String, ChangeListener> listeners;
+        synchronized (changeListenersLock) {
+            listeners = Map.copyOf(sourceChangeListeners.computeIfAbsent(
+                event.source(), k -> new LinkedHashMap<>()
+            ));
+        }
+        for (Map.Entry<String, ChangeListener> entry : listeners.entrySet()) {
+            notifyErrorListener(entry.getKey(), entry.getValue(), event);
+        }
+        // notify all global change listeners of the error
+        synchronized (changeListenersLock) {
+            listeners = Map.copyOf(changeListeners);
+        }
+        for (Map.Entry<String, ChangeListener> entry : listeners.entrySet()) {
+            notifyErrorListener(entry.getKey(), entry.getValue(), event);
+        }
+    }
 
     /**
      * Take the final set of property names. Properties are added one at a
@@ -385,5 +579,28 @@ public class ConfigImpl implements Config {
         longListValues.remove(name);
         doubleListValues.remove(name);
         stringListValues.remove(name);
+    }
+
+
+    //
+    // private helper methods
+    //
+
+    private void notifyChangeListener(String listenerName, ChangeListener listener, ChangeEvent event) {
+        logger.debug("notifying change listener `{}` of change: {}", listenerName, event);
+        try {
+            listener.onChange(event);
+        } catch (Exception e) {
+            logger.error("problem while notifying change listener `{}` of change", listenerName, e);
+        }
+    }
+
+    private void notifyErrorListener(String listenerName, ChangeListener listener, ErrorEvent event) {
+        logger.debug("notifying change listener `{}` of error: {}", listenerName, event);
+        try {
+            listener.onError(event);
+        } catch (Exception e) {
+            logger.error("problem while notifying change listener `{}` of error", listenerName, e);
+        }
     }
 }

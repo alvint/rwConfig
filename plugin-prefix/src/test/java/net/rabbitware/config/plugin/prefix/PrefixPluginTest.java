@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -93,5 +94,37 @@ class PrefixPluginTest {
     @Test
     void theVersionIsReported() {
         assertTrue(new PrefixPlugin().getPluginVersion() != null);
+    }
+
+    @Nested
+    @DisplayName("whether changes can be detected depends on the location")
+    class ChangeDetection {
+
+        private boolean supportedFor(String location) throws Exception {
+            PrefixPlugin plugin = new PrefixPlugin();
+            plugin.setPluginProperties(Map.of("location", location, "mediaType", "properties"));
+            return plugin.isChangeDetectionSupported();
+        }
+
+        @Test
+        @DisplayName("a location that can be watched or polled supports it")
+        void watchableLocations() throws Exception {
+            assertEquals(true, supportedFor("file:/tmp/x.txt"), "file");
+            assertEquals(true, supportedFor("jar:file:/tmp/a.jar!/x.txt"), "jar");
+            assertEquals(true, supportedFor("http://example.com/x.txt"), "http");
+            assertEquals(true, supportedFor("https://example.com/x.txt"), "https");
+        }
+
+        @Test
+        @DisplayName("a classpath resource does not - it cannot change while the JVM runs")
+        void classpathIsNotWatchable() throws Exception {
+            assertEquals(false, supportedFor("classpath:x.txt"));
+        }
+
+        @Test
+        @DisplayName("nor does a plugin that has not been given a location yet")
+        void unconfiguredPluginSaysNo() {
+            assertEquals(false, new PrefixPlugin().isChangeDetectionSupported());
+        }
     }
 }

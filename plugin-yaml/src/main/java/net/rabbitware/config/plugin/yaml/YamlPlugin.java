@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snakeyaml.engine.v2.api.Load;
 import org.snakeyaml.engine.v2.api.LoadSettings;
-import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
 
 /**
  * A simple YAML plugin implementation. It leverages the {@code eo-yaml}
@@ -22,41 +22,14 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * </li>
  * </ul>
  */
-public class YamlPlugin implements SimpleConfigSourcePlugin {
+public class YamlPlugin extends LocationBasedConfigSourcePlugin {
     private static final Logger logger = LoggerFactory.getLogger(YamlPlugin.class);
-    private String sourceName;
-    private String location;
     private boolean resolveMergeKeys = true; // default is true
 
     public YamlPlugin() {
         logger.info("YAML plugin instantiated");
     }
 
-    @Override
-    public String getPluginVersion() {
-        return "1.0.0";
-    }
-
-    @Override
-    public void setSourceName(String sourceName) {
-        this.sourceName = sourceName;
-        logger.info("source name set to: {}", this.sourceName);
-    }
-
-    @Override
-    public boolean isChangeDetectionSupported() {
-        return false;
-    }
-
-    @Override
-    public void addChangeListener(SimpleConfigSourcePlugin.ChangeListener listener) {
-        // not supported
-    }
-
-    @Override
-    public Set<String> getRequiredPluginPropertyNames() {
-        return Set.of("location");
-    }
 
     @Override
     public Set<String> getOptionalPluginPropertyNames() {
@@ -65,43 +38,18 @@ public class YamlPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public void setPluginProperties(Map<String, String> properties) throws Exception {
-        // set and validate required properties
-        location = properties.get("location");
-        if (location == null) {
-            throw new Exception("missing required property: location");
-        }
-        String resolveMergeKeysStr = properties.get("resolveMergeKeys");
-        if (resolveMergeKeysStr != null) {
-            if (
-                resolveMergeKeysStr.equalsIgnoreCase("true")
-                || resolveMergeKeysStr.equalsIgnoreCase("yes")
-                || resolveMergeKeysStr.equalsIgnoreCase("on")
-                || resolveMergeKeysStr.equalsIgnoreCase("1")
-            ) {
-                resolveMergeKeys = true;
-            } else if (
-                resolveMergeKeysStr.equalsIgnoreCase("false")
-                || resolveMergeKeysStr.equalsIgnoreCase("no")
-                || resolveMergeKeysStr.equalsIgnoreCase("off")
-                || resolveMergeKeysStr.equalsIgnoreCase("0")
-            ) {
-                resolveMergeKeys = false;
-            } else {
-                throw new Exception(
-                    "invalid value for property `resolveMergeKeys` in YAML plugin: " + resolveMergeKeysStr
-                );
-            }
-        }
-        logger.info("setting plugin properties: location={}", location);
-        if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
-            throw new Exception("unsupported location: " + location);
-        }
+        // set and validate `location` property
+        super.setPluginProperties(properties);
+        // set and validate `resolveMergeKeys` property
+        resolveMergeKeys = LocationBasedConfigSourcePlugin.parseBoolean(
+            properties.getOrDefault("resolveMergeKeys", "true")
+        );
     }
 
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
-        // load the YAML content from the specified source (as a String)
-        String sourceContent = SimpleConfigSourcePlugin.loadResource(location);
+        logger.debug("loading resource from location: {}", getLocation());
+        String sourceContent = LocationBasedConfigSourcePlugin.loadResource(getLocation());
         // parse the YAML content and flatten it into a map of properties
         LoadSettings settings = LoadSettings.builder().setLabel("rwConfig YAML plugin").build();
         Load load = new Load(settings);
@@ -109,10 +57,10 @@ public class YamlPlugin implements SimpleConfigSourcePlugin {
         if (resolveMergeKeys) {
             yaml = resolveMerges(yaml);
         }
-        logger.info("loaded YAML content from source: {}", sourceName);
+        logger.info("loaded YAML content from source: {}", getSourceName());
         Map<String, String> properties = new HashMap<>();
         getContents("", yaml, properties);
-        logger.info("loaded {} properties from YAML source: {}", properties.size(), sourceName);
+        logger.info("loaded {} properties from YAML source: {}", properties.size(), getSourceName());
         return properties;
     }   
 

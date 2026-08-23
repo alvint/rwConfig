@@ -30,13 +30,28 @@ public class FixturePlugin implements SimpleConfigSourcePlugin {
     }
 
     @Override
+    public String getSourceName() {
+        return sourceName;
+    }
+
+    @Override
     public boolean isChangeDetectionSupported() {
         return false;
     }
 
     @Override
-    public void addChangeListener(SimpleConfigSourcePlugin.ChangeListener listener) {
-        // not supported
+    public void startChangeDetection() throws Exception {
+        // no-op
+    }
+
+    @Override
+    public void stopChangeDetection() throws Exception {
+        // no-op
+    }
+
+    @Override
+    public boolean isChanged() {
+        return false;
     }
 
     @Override

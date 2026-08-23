@@ -1,12 +1,4 @@
 package net.rabbitware.config.plugin.api;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,13 +37,6 @@ import java.util.Set;
  * not able to configure the plugin correctly.
  * </li>
  * <li>
- * The config library will call the {@link #getConfigSourceProperties()} method
- * to retrieve the configuration source properties from the plugin. The plugin
- * should return a map of property names and values that represent the source's
- * properties. If the plugin is unable to retrieve the properties, it should
- * throw an exception.
- * </li>
- * <li>
  * The config library may call the {@link #isChangeDetectionSupported()} method
  * to determine if the plugin supports change detection.
  * </li>
@@ -62,150 +47,73 @@ import java.util.Set;
  * to the configuration source properties by calling the listener's
  * {@link ChangeListener#onChange(ChangeEvent)} method.
  * </li>
+ * <li>
+ * The config library will call the {@link #getConfigSourceProperties()} method
+ * to retrieve the configuration source properties from the plugin. The plugin
+ * should return a map of property names and values that represent the source's
+ * properties. If the plugin is unable to retrieve the properties, it should
+ * throw an exception.
+ * </li>
  * </ul>
  */
 public interface SimpleConfigSourcePlugin {
     /**
-     * How long {@link #loadResource(String)} will wait to connect to a remote
-     * resource before giving up, in milliseconds.
-     */
-    public static final int CONNECT_TIMEOUT_MILLIS = 10_000;
-
-    /**
-     * How long {@link #loadResource(String)} will wait for a remote resource to
-     * send data before giving up, in milliseconds. This is the timeout that
-     * matters when a server accepts the connection but never answers.
-     */
-    public static final int READ_TIMEOUT_MILLIS = 10_000;
-
-    /**
-     * Load the content of a resource from the specified location. The location
-     * must start with one of the following prefixes:
-     * <ul>
-     * <li>
-     * {@code classpath:} - Load the resource from the classpath.
-     * </li>
-     * <li>
-     * {@code file:} - Load the resource from the filesystem. The location can
-     * be an absolute path or a relative path. If it is a relative path, it will
-     * be resolved against the current working directory.
-     * </li>
-     * <li>
-     * {@code jar:} - Load the resource from a JAR file. The location must be a
-     * valid JAR URL, such as {@code jar:file:/path/to/jar!/path/inside/jar}.
-     * The JAR file must be accessible and readable by the application.
-     * </li>
-     * <li>
-     * {@code http:} - Load the resource from an HTTP URL.
-     * </li>
-     * <li>
-     * {@code https:} - Load the resource from an HTTPS URL.
-     * </li>
-     * </ul>
-     * If the location does not start with one of these prefixes, an
-     * {@link IllegalArgumentException} will be thrown.
-     * <p>
-     * The content is returned as a String.
+     * The version of this plugin API, read from the jar it was built into.
      *
-     * @param location
-     * the location of the resource to load
-     * @return
-     * the content of the resource as a String
-     * @throws Exception
-     * if an error occurs while loading the resource
+     * <p>Kept here rather than written into each plugin, because a version
+     * spelled out in source drifts the moment the project's version changes and
+     * nothing fails to remind you.
      */
-    public static String loadResource(String location) throws Exception {
-        URL url;
-        // check if the location has a `classpath:` prefix - if so, remove it
-        // and load the resource from the classpath
-        if (location.startsWith("classpath:")) {
-            location = location.substring("classpath:".length());
-            url = Thread.currentThread().getContextClassLoader().getResource(location);
-            if (url == null) {
-                throw new IllegalArgumentException("classpath resource not found: " + location);
-            }
-        } else if (location.startsWith("file:")) { // not a classpath resource - check if it's a file URL
-            // convert the file URL to an absolute file path
-            URI uri = URI.create(location);
-            Path path = Path.of(uri.getSchemeSpecificPart()).toAbsolutePath();
-            URI absoluteUri = path.toUri();
-            url = absoluteUri.toURL();
-        } else { // anything else
-            // check if it's a URL with a scheme (including file URLs)
-            URI uri = URI.create(location);
-            if (uri.isAbsolute()) { // a URL we can load directly
-                url = uri.toURL();
-            } else { // not a URL
-                throw new IllegalArgumentException("location is not a valid URL: " + location);
-            }
-        }
-        // Read through a connection rather than `url.openStream()` so that the
-        // timeouts below apply. Without them, an `http:` source whose server
-        // accepts the connection and then never answers would block startup
-        // forever, with nothing logged. Protocols that have no notion of a
-        // timeout (`classpath:`, `file:`, `jar:`) ignore these.
-        URLConnection connection = url.openConnection();
-        connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
-        connection.setReadTimeout(READ_TIMEOUT_MILLIS);
-        try (InputStream in = connection.getInputStream()) {
-            // check if the resource is readable
-            if (in == null) {
-                throw new IllegalArgumentException("resource is not readable: " + location);
-            }
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
+    String API_VERSION = loadApiVersion();
 
     /**
-     * Return {@code true} if the specified location to a resource is supported.
-     * <p>
-     * Supported locations are:
-     * <ul>
-     * <li>
-     * {@code classpath:} - Load the resource from the classpath.
-     * </li>
-     * <li>
-     * {@code file:} - Load the resource from the filesystem.
-     * </li>
-     * <li>
-     * {@code jar:} - Load the resource from a JAR file.
-     * </li>
-     * <li>
-     * {@code http:} - Load the resource from an HTTP URL.
-     * </li>
-     * <li>
-     * {@code https:} - Load the resource from an HTTPS URL.
-     * </li>
-     * </ul>
-     * 
-     * @param location
-     * the location to check
-     * @return
-     * {@code true} if the specified location to a resource is supported,
-     * {@code false} otherwise
-     */
-    public static boolean isSupportedLocation(String location) {
-        location = location.toLowerCase().trim();
-        return location.startsWith("classpath:")
-            || location.startsWith("file:")
-            || location.startsWith("jar:")
-            || location.startsWith("http:")
-            || location.startsWith("https:");
-    }
-
-    /**
-     * Return the version of the plugin in the format "major[.minor[.patch]]"
-     * 
+     * Return the version of the plugin in the format "major[.minor[.patch]]".
+     *
+     * <p>A plugin that ships with rwConfig is versioned with it, so the default
+     * is right for all of them. A plugin released on its own schedule should
+     * override this and report its own version.
+     *
      * @return
      * the version of the plugin
      */
-    public String getPluginVersion();
+    default String getPluginVersion() {
+        return API_VERSION;
+    }
+
+    /**
+     * Read the version Maven filtered into {@code version.properties} at build
+     * time. Falls back rather than throwing: a missing version is not a reason
+     * for a plugin to be unloadable, and this runs during class initialization,
+     * where a failure would surface far from its cause.
+     */
+    private static String loadApiVersion() {
+        try (java.io.InputStream in =
+                SimpleConfigSourcePlugin.class.getResourceAsStream("version.properties")) {
+            if (in == null) {
+                return "0.0.0";
+            }
+            java.util.Properties properties = new java.util.Properties();
+            properties.load(in);
+            return properties.getProperty("version", "0.0.0");
+        } catch (java.io.IOException e) {
+            return "0.0.0";
+        }
+    }
 
     /**
      * Set the source name for the plugin. This corresponds to the source name
      * used in the {@code rwconfig} file.
      */
-    public void setSourceName(String name);
+    public void setSourceName(String sourceName);
+
+    /**
+     * Get the source name for the plugin. This corresponds to the source name
+     * used in the {@code rwconfig} file.
+     * 
+     * @return
+     * the source name of the plugin
+     */
+    public String getSourceName();
 
     /**
      * Return {@code true} if the plugin supports change detection.
@@ -216,12 +124,31 @@ public interface SimpleConfigSourcePlugin {
     public boolean isChangeDetectionSupported();
 
     /**
-     * Add a change listener to the plugin.
+     * Start the change detection process for the plugin. This method should be
+     * called before checking for changes using {@link #isChanged()}.
      * 
-     * @param listener
-     * the change listener to add
+     * @throws Exception
+     * if an error occurs while starting change detection
      */
-    public void addChangeListener(ChangeListener listener);
+    public void startChangeDetection() throws Exception;
+
+    /**
+     * Stop the change detection process for the plugin. This method should be
+     * called when change detection is no longer needed.
+     * 
+     * @throws Exception
+     * if an error occurs while stopping change detection
+     */
+    public void stopChangeDetection() throws Exception;
+
+    /**
+     * Return {@code true} if the configuration source has changed since the
+     * last time it was checked.
+     * 
+     * @return
+     * {@code true} if the configuration source has changed
+     */
+    public boolean isChanged() throws Exception;
 
     /**
      * Return the list of required plugin property names. Each property will be
@@ -247,7 +174,7 @@ public interface SimpleConfigSourcePlugin {
     public Set<String> getOptionalPluginPropertyNames();
 
     /**
-     * Sets the plugin properties. This is a Map of property names and values
+     * Set the plugin properties. This is a Map of property names and values
      * that the plugin can use to configure itself. The plugin should validate
      * the properties and throw an exception if the properties as set are not
      * able to configure the plugin correctly.
@@ -269,21 +196,4 @@ public interface SimpleConfigSourcePlugin {
      * source
      */
     public Map<String, String> getConfigSourceProperties() throws Exception;
-
-    public static interface ChangeListener {
-        public void onChange(ChangeEvent event);
-    }
-
-    public static record ChangeEvent(
-        Instant timestamp,
-        String source,
-        String details,
-        List<ChangedProperty> changedProperties
-    ){}
-
-    public static record ChangedProperty(
-        String propertyName,
-        String oldValue,
-        String newValue
-    ) {}
 }

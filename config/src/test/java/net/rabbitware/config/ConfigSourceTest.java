@@ -610,7 +610,7 @@ class ConfigSourceTest {
                 "myProp = a"
             );
             assertTrue(
-                e.getMessage().contains("error loading properties"),
+                e.getMessage().contains("error getting properties"),
                 "expected a load error, but got: " + e.getMessage()
             );
         }

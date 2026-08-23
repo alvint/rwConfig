@@ -1,12 +1,11 @@
 package net.rabbitware.config.plugin.xml;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import org.json.JSONObject;
 import org.json.XML;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
 
 /**
  * A simple XML plugin implementation. It leverages the {@code org.json}
@@ -19,69 +18,24 @@ import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
  * </li>
  * </ul>
  */
-public class XmlPlugin implements SimpleConfigSourcePlugin {
+public class XmlPlugin extends LocationBasedConfigSourcePlugin {
     private static final Logger logger = LoggerFactory.getLogger(XmlPlugin.class);
-    private String sourceName;
-    private String location;
 
     public XmlPlugin() {
         logger.info("XML plugin instantiated");
     }
 
-    @Override
-    public String getPluginVersion() {
-        return "1.0.0";
-    }
-
-    @Override
-    public void setSourceName(String sourceName) {
-        this.sourceName = sourceName;
-        logger.info("source name set to: {}", this.sourceName);
-    }
-
-    @Override
-    public boolean isChangeDetectionSupported() {
-        return false;
-    }
-
-    @Override
-    public void addChangeListener(SimpleConfigSourcePlugin.ChangeListener listener) {
-        // not supported
-    }
-
-    @Override
-    public Set<String> getRequiredPluginPropertyNames() {
-        return Set.of("location");
-    }
-
-    @Override
-    public Set<String> getOptionalPluginPropertyNames() {
-        return Set.of(); // no optional properties
-    }
-
-    @Override
-    public void setPluginProperties(Map<String, String> properties) throws Exception {
-        // set and validate required properties
-        location = properties.get("location");
-        if (location == null) {
-            throw new Exception("missing required property: location");
-        }
-        logger.info("setting plugin properties: location={}", location);
-        if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
-            throw new Exception("unsupported location: " + location);
-        }
-    }
 
     @Override
     public Map<String, String> getConfigSourceProperties() throws Exception {
-        // load the XML content from the specified source (as a String)
-        String sourceContent = SimpleConfigSourcePlugin.loadResource(location);
+        logger.debug("loading resource from location: {}", getLocation());
+        String sourceContent = LocationBasedConfigSourcePlugin.loadResource(getLocation());
         // parse the XML content into a JSON object and flatten it into a map of properties
         JSONObject json = XML.toJSONObject(sourceContent);
-        logger.info("loaded XML content from source: {}", sourceName);
+        logger.info("loaded XML content from source: {}", getSourceName());
         Map<String, String> properties = new HashMap<>();
         getContents("", json, properties);
-        logger.info("loaded {} properties from XML source: {}", properties.size(), sourceName);
+        logger.info("loaded {} properties from XML source: {}", properties.size(), getSourceName());
         return properties;
     }   
 

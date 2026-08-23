@@ -16,7 +16,38 @@
     <parent>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>parent</artifactId>
-        <version>0.1.0</version>
+        <version>0.2.0</version>
     </parent>
 
+    <build>
+        <resources>
+            <!--
+                `version.properties` is filtered so the API reports the version it
+                was built at. Filtering is scoped to that one file: turning it on
+                for the whole directory would also rewrite anything else that
+                happens to contain a `${...}`, and corrupt any binary resource.
+            -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/version.properties</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/version.properties</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
 </project>

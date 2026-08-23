@@ -1,5 +1,6 @@
 package net.rabbitware.config.example;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
 import com.sun.net.httpserver.HttpServer;
@@ -15,7 +16,8 @@ public class Test {
     public static void main(String[] args) throws Exception {
         createWebServer();
         createDatabase();
-        Config config = ConfigFactory.create(args);
+        resetChangeListenerTestFile();
+        Config config = ConfigFactory.create("test config", true, args);
 
         config.getPropertyNames().stream().forEach(name -> {
             Config.PropertyType type = config.getType(name);
@@ -53,8 +55,45 @@ public class Test {
                 }
             }
         });
+        System.out.println();
+        // test change listeners
+        Thread mainThread = Thread.currentThread();
+        config.addChangeListener("testListener", new Config.ChangeListener() {
+            @Override
+            public void onChange(Config.ChangeEvent event) {
+                System.out.println("testChangeListener: change detected: " + event);
+                mainThread.interrupt();
+            }
+            @Override
+            public void onError(Config.ErrorEvent event) {
+                System.out.println("testChangeListener: error detected: " + event);
+                mainThread.interrupt();
+            }
+        });
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
+        updateChangeListenerTestFile();
+        try { Thread.sleep(20000); } catch (InterruptedException e) {}
+        config.addChangeListener("anotherTestListener", new Config.ChangeListener() {
+            @Override
+            public void onChange(Config.ChangeEvent event) {
+                System.out.println("anotherTestListener: change detected: " + event);
+            }
+            @Override
+            public void onError(Config.ErrorEvent event) {
+                System.out.println("anotherTestListener: error detected: " + event);
+            }
+        });
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
     }
 
+
+    private static void resetChangeListenerTestFile() throws Exception {
+        Files.writeString(Path.of("change-listener-test.json"), "{}");
+    }
+
+    private static void updateChangeListenerTestFile() throws Exception {
+        Files.writeString(Path.of("change-listener-test.json"), "{\"fileIsUpdated\":true}");
+    }
 
     private static void createWebServer() {
         HttpServer server = null;
@@ -62,7 +101,7 @@ public class Test {
             server = SimpleFileServer.createFileServer(
                 new InetSocketAddress(1520),
                 Path.of("web-test").toAbsolutePath(),
-                SimpleFileServer.OutputLevel.INFO
+                SimpleFileServer.OutputLevel.NONE
             );
             // The server is started from a daemon thread so that the dispatcher
             // thread it creates inherits daemon status. A new thread is a daemon

@@ -1,8 +1,17 @@
 package net.rabbitware.config;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
 public interface Config {
+    /**
+     * Get the name of this Config object.
+     *
+     * @return
+     * the name of this Config object
+     */
+    public String getName();
+
     /**
      * Return a set of all property names in the config.
      *
@@ -190,11 +199,70 @@ public interface Config {
     /** same as {@link #getStringList(String)} */
     public List<String> getsl(String name) throws ConfigException;
 
+    /**
+     * Check if change detection is enabled for this configuration.
+     *
+     * @return
+     * {@code true} if change detection is enabled, {@code false} otherwise
+     */
+    public boolean isChangeDetectionEnabled();
+
+    /**
+     * Add a change listener for all config sources.
+     *
+     * @param listenerName
+     * the name of the listener
+     * @param listener
+     * the change listener to add
+     */
+    public void addChangeListener(String listenerName, ChangeListener listener);
+
+    /**
+     * Remove the change listener with the given name.
+     *
+     * @param listenerName
+     * the name of the listener to remove
+     */
+    public void removeChangeListener(String listenerName);
+
+    /**
+     * Add a change listener for the specified config source.
+     * 
+     * @param sourceName
+     * the name of the configuration source
+     * @param listenerName
+     * the name of the listener
+     * @param listener
+     * the change listener to add
+     */
+    public void addChangeListener(String sourceName, String listenerName, ChangeListener listener);
+
+    /**
+     * Remove the change listener with the given name for the specified config
+     * source.
+     *
+     * @param sourceName
+     * the name of the config source
+     * @param listenerName
+     * the name of the listener to remove
+     */
+    public void removeChangeListener(String sourceName, String listenerName);
+
+    /**
+     * Discard this configuration. This stops any change detection and releases
+     * associated resources.
+     */
+    public void discard();
 
     //
     // nested classes
     //
 
+    /**
+     * Represents the type of a property in the configuration.
+     * This includes primitive types like BOOLEAN, INT, LONG, DOUBLE, STRING,
+     * as well as their corresponding list types.
+     */
     public static enum PropertyType {
         BOOLEAN("boolean"), INT("int"), LONG("long"), DOUBLE("double"), STRING("string"),
         BOOLEAN_LIST("booleanList"), INT_LIST("intList"), LONG_LIST("longList"), DOUBLE_LIST("doubleList"),
@@ -227,17 +295,17 @@ public interface Config {
      * rather not thread the instance through every constructor.
      *
      * <p><b>Take the instance once and keep it.</b> {@link #get()} is only a
-     * volatile read, so it is not expensive - but calling it for every
-     * property read is still the wrong shape. A {@code Config} is an immutable
+     * volatile read, so it is not expensive, but calling it for every property
+     * read is still the wrong way to go. A {@code Config} is an immutable
      * snapshot, and holding one is what guarantees everything you read came
      * from the same configuration. Code that calls {@code get()} per read
-     * gives that up: if the instance is replaced in between, it can see one
+     * gives that up; if the instance is replaced in between, it can see one
      * property from the old configuration and the next from the new one.
      *
      * <p>Passing the {@code Config} into constructors remains the better
      * approach where it is practical, since it makes the dependency visible
      * and the class testable without touching global state. This holder is the
-     * pragmatic alternative, not the recommended one.
+     * pragmatic alternative and not the recommended one.
      *
      * <p>The instance may only be set once. Replacing it is a separate,
      * deliberately named operation, so that two components each initializing
@@ -308,6 +376,7 @@ public interface Config {
                 if (instance == null) {
                     throw new ConfigException("no config instance has been set yet - use `set` first");
                 }
+                instance.discard();
                 instance = config;
             }
         }
@@ -329,6 +398,60 @@ public interface Config {
             return config;
         }
     }
+
+    /**
+     * A listener for configuration changes.
+     */
+    public static interface ChangeListener {
+        /**
+         * Called when the configuration changes.
+         *
+         * @param event
+         * the change event containing details of the change
+         */
+        public void onChange(ChangeEvent event) throws Exception;
+
+        /**
+         * Called when an error occurs while watching the configuration.
+         *
+         * @param e
+         * the exception that occurred
+         */
+        public void onError(ErrorEvent event) throws Exception;
+    }
+
+    /**
+     * An event representing a change in a config source.
+     *
+     * @param source
+     * the source of the change
+     * @param timestamp
+     * the time when the change occurred
+     * @param details
+     * the details of the change
+     */
+    public static record ChangeEvent(
+        String source,
+        Instant timestamp,
+        String details
+    ){}
+
+    /**
+     * An event representing an error that occurred while watching a config
+     * source.
+     *
+     * @param source
+     * the source of the error
+     * @param timestamp
+     * the time when the error occurred
+     * @param exception
+     * the exception that occurred
+     */
+    public static record ErrorEvent(
+        String source,
+        Instant timestamp,
+        Exception exception
+    ){}
 
     public static class ConfigException extends RuntimeException {
         public ConfigException(String message) {

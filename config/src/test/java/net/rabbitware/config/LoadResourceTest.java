@@ -21,7 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
 
 /**
  * Tests for loading a config source from a location.
@@ -39,13 +39,13 @@ class LoadResourceTest {
     void aFileLocationIsRead() throws Exception {
         Path file = tempDir.resolve("thing.properties");
         Files.writeString(file, "greeting=hello");
-        assertEquals("greeting=hello", SimpleConfigSourcePlugin.loadResource("file:" + file));
+        assertEquals("greeting=hello", LocationBasedConfigSourcePlugin.loadResource("file:" + file));
     }
 
     @Test
     void aClasspathLocationIsRead() throws Exception {
         // this test class is on the test classpath, so it can find itself
-        String content = SimpleConfigSourcePlugin.loadResource(
+        String content = LocationBasedConfigSourcePlugin.loadResource(
             "classpath:net/rabbitware/config/load-resource-test.txt"
         );
         assertEquals("loaded from the classpath", content.strip());
@@ -55,7 +55,7 @@ class LoadResourceTest {
     void aMissingClasspathLocationIsRejected() {
         assertThrows(
             IllegalArgumentException.class,
-            () -> SimpleConfigSourcePlugin.loadResource("classpath:no/such/resource")
+            () -> LocationBasedConfigSourcePlugin.loadResource("classpath:no/such/resource")
         );
     }
 
@@ -63,7 +63,7 @@ class LoadResourceTest {
     void aLocationWithNoSchemeIsRejected() {
         assertThrows(
             IllegalArgumentException.class,
-            () -> SimpleConfigSourcePlugin.loadResource("just-a-path")
+            () -> LocationBasedConfigSourcePlugin.loadResource("just-a-path")
         );
     }
 
@@ -81,7 +81,7 @@ class LoadResourceTest {
         }
         assertEquals(
             "greeting=from inside a jar",
-            SimpleConfigSourcePlugin.loadResource("jar:file:" + jar + "!/inner.properties")
+            LocationBasedConfigSourcePlugin.loadResource("jar:file:" + jar + "!/inner.properties")
         );
     }
 
@@ -97,7 +97,7 @@ class LoadResourceTest {
     @DisplayName("the location prefixes the documentation lists are supported")
     void supportedLocations(String location) {
         assertTrue(
-            SimpleConfigSourcePlugin.isSupportedLocation(location),
+            LocationBasedConfigSourcePlugin.isSupportedLocation(location),
             location + " should be a supported location"
         );
     }
@@ -107,7 +107,7 @@ class LoadResourceTest {
     @DisplayName("anything without a supported prefix is not a location")
     void unsupportedLocations(String location) {
         assertFalse(
-            SimpleConfigSourcePlugin.isSupportedLocation(location),
+            LocationBasedConfigSourcePlugin.isSupportedLocation(location),
             location + " should not be a supported location"
         );
     }
@@ -115,8 +115,8 @@ class LoadResourceTest {
     @Test
     @DisplayName("a location prefix is recognized regardless of case or surrounding space")
     void locationPrefixesAreCaseInsensitive() {
-        assertTrue(SimpleConfigSourcePlugin.isSupportedLocation("FILE:a.properties"));
-        assertTrue(SimpleConfigSourcePlugin.isSupportedLocation("  https://example.com/a  "));
+        assertTrue(LocationBasedConfigSourcePlugin.isSupportedLocation("FILE:a.properties"));
+        assertTrue(LocationBasedConfigSourcePlugin.isSupportedLocation("  https://example.com/a  "));
     }
 
     @Test
@@ -146,7 +146,7 @@ class LoadResourceTest {
             long start = System.nanoTime();
             Exception e = assertThrows(
                 Exception.class,
-                () -> SimpleConfigSourcePlugin.loadResource(location)
+                () -> LocationBasedConfigSourcePlugin.loadResource(location)
             );
             long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
 
@@ -160,8 +160,8 @@ class LoadResourceTest {
             );
             // generous upper bound - the point is that it returns at all
             assertTrue(
-                elapsedMillis < SimpleConfigSourcePlugin.READ_TIMEOUT_MILLIS * 3L,
-                "expected the read to time out near " + SimpleConfigSourcePlugin.READ_TIMEOUT_MILLIS
+                elapsedMillis < LocationBasedConfigSourcePlugin.READ_TIMEOUT_MILLIS * 3L,
+                "expected the read to time out near " + LocationBasedConfigSourcePlugin.READ_TIMEOUT_MILLIS
                     + "ms, but it took " + elapsedMillis + "ms"
             );
         }
@@ -176,10 +176,10 @@ class LoadResourceTest {
         } // closed, so nothing is listening on this port now
         String location = "http://127.0.0.1:" + closedPort + "/whatever.properties";
         long start = System.nanoTime();
-        assertThrows(Exception.class, () -> SimpleConfigSourcePlugin.loadResource(location));
+        assertThrows(Exception.class, () -> LocationBasedConfigSourcePlugin.loadResource(location));
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
         assertTrue(
-            elapsedMillis < SimpleConfigSourcePlugin.CONNECT_TIMEOUT_MILLIS,
+            elapsedMillis < LocationBasedConfigSourcePlugin.CONNECT_TIMEOUT_MILLIS,
             "a refused connection should not wait for the connect timeout, but took " + elapsedMillis + "ms"
         );
     }

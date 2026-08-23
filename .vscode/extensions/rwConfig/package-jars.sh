@@ -38,4 +38,38 @@ if [ "$count" -lt 4 ]; then
     echo "only $count jars in $here/lib - refusing to package an extension without the analyzer" >&2
     exit 1
 fi
-echo "packaged $count jars into $here/lib"
+
+# Take the extension's version from the library it is about to ship. The two are
+# one product to a user - the extension is only useful with the analyzer inside
+# it - and a version written into `package.json` by hand goes stale the first
+# time the library moves. Derived from the jar that was just copied, so it names
+# the code that is actually in the package rather than what the pom said.
+version=$(basename "$(ls "$here/lib"/plugin-api-*.jar)" .jar | sed 's/^plugin-api-//')
+case "$version" in
+    # The marketplace takes x.y.z and nothing else - a SNAPSHOT would be rejected
+    # at publish time, long after this script has finished. `case` matches globs,
+    # not regular expressions, so the digits-and-dots test has to come first: a
+    # trailing `*` in the shape test alone would happily swallow `-SNAPSHOT`.
+    *[!0-9.]*)
+        echo "library version \`$version\` is not usable as an extension version (needs x.y.z)" >&2
+        exit 1
+        ;;
+    [0-9]*.[0-9]*.[0-9]*) ;;
+    *)
+        echo "library version \`$version\` is not usable as an extension version (needs x.y.z)" >&2
+        exit 1
+        ;;
+esac
+previous=$(node -p "require('$here/package.json').version")
+if [ "$previous" != "$version" ]; then
+    node -e "
+        const fs = require('fs');
+        const path = '$here/package.json';
+        const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+        pkg.version = '$version';
+        fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+    "
+    echo "extension version $previous -> $version (following the library)"
+fi
+
+echo "packaged $count jars into $here/lib (rwConfig $version)"

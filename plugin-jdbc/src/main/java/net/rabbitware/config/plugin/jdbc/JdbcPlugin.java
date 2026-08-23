@@ -45,10 +45,6 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
         logger.info("JDBC plugin instantiated");
     } 
 
-    @Override
-    public String getPluginVersion() {
-        return "1.0.0";
-    }
 
     @Override
     public void setSourceName(String sourceName) {
@@ -57,13 +53,28 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
     }
 
     @Override
+    public String getSourceName() {
+        return sourceName;
+    }
+
+    @Override
     public boolean isChangeDetectionSupported() {
         return false;
     }
 
     @Override
-    public void addChangeListener(SimpleConfigSourcePlugin.ChangeListener listener) {
-        // not supported
+    public void startChangeDetection() throws Exception {
+        // logger.info("JDBC plugin started change detection");
+    }
+
+    @Override
+    public void stopChangeDetection() throws Exception {
+        // logger.info("JDBC plugin stopped change detection");
+    }
+
+    @Override
+    public boolean isChanged() {
+        return false;
     }
 
     @Override
@@ -78,6 +89,7 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
 
     @Override
     public void setPluginProperties(Map<String, String> properties) throws Exception {
+        logger.info("setting plugin properties: {}", properties);
         // set and validate required properties
         connectionString = properties.get("connectionString");
         if (connectionString == null || connectionString.isBlank()) {
@@ -89,7 +101,6 @@ public class JdbcPlugin implements SimpleConfigSourcePlugin {
         }
         username = properties.get("username");
         password = properties.get("password");
-        logger.info("setting properties: connectionString={}, query={}, username={}", connectionString, query, username);
     }
 
     @Override

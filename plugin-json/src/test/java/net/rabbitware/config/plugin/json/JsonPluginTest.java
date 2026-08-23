@@ -1,6 +1,8 @@
 package net.rabbitware.config.plugin.json;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.nio.file.Files;
@@ -9,6 +11,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -222,5 +226,49 @@ class JsonPluginTest {
     void nestedObjectsAreFlattenedWithBackslashes() throws Exception {
         Map<String, String> properties = load("{\"a\": {\"b\": {\"c\": \"deep\"}}}");
         assertEquals("deep", properties.get("a\\b\\c"));
+    }
+
+    @Test
+    @DisplayName("the reported version is the one the jar was built at, not a literal in the source")
+    void versionTracksTheBuild() {
+        // `API_VERSION` is filtered in from the pom at build time. Comparing to it
+        // catches a plugin that has gone back to hardcoding a version of its own.
+        assertEquals(SimpleConfigSourcePlugin.API_VERSION, new JsonPlugin().getPluginVersion());
+        assertTrue(SimpleConfigSourcePlugin.API_VERSION.matches("\\d+(\\.\\d+)*"),
+            "should look like a version, but was: " + SimpleConfigSourcePlugin.API_VERSION);
+        assertNotEquals("0.0.0", SimpleConfigSourcePlugin.API_VERSION,
+            "0.0.0 is the fallback used when version.properties is missing from the jar");
+    }
+
+    @Nested
+    @DisplayName("whether changes can be detected depends on the location")
+    class ChangeDetection {
+
+        private boolean supportedFor(String location) throws Exception {
+            JsonPlugin plugin = new JsonPlugin();
+            plugin.setPluginProperties(Map.of("location", location));
+            return plugin.isChangeDetectionSupported();
+        }
+
+        @Test
+        @DisplayName("a location that can be watched or polled supports it")
+        void watchableLocations() throws Exception {
+            assertEquals(true, supportedFor("file:/tmp/x.txt"), "file");
+            assertEquals(true, supportedFor("jar:file:/tmp/a.jar!/x.txt"), "jar");
+            assertEquals(true, supportedFor("http://example.com/x.txt"), "http");
+            assertEquals(true, supportedFor("https://example.com/x.txt"), "https");
+        }
+
+        @Test
+        @DisplayName("a classpath resource does not - it cannot change while the JVM runs")
+        void classpathIsNotWatchable() throws Exception {
+            assertEquals(false, supportedFor("classpath:x.txt"));
+        }
+
+        @Test
+        @DisplayName("nor does a plugin that has not been given a location yet")
+        void unconfiguredPluginSaysNo() {
+            assertEquals(false, new JsonPlugin().isChangeDetectionSupported());
+        }
     }
 }

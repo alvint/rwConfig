@@ -142,7 +142,7 @@ Add this to your project's pom.xml:
     <dependency>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>config</artifactId>
-        <version>0.1.0</version>
+        <version>0.2.0</version>
     </dependency>
 </dependencies>
 ```

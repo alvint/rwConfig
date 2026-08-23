@@ -1,10 +1,8 @@
 package net.rabbitware.config.analyzer;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
 import net.rabbitware.config.Config.ConfigException;
 import net.rabbitware.config.ConfigFactory;
 

@@ -1,18 +1,13 @@
 package net.rabbitware.config;
-import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -21,14 +16,34 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config.ConfigException;
 import net.rabbitware.config.Config.PropertyType;
-
+import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
 import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
+import net.rabbitware.config.plugin.commandline.CommandLinePlugin;
+import net.rabbitware.config.plugin.directory.DirectoryPlugin;
+import net.rabbitware.config.plugin.environmentvariables.EnvironmentVariablesPlugin;
+import net.rabbitware.config.plugin.propertiesfile.PropertiesFilePlugin;
+import net.rabbitware.config.plugin.systemproperties.SystemPropertiesPlugin;
 
+/**
+ * A factory class for creating `Config` instances. This class actually does
+ * more than just creating `Config` instances; it also manages change detection
+ * and plugin loading for the Config instances it creates.
+ */
 public class ConfigFactory {
+    private static final Logger logger = LoggerFactory.getLogger(ConfigFactory.class);
+
+    /**
+     * The maximum number of times that an error in a config source's change
+     * listener will be logged before it is suppressed.
+     */
+    public static final int MAX_CHANGE_LISTENER_ERROR_NOTIFICATION_COUNT = 20;
+
     public static final String CONFIG_FILE_PATH_PROPERTY = "rw.config.path";
     public static final String DEFAULT_CONFIG_FILE_PATH = "rwconfig";
     public static final String DEFAULT_CONFIG_PREFIX = "rwc.";
     public static final String CONFIG_PREFIX_PROPERTY = DEFAULT_CONFIG_PREFIX + "prefix";
+
+    public static final int DEFAULT_POLLING_INTERVAL_MILLIS = 5000;
 
     /**
      * This special value tells the library to look for the real value of this
@@ -36,31 +51,151 @@ public class ConfigFactory {
      */
     public static final String DEFERRED_VALUE = "<<";
 
-    /**
-     * A command line argument of the form `name=value`, where `name` is a
-     * legal property name. Names begin with a letter, so an application's own
-     * flags are never mistaken for property assignments.
-     */
     /** The suffix that marks a source type as a plugin rather than a built-in. */
     private static final String PLUGIN_TYPE_SUFFIX = ".plugin";
 
     /** Plugin module names are this prefix followed by the plugin's short name. */
     private static final String PLUGIN_MODULE_PREFIX = "net.rabbitware.config.plugin.";
 
-    private static final Pattern COMMAND_LINE_ASSIGNMENT =
-        Pattern.compile("^\\s*([A-Za-z][\\w.\\\\-]*)\\s*=\\s*(.*)$");
+    static final ChangeWatcher changeWatcher = new ChangeWatcher();
 
-    private static final Logger logger = LoggerFactory.getLogger(ConfigFactory.class);
-
+    /**
+     * Create a new `Config` instance with a random UUID name, no change
+     * detection, and without command line arguments.
+     *
+     * @return
+     * a new `Config` instance
+     * @throws ConfigException
+     * if there is an error creating the config
+     */
     public static Config create() throws ConfigException {
-        return create(null);
+        return create(null, false, null);
     }
 
+    /**
+     * Create a new `Config` instance with the specified name, no change
+     * detection, and without command line arguments.
+     *
+     * @param name
+     * the name of the config instance
+     * @return
+     * a new `Config` instance
+     * @throws ConfigException
+     * if there is an error creating the config
+     */
+    public static Config create(String name) throws ConfigException {
+        return create(name, false, null);
+    }
+
+    /**
+     * Create a new `Config` instance with a random UUID name, the given change
+     * detection setting, and without command line arguments.
+     *
+     * @param enableChangeDetection
+     * whether to enable change detection for the config instance
+     * @return
+     * a new `Config` instance
+     * @throws ConfigException
+     * if there is an error creating the config
+     */
+    public static Config create(boolean enableChangeDetection) throws ConfigException {
+        return create(null, enableChangeDetection, null);
+    }
+
+    /**
+     * Create a new `Config` instance with the specified name, the given change
+     * detection setting, and without command line arguments.
+     *
+     * @param name
+     * the name of the config instance
+     * @param enableChangeDetection
+     * whether to enable change detection for the config instance
+     * @return
+     * a new `Config` instance
+     * @throws ConfigException
+     * if there is an error creating the config
+     */
+    public static Config create(String name, boolean enableChangeDetection) throws ConfigException {
+        return create(name, enableChangeDetection, null);
+    }
+
+    /**
+     * Create a new `Config` instance with a random UUID name, no change
+     * detection, and the given command line arguments.
+     *
+     * @param commandLineArgs
+     * the command line arguments, or `null` if none
+     * @return
+     * a new `Config` instance
+     * @throws ConfigException
+     * if there is an error creating the config
+     */
     public static Config create(String[] commandLineArgs) throws ConfigException {
+        return create(null, false, commandLineArgs);
+    }
+
+    /**
+     * Create a new `Config` instance with the specified name, no change
+     * detection, and the given command line arguments.
+     *
+     * @param name
+     * the name of the config instance
+     * @param commandLineArgs
+     * the command line arguments, or `null` if none
+     * @return
+     * a new `Config` instance
+     * @throws ConfigException
+     * if there is an error creating the config
+     */
+    public static Config create(String name, String[] commandLineArgs) throws ConfigException {
+        return create(name, false, commandLineArgs);
+    }
+
+    /**
+     * Create a new `Config` instance with a random UUID name, the given change
+     * detection setting, and the given command line arguments.
+     *
+     * @param name
+     * the name of the config instance
+     * @param enableChangeDetection
+     * whether to enable change detection for the config instance
+     * @param commandLineArgs
+     * the command line arguments, or `null` if none
+     * @return
+     * a new `Config` instance
+     * @throws ConfigException
+     * if there is an error creating the config
+     */
+    public static Config create(boolean enableChangeDetection, String[] commandLineArgs) throws ConfigException {
+        return create(null, enableChangeDetection, commandLineArgs);
+    }
+
+    /**
+     * Create a new `Config` instance with the given name, change detection
+     * setting, and command line arguments.
+     *
+     * @param name
+     * the name of the config instance
+     * @param enableChangeDetection
+     * whether to enable change detection for the config instance
+     * @param commandLineArgs
+     * the command line arguments, or `null` if none
+     * @return
+     * a new `Config` instance
+     * @throws ConfigException
+     * if there is an error creating the config
+     */
+    public static Config create(String name, boolean enableChangeDetection, String[] commandLineArgs)
+            throws ConfigException {
+        if (name == null || name.isBlank()) {
+            name = UUID.randomUUID().toString();
+        }
         logger.debug(
-            "creating Config instance with command line arguments {}",
-            commandLineArgs == null ? "not set" : "set"
+            "creating Config instance with name `{}`, command line arguments {}, and change detection {}",
+            name, commandLineArgs == null ? "not set" : "set", enableChangeDetection ? "enabled" : "disabled"
         );
+        // create the config object and set its values
+        var configImpl = new ConfigImpl(name, enableChangeDetection);
         List<String> configFile = loadConfigFile(commandLineArgs);
         // Figure out the config prefix - the string every library setting
         // starts with. It applies to the whole file, so it has to be the first
@@ -154,12 +289,13 @@ public class ConfigFactory {
                 }
                 var type = matcher.group(1);
                 var allowedValues = matcher.group(2);
-                var name = matcher.group(3);
+                var propertyName = matcher.group(3);
                 var defaultValue = matcher.group(4);
-                if (configProperties.containsKey(name) || propertyInfoMap.containsKey(name)) {
-                    throw new ConfigException("duplicate config line for property: " + name);
+                if (configProperties.containsKey(propertyName) || propertyInfoMap.containsKey(propertyName)) {
+                    throw new ConfigException("duplicate config line for property: " + propertyName);
                 }
-                if (name.startsWith(configPrefix) || name.equals(CONFIG_PREFIX_PROPERTY)) { // library setting
+                if (propertyName.startsWith(configPrefix) || propertyName.equals(CONFIG_PREFIX_PROPERTY)) {
+                    // library setting line
                     if (type != null && !type.isEmpty()) {
                         throw new ConfigException("invalid config line (library settings cannot have a type): " + s);
                     }
@@ -171,20 +307,54 @@ public class ConfigFactory {
                     if (defaultValue == null || defaultValue.isEmpty()) {
                         throw new ConfigException("invalid config line (missing value): " + s);
                     }
-                    configProperties.put(name, defaultValue);
-                } else { // property info line
+                    configProperties.put(propertyName, defaultValue);
+                } else { 
+                    // property info line
                     type = type != null && !type.isEmpty() ? type : "string"; // default type is `string`
                     logger.debug(
                         "loading property info for `{}`: type=`{}`, allowedValues=`{}`, defaultValue=`{}`",
-                        name, type, allowedValues, defaultValue
+                        propertyName, type, allowedValues, defaultValue
                     );
-                    propertyInfoMap.put(name, getPropertyInfo(name, type, allowedValues, defaultValue));
+                    propertyInfoMap.put(propertyName, getPropertyInfo(propertyName, type, allowedValues, defaultValue));
                 }
             });
-        logger.debug(
+        logger.info(
             "`rwconfig` file loaded successfully with {} library settings and {} property declarations",
-            configProperties.size(), propertyInfoMap.size())
-        ;
+            configProperties.size(),
+            propertyInfoMap.size()
+        );
+
+        // start the polling thread if polling is enabled
+        long pollingInterval;
+        String pollingIntervalString = configProperties.get(configPrefix + "changeDetectionPollingInterval");
+        if (pollingIntervalString != null) { // a polling interval is specified in the config file
+            try {
+                pollingInterval = Long.parseLong(pollingIntervalString);
+                if (pollingInterval <= 0) {
+                    throw new ConfigException(
+                        "invalid `" + configPrefix + "changeDetectionPollingInterval` property (must be positive): "
+                        + pollingIntervalString
+                    );
+                }
+            } catch (NumberFormatException e) {
+                throw new ConfigException(
+                    "invalid `" + configPrefix + "changeDetectionPollingInterval` property (not a valid long): "
+                    + pollingIntervalString, e
+                );
+            }
+        } else {
+            pollingInterval = DEFAULT_POLLING_INTERVAL_MILLIS;
+        }
+        if (pollingIntervalString != null && !enableChangeDetection) {
+            logger.warn(
+                "a change detection polling interval was set in the `rwconfig` file but the Config object was not "
+                + "created with change detection support - consider using `ConfigFactory.create(true)` or "
+                + "`ConfigFactory.create(true, args)` instead"
+            );
+        }
+        if (enableChangeDetection) {
+            changeWatcher.startPollingThread(configImpl, pollingInterval);
+        }
 
         // get all of the config sources
         Map<String, Map<String, String>> configSources = new LinkedHashMap<>();
@@ -206,137 +376,89 @@ public class ConfigFactory {
                     throw new ConfigException("duplicate config source name: " + sourceName);
                 }
                 logger.debug("loading config source: {}", sourceName);
-                String type = getPluginProperty(configProperties, configSources, configPrefix, sourceName, "type", true);
-                if (type.indexOf('.') != -1) { // sourceType is a plugin
-                    SimpleConfigSourcePlugin plugin = loadPluginByModule(type);
-                    String pluginVersion = plugin.getPluginVersion();
-                    logger.info(
-                        "using plugin `{}` v{} for config source `{}`",
-                        plugin.getClass().getName(), pluginVersion, sourceName
-                    );
-                    plugin.setSourceName(sourceName);
-                    // get the required and optional properties for the plugin
-                    Set<String> requiredProperties = Set.copyOf(plugin.getRequiredPluginPropertyNames());
-                    Set<String> optionalProperties = Set.copyOf(plugin.getOptionalPluginPropertyNames());
-                    // get the properties for the plugin from the `rwconfig` file
-                    Map<String, String> properties = new HashMap<>();
-                    requiredProperties.stream()
-                        .forEach(propertyName -> {
-                            String propertyValue = getPluginProperty(
-                                configProperties, configSources, configPrefix, sourceName, propertyName, true
-                            );
-                            properties.put(propertyName, propertyValue);
-                        });
-                    optionalProperties.stream()
-                        .forEach(propertyName -> {
-                            String propertyValue = getPluginProperty(
-                                configProperties, configSources, configPrefix, sourceName, propertyName, false
-                            );
-                            properties.put(propertyName, propertyValue);
-                        });
-                    // set the properties for the plugin
-                    try {
-                        plugin.setPluginProperties(properties);
-                    } catch (Exception e) {
-                        throw new ConfigException(
-                            "error setting properties for config source `" + sourceName + "` of type `" + type
-                            + "`", e
-                        );
+                String type = getPluginProperty(
+                    configProperties, configSources, configPrefix, sourceName, "type", true
+                );
+                // load the appropriate plugin based on the type
+                SimpleConfigSourcePlugin plugin;
+                if (type.equals("commandLineArguments")) {
+                    if (commandLineArgs == null) {
+                        throw new ConfigException("command line arguments are not available");
                     }
-                    // get the config source properties from the plugin
-                    Map<String, String> configSourceProperties;
-                    try {
-                        configSourceProperties = plugin.getConfigSourceProperties();
-                    } catch (Exception e) {
-                        throw new ConfigException(
-                            "error getting properties for config source `" + sourceName + "` of type `" + type
-                            + "`", e
-                        );
-                    }
-                    if (configSourceProperties == null) {
-                        throw new ConfigException(
-                            "config source `" + sourceName + "` of type `" + type
-                            + "` returned null from getConfigSourceProperties()"
-                        );
-                    }
-                    configSources.put(sourceName, Map.copyOf(configSourceProperties));
-                } else { // sourceType is a built-in source
-                    switch (SourceType.fromString(type)) {
-                        case COMMAND_LINE_ARGUMENTS -> {
-                            if (commandLineArgs == null) {
-                                throw new ConfigException(
-                                    "config source `" + sourceName + "` is of type `commandLineArguments`, "
-                                    + "but no command line arguments were provided to the config system"
-                                );
-                            }
-                            configSources.put(sourceName, new CommandLineProperties(commandLineArgs, configPrefix));
-                            logger.debug("config source `{}` loaded from command line arguments", sourceName);
-                        }
-                        case SYSTEM_PROPERTIES -> {
-                            warnIfIgnoreUnknownPropertiesCannotBeTurnedOff(
-                                configProperties, configPrefix, sourceName, type);
-                            configSources.put(sourceName, new SystemProperties(propertyInfoMap));
-                            logger.debug("config source `{}` loaded from system properties", sourceName);
-                        }
-                        case ENVIRONMENT_VARIABLES -> {
-                            warnIfIgnoreUnknownPropertiesCannotBeTurnedOff(
-                                configProperties, configPrefix, sourceName, type);
-                            configSources.put(sourceName, new EnvironmentProperties(propertyInfoMap));
-                            logger.debug("config source `{}` loaded from environment variables", sourceName);
-                        }
-                        case PROPERTIES -> {
-                            String location = getPluginProperty(configProperties, configSources, configPrefix, sourceName, "location", true);
-                            logger.info("setting plugin properties: location={}", location);
-                            if (!SimpleConfigSourcePlugin.isSupportedLocation(location)) {
-                                throw new ConfigException("unsupported location: " + location);
-                            }
-                            try {
-                                String sourceContent = SimpleConfigSourcePlugin.loadResource(location);
-                                Properties properties = new Properties();
-                                properties.load(new StringReader(sourceContent));
-                                configSources.put(sourceName, toMap(properties));
-                                logger.debug(
-                                    "config source `{}` loaded {} properties from location: {}",
-                                    sourceName, properties.size(), location
-                                );
-                            } catch (Exception e) {
-                                throw new ConfigException(
-                                    "error loading properties from location for config source `" + sourceName + "`: "
-                                    + location, e
-                                );
-                            }
-                        }
-                        case DIRECTORY -> {
-                            String dirPath = getPluginProperty(configProperties, configSources, configPrefix, sourceName, "path", true);
-                            try (Stream<Path> files = Files.list(Path.of(dirPath))) {
-                                Map<String, String> properties = new HashMap<>();
-                                files
-                                    .filter(Files::isRegularFile)
-                                    .forEach(path -> {
-                                        try {
-                                            String fileName = path.getFileName().toString();
-                                            String content = Files.readString(path, StandardCharsets.UTF_8);
-                                            properties.put(fileName, content);
-                                        } catch (IOException e) {
-                                            throw new ConfigException(
-                                                "error reading config source file from directory for `" + sourceName + "`: " + path, e
-                                            );
-                                        }
-                                    });
-                                configSources.put(sourceName, properties);
-                                logger.debug("config source `{}` loaded from directory: {}", sourceName, dirPath);
-                            } catch (IOException e) {
-                                throw new ConfigException(
-                                    "error reading directory contents for `" + sourceName + "`: " + dirPath, e
-                                );
-                            }
-                        }
-                    }
+                    plugin = new CommandLinePlugin(commandLineArgs, configPrefix);
+                } else if (type.equals("systemProperties")) {
+                    plugin = new SystemPropertiesPlugin(propertyInfoMap.keySet());
+                    warnIfIgnoreUnknownPropertiesCannotBeTurnedOff(configProperties, configPrefix, sourceName, type);
+                } else if (type.equals("environmentVariables")) {
+                    plugin = new EnvironmentVariablesPlugin(propertyInfoMap.keySet());
+                    warnIfIgnoreUnknownPropertiesCannotBeTurnedOff(configProperties, configPrefix, sourceName, type);
+                } else if (type.equals("properties")) {
+                    plugin = new PropertiesFilePlugin();
+                } else if (type.equals("directory")) {
+                    plugin = new DirectoryPlugin();
+                } else { // external plugin
+                    plugin = loadPluginByModule(type);
                 }
+                String pluginVersion = plugin.getPluginVersion();
+                logger.info(
+                    "using plugin `{}` v{} for config source `{}`",
+                    plugin.getClass().getName(), pluginVersion, sourceName
+                );
+                plugin.setSourceName(sourceName);
+                // get the required and optional properties for the plugin
+                Set<String> requiredProperties = plugin.getRequiredPluginPropertyNames() == null
+                    ? Set.of() : Set.copyOf(plugin.getRequiredPluginPropertyNames());
+                Set<String> optionalProperties = plugin.getOptionalPluginPropertyNames() == null
+                    ? Set.of() : Set.copyOf(plugin.getOptionalPluginPropertyNames());
+                // get the properties for the plugin from the `rwconfig` file
+                Map<String, String> properties = new HashMap<>();
+                requiredProperties.stream()
+                    .forEach(propertyName -> {
+                        String propertyValue = getPluginProperty(
+                            configProperties, configSources, configPrefix, sourceName, propertyName, true
+                        );
+                        properties.put(propertyName, propertyValue);
+                    });
+                optionalProperties.stream()
+                    .forEach(propertyName -> {
+                        String propertyValue = getPluginProperty(
+                            configProperties, configSources, configPrefix, sourceName, propertyName, false
+                        );
+                        properties.put(propertyName, propertyValue);
+                    });
+                // set the properties for the plugin
+                try {
+                    plugin.setPluginProperties(properties);
+                } catch (Exception e) {
+                    throw new ConfigException(
+                        "error setting properties for config source `" + sourceName + "` of type `" + type
+                        + "`", e
+                    );
+                }
+                // check for change events from the plugin if it supports them
+                if (configImpl.isChangeDetectionEnabled() && plugin.isChangeDetectionSupported()) {
+                    changeWatcher.add(configImpl, sourceName, type, plugin);
+                }
+                // get the config source properties from the plugin
+                Map<String, String> configSourceProperties;
+                try {
+                    configSourceProperties = plugin.getConfigSourceProperties();
+                } catch (Exception e) {
+                    throw new ConfigException(
+                        "error getting properties for config source `" + sourceName + "` of type `" + type
+                        + "`", e
+                    );
+                }
+                if (configSourceProperties == null) {
+                    throw new ConfigException(
+                        "config source `" + sourceName + "` of type `" + type
+                        + "` returned null from getConfigSourceProperties()"
+                    );
+                }
+                // add to the config sources map
+                configSources.put(sourceName, Map.copyOf(configSourceProperties));
             });
-
-        // create the config object and set its values
-        var configImpl = new ConfigImpl();
+        // set the values from the config sources into the config implementation
         configSources.entrySet().stream()
             .forEach(entry -> {
                 String sourceName = entry.getKey();
@@ -346,33 +468,36 @@ public class ConfigFactory {
                 Map<String, String> properties = entry.getValue();
                 properties.keySet().stream()
                     .filter(s -> !configImpl.has(s))
-                    .forEach(name -> {
-                        String valueString = properties.get(name);
-                        if (!propertyInfoMap.containsKey(name) && !configProperties.containsKey(name)) {
+                    .forEach(propertyName -> {
+                        String valueString = properties.get(propertyName);
+                        if (!propertyInfoMap.containsKey(propertyName) && !configProperties.containsKey(propertyName)) {
                             if (!ignoreUnknownProperties) {
                                 throw new ConfigException(
                                     "property `"
-                                        + name
+                                        + propertyName
                                         + "` is not defined in the `rwconfig` file, and config source `"
                                         + sourceName
                                         + "` does not allow unknown properties"
                                 );
                             } else {
                                 logger.info(
-                                    "property `{}` is not defined in the `rwconfig` file, but is present in config source `{}`"
-                                    + " - it will be ignored",
-                                    name, sourceName
+                                    "property `{}` is not defined in the `rwconfig` file, but is present in config "
+                                    + "source `{}` - it will be ignored", propertyName, sourceName
                                 );
                             }
-                        } else if(!configProperties.containsKey(name)) {
-                            PropertyInfo propertyInfo = propertyInfoMap.get(name);
+                        } else if(!configProperties.containsKey(propertyName)) {
+                            PropertyInfo propertyInfo = propertyInfoMap.get(propertyName);
                             Value value = parseValue(
-                                sourceName, name, valueString, propertyInfo.propertyType, propertyInfo.allowedValues
+                                sourceName,
+                                propertyName,
+                                valueString,
+                                propertyInfo.propertyType,
+                                propertyInfo.allowedValues
                             );
                             // do not log the value of the property - it may contain
                             // sensitive information
-                            logger.debug("setting property `{}` from config source `{}`", name, sourceName);
-                            configImpl.add(name, value);
+                            logger.debug("setting property `{}` from config source `{}`", propertyName, sourceName);
+                            configImpl.add(propertyName, value);
                         }
                     });
             });
@@ -385,14 +510,16 @@ public class ConfigFactory {
         propertyInfoMap.entrySet().stream()
             .filter(entry -> !configImpl.has(entry.getKey()))
             .forEach(entry -> {
-                String name = entry.getKey();
+                String propertyName = entry.getKey();
                 PropertyInfo propertyInfo = entry.getValue();
                 if (propertyInfo.defaultValue != null) {
-                    logger.debug("setting property `{}` to its default value of `{}`", name, propertyInfo.defaultValue);
-                    configImpl.add(name, propertyInfo.defaultValue);
+                    logger.debug(
+                        "setting property `{}` to its default value of `{}`", propertyName, propertyInfo.defaultValue
+                    );
+                    configImpl.add(propertyName, propertyInfo.defaultValue);
                 } else {
                     throw new ConfigException(
-                        "property `" + name
+                        "property `" + propertyName
                         + "` is not set by any config source, and has no default value defined in the `rwconfig` file"
                     );
                 }
@@ -400,7 +527,7 @@ public class ConfigFactory {
         // every property has been added by this point, so the config can take
         // its final set of property names
         configImpl.freeze();
-        logger.debug("Config instance created successfully");
+        logger.info("Config instance created successfully");
         return configImpl;
     }
 
@@ -424,10 +551,10 @@ public class ConfigFactory {
 
     private static List<String> loadConfigFile(String location) throws ConfigException {
         // check if the config file path is a valid location
-        if (SimpleConfigSourcePlugin.isSupportedLocation(location)) { // valid location
+        if (LocationBasedConfigSourcePlugin.isSupportedLocation(location)) { // valid location
             // load the `rwconfig` file from the location
             try {
-                List<String> lines = SimpleConfigSourcePlugin.loadResource(location).lines().toList();
+                List<String> lines = LocationBasedConfigSourcePlugin.loadResource(location).lines().toList();
                 // join lines that end with a backslash with the next line, and
                 // remove the backslash
                 List<String> joinedLines = new LinkedList<>();
@@ -460,29 +587,28 @@ public class ConfigFactory {
         // try to get the config file path from the command line arguments
         String configFilePath = getCommandLineArgument(CONFIG_FILE_PATH_PROPERTY, commandLineArgs);
         if (configFilePath != null) {
-            logger.debug("config file path specified in command line arguments: {}", configFilePath);
+            logger.info("config file path specified in command line arguments: {}", configFilePath);
             return configFilePath;
         }
 
         // try to get the config file path from the system properties
-        configFilePath = getSystemProperty(CONFIG_FILE_PATH_PROPERTY);
+        configFilePath = SystemPropertiesPlugin.getSystemProperty(CONFIG_FILE_PATH_PROPERTY);
         if (configFilePath != null) {
-            logger.debug("config file path specified in system properties: {}", configFilePath);
+            logger.info("config file path specified in system properties: {}", configFilePath);
             return configFilePath;
         }
 
         // try to get the config file path from the environment variables
-        configFilePath = getEnvironmentVariable(CONFIG_FILE_PATH_PROPERTY);
+        configFilePath = EnvironmentVariablesPlugin.getEnvironmentVariable(CONFIG_FILE_PATH_PROPERTY);
         if (configFilePath != null) {
-            logger.debug("config file path specified in environment variables: {}", configFilePath);
+            logger.info("config file path specified in environment variables: {}", configFilePath);
             return configFilePath;
         }
 
         // use the default config file path if none was specified
         configFilePath = DEFAULT_CONFIG_FILE_PATH;
-        logger.debug("using default config file path: {}", configFilePath);
+        logger.info("using default config file path: {}", configFilePath);
         return configFilePath;
-
     }
 
     /** Built once - the type list comes from the enum, so it never drifts. */
@@ -868,10 +994,6 @@ public class ConfigFactory {
         }
     }
 
-    private static Map<String, String> toMap(Properties properties) {
-        return properties.stringPropertyNames().stream()
-            .collect(Collectors.toMap(name -> name, name -> properties.getProperty(name)));
-    }
     /**
      * Retrieve the value of the command line argument corresponding to the
      * given property name. Commands line arguments are expected to be in the
@@ -899,43 +1021,6 @@ public class ConfigFactory {
             .map(matcher -> matcher.group(1))
             .findFirst()
             .orElse(null);
-    }
-
-    /**
-     * Retrieve the value of the system property corresponding to the given
-     * property name.
-     *
-     * @param propertyName
-     * the name of the system property to retrieve
-     * @return
-     * the value of the system property, or {@code null} if not found
-     */
-    private static String getSystemProperty(String propertyName) {
-        return System.getProperty(propertyName);
-    }
-
-    /**
-     * Retrieve the value of the environment variable corresponding to the given
-     * property name. The environment is first searched using the property name
-     * as-is. If the environment variable is not found under that name, the
-     * property name is converted to an environment-variable-friendly name and
-     * the environment is searched again. This conversion is done by replacing
-     *  camelCase and dots with underscores, and then converting to uppercase.
-     *
-     * @param propertyName
-     * the name of the environment variable to retrieve
-     * @return
-     * the value of the environment variable, or {@code null} if not found
-     */
-    private static String getEnvironmentVariable(String propertyName) {
-        String value = System.getenv(propertyName); // try to get the property value from the environment variables
-        if (value == null) { // not found - retry after converting the property name to an environment variable name
-            String envName = propertyName
-                .replaceAll("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[\\.-]", "_")
-                .toUpperCase();
-            value = System.getenv(envName);
-        }
-        return value;
     }
 
     /**
@@ -1270,126 +1355,142 @@ public class ConfigFactory {
     }
 
 
-
     //
-    // nested classes
+    // support classes
     //
 
-    private static final class CommandLineProperties implements Map<String, String> {
-        private final Map<String, String> map = new HashMap<>();
+    static class ChangeWatcher {
+        static record PluginInfo(String source, String type, SimpleConfigSourcePlugin plugin) {}
 
-        /**
-         * Every argument that looks like a property assignment is collected,
-         * not just the ones that were declared. Unlike the environment or the
-         * system properties - which are full of entries that have nothing to do
-         * with this application - every command line argument was typed
-         * deliberately, for this program, so an argument that matches no
-         * declaration is far more likely to be a typo than a coincidence.
-         * Collecting them all lets the usual unknown-property check see them,
-         * which means `ignoreUnknownProperties` turns this off in the same way
-         * it does for every other config source.
-         *
-         * <p>An argument only counts as an assignment if its name is a legal
-         * property name, so an application's own flags and positional arguments
-         * (`--verbose`, `input.txt`, `-n=3`) are left alone. The library's own
-         * arguments are skipped too.
-         */
-        private CommandLineProperties(String[] args, String configPrefix) {
-            if (args == null) { // if no args were provided, just return an empty map
-                return;
-            }
-            for (String arg : args) {
-                if (arg == null) {
-                    continue;
+        // synchronized stuff
+        private final Object lock = new Object();
+        final Map<ConfigImpl, List<PluginInfo>> plugins = new HashMap<>();
+        final Map<ConfigImpl, Thread> pollingThreads = new HashMap<>();
+
+        void startPollingThread(ConfigImpl config, long pollingIntervalMillis) {
+            synchronized (lock) {
+                if (pollingThreads.containsKey(config)) {
+                    throw new ConfigException("polling thread already exists for config `" + config.getName() + "`");
                 }
-                Matcher matcher = COMMAND_LINE_ASSIGNMENT.matcher(arg);
-                if (!matcher.matches()) { // not a property assignment - leave it for the application
-                    continue;
-                }
-                String name = matcher.group(1);
-                // the library's own arguments are not application properties
-                if (name.equals(CONFIG_FILE_PATH_PROPERTY) || name.startsWith(configPrefix)) {
-                    continue;
-                }
-                // first occurrence wins, matching `getCommandLineArgument`
-                map.putIfAbsent(name, matcher.group(2));
+                pollingThreads.put(config, createPollingThread(config, pollingIntervalMillis));
             }
         }
 
-        @Override public String get(Object key) { return key instanceof String name ? map.get(name) : null; }
-        @Override public int size() { return map.size(); }
-        @Override public boolean isEmpty() { return map.isEmpty(); }
-        @Override public boolean containsKey(Object key) { return map.containsKey(key); }
-        @Override public boolean containsValue(Object value) { return map.containsValue(value); }
-        @Override public Set<String> keySet() { return Set.copyOf(map.keySet()); }
-        @Override public Collection<String> values() { return List.copyOf(map.values()); }
-        @Override public Set<Entry<String, String>> entrySet() { return Set.copyOf(map.entrySet()); }
-        // other methods are not implemented, as they are not needed
-        @Override public String put(String key, String value) { throw new UnsupportedOperationException(); }
-        @Override public String remove(Object key) { throw new UnsupportedOperationException(); }
-        @Override public void clear() { throw new UnsupportedOperationException(); }
-        @Override public void putAll(Map<? extends String, ? extends String> m) {
-            throw new UnsupportedOperationException();
+        void add(ConfigImpl config, String source, String type, SimpleConfigSourcePlugin plugin) {
+            // start change detection for the plugin before adding to the list
+            try {
+                plugin.startChangeDetection();
+            } catch (Exception e) {
+                throw new ConfigException(
+                    "error starting change detection for config source `" + source + "` of type `" + type + "`", e
+                );
+            }
+            // add the plugin to the list
+            synchronized (lock) {
+                plugins.computeIfAbsent(config, k -> new LinkedList<>()).add(new PluginInfo(source, type, plugin));
+            }
         }
-    }
 
-    private static final class SystemProperties implements Map<String, String> {
-        private final Map<String, String> map = new HashMap<>();
-
-        private SystemProperties(Map<String, PropertyInfo> propertyInfoMap) {
-            propertyInfoMap.keySet().stream()
-                .forEach(name -> {
-                    String value = getSystemProperty(name);
-                    if (value != null) {
-                        map.put(name, value);
+        void discard(ConfigImpl config) {
+            List<PluginInfo> pluginList;
+            // remove config from the list
+            synchronized (lock) {
+                pluginList = plugins.remove(config);
+            }
+            // stop change detection for all plugins associated with this config
+            if (pluginList != null) {
+                for (PluginInfo info : pluginList) {
+                    try {
+                        info.plugin().stopChangeDetection();
+                    } catch (Exception e) {
+                        logger.error(
+                            "unable to stop change detection for config source `{}` of type `{}`", info.source(), info.type(), e
+                        );
                     }
-                });
+                }
+            }
+            // stop the polling thread
+            Thread pollingThread;
+            synchronized (lock) {
+                pollingThread = pollingThreads.remove(config);
+            }
+            if (pollingThread != null) {
+                pollingThread.interrupt();
+            }
         }
 
-        @Override public String get(Object key) { return key instanceof String name ? map.get(name) : null; }
-        @Override public int size() { return map.size(); }
-        @Override public boolean isEmpty() { return map.isEmpty(); }
-        @Override public boolean containsKey(Object key) { return map.containsKey(key); }
-        @Override public boolean containsValue(Object value) { return map.containsValue(value); }
-        @Override public Set<String> keySet() { return Set.copyOf(map.keySet()); }
-        @Override public Collection<String> values() { return List.copyOf(map.values()); }
-        @Override public Set<Entry<String, String>> entrySet() { return Set.copyOf(map.entrySet()); }
-        // other methods are not implemented, as they are not needed
-        @Override public String put(String key, String value) { throw new UnsupportedOperationException(); }
-        @Override public String remove(Object key) { throw new UnsupportedOperationException(); }
-        @Override public void clear() { throw new UnsupportedOperationException(); }
-        @Override public void putAll(Map<? extends String, ? extends String> m) {
-            throw new UnsupportedOperationException();
+        private List<PluginInfo> getPlugins(ConfigImpl config) {
+            if (config == null) {
+                throw new ConfigException("config cannot be null");
+            }
+            List<PluginInfo> pluginList;
+            synchronized (lock) {
+                pluginList = plugins.get(config);
+            }
+            if (pluginList == null) {
+                throw new ConfigException("no plugins found for config `" + config.getName() + "`");
+            }
+            return List.copyOf(pluginList);
         }
-    }
 
-    private static final class EnvironmentProperties implements Map<String, String> {
-        private final Map<String, String> map = new HashMap<>();
-
-        private EnvironmentProperties(Map<String, PropertyInfo> propertyInfoMap) {
-            propertyInfoMap.keySet().stream()
-                .forEach(name -> {
-                    String value = getEnvironmentVariable(name);
-                    if (value != null) {
-                        map.put(name, value);
+        Thread createPollingThread(ConfigImpl config, long pollingIntervalMillis) {
+            return Thread.ofVirtual().name("change polling thread for config: " + config.getName()).start(() -> {
+                logger.debug(
+                    "starting polling thread for config `{}` with interval {} ms", config.getName(),
+                    pollingIntervalMillis
+                );
+                long lastPolledTime = System.currentTimeMillis();
+                while (!Thread.currentThread().isInterrupted()) {
+                    try {
+                        // Time from the end of the last poll, not the start of this
+                        // iteration. Measuring from the start counts the sleep that
+                        // has not happened yet, so every other iteration finds the
+                        // interval already elapsed and does not sleep at all.
+                        long sinceLastPoll = System.currentTimeMillis() - lastPolledTime;
+                        Thread.sleep(Math.max(0, pollingIntervalMillis - sinceLastPoll));
+                    } catch (InterruptedException e) {
+                        break;
                     }
-                });
+                    // perform polling logic here
+                    logger.trace("polling plugins in config `{}` for changes", config.getName());
+                    // `discard` can land between the sleep above and this call, in
+                    // which case there is nothing left to poll. That is a normal
+                    // shutdown, so leave the loop rather than letting the exception
+                    // reach the thread's uncaught handler.
+                    List<PluginInfo> pluginList;
+                    try {
+                        pluginList = getPlugins(config);
+                    } catch (ConfigException e) {
+                        break;
+                    }
+                    for (PluginInfo pluginInfo : pluginList) {
+                        logger.trace(
+                            "checking plugin `{}` in config `{}` for changes", pluginInfo.source, config.getName()
+                        );
+                        try {
+                            if (pluginInfo.plugin.isChanged()) {
+                                config.fireChangeEvent(new Config.ChangeEvent(
+                                    pluginInfo.plugin.getSourceName(), Instant.now(), "change detected"
+                                ));
+                            }
+                        } catch (Exception e) {
+                            logger.error(
+                                "error occurred while polling plugin `{}` in config `{}` for changes",
+                                pluginInfo.source, config.getName(), e
+                            );
+                            config.fireErrorEvent(new Config.ErrorEvent(
+                                pluginInfo.plugin.getSourceName(), Instant.now(), e
+                            ));
+                        }
+                    }
+                    logger.trace("finished polling plugins in config `{}` for changes", config.getName());
+                    lastPolledTime = System.currentTimeMillis();
+                }
+                logger.debug(
+                    "stopping polling thread for config `{}`", config.getName()
+                );
+            });
         }
 
-        @Override public String get(Object key) { return key instanceof String name ? map.get(name) : null; }
-        @Override public int size() { return map.size(); }
-        @Override public boolean isEmpty() { return map.isEmpty(); }
-        @Override public boolean containsKey(Object key) { return map.containsKey(key); }
-        @Override public boolean containsValue(Object value) { return map.containsValue(value); }
-        @Override public Set<String> keySet() { return Set.copyOf(map.keySet()); }
-        @Override public Collection<String> values() { return List.copyOf(map.values()); }
-        @Override public Set<Entry<String, String>> entrySet() { return Set.copyOf(map.entrySet()); }
-        // other methods are not implemented, as they are not needed
-        @Override public String put(String key, String value) { throw new UnsupportedOperationException(); }
-        @Override public String remove(Object key) { throw new UnsupportedOperationException(); }
-        @Override public void clear() { throw new UnsupportedOperationException(); }
-        @Override public void putAll(Map<? extends String, ? extends String> m) {
-            throw new UnsupportedOperationException();
-        }
     }
 }

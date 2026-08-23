@@ -195,4 +195,36 @@ class XmlPluginTest {
     void nestedElementsAreFlattenedWithBackslashes() throws Exception {
         assertEquals("deep", load("<a><b><c>deep</c></b></a>").get("a\\b\\c"));
     }
+
+    @Nested
+    @DisplayName("whether changes can be detected depends on the location")
+    class ChangeDetection {
+
+        private boolean supportedFor(String location) throws Exception {
+            XmlPlugin plugin = new XmlPlugin();
+            plugin.setPluginProperties(Map.of("location", location));
+            return plugin.isChangeDetectionSupported();
+        }
+
+        @Test
+        @DisplayName("a location that can be watched or polled supports it")
+        void watchableLocations() throws Exception {
+            assertEquals(true, supportedFor("file:/tmp/x.txt"), "file");
+            assertEquals(true, supportedFor("jar:file:/tmp/a.jar!/x.txt"), "jar");
+            assertEquals(true, supportedFor("http://example.com/x.txt"), "http");
+            assertEquals(true, supportedFor("https://example.com/x.txt"), "https");
+        }
+
+        @Test
+        @DisplayName("a classpath resource does not - it cannot change while the JVM runs")
+        void classpathIsNotWatchable() throws Exception {
+            assertEquals(false, supportedFor("classpath:x.txt"));
+        }
+
+        @Test
+        @DisplayName("nor does a plugin that has not been given a location yet")
+        void unconfiguredPluginSaysNo() {
+            assertEquals(false, new XmlPlugin().isChangeDetectionSupported());
+        }
+    }
 }

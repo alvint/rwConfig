@@ -43,7 +43,7 @@
 # `rwc.<sourceName>.<setting>=<value>`.
  
 rwc.sources = args, system, environment, local, organization, app, legacy, \
-              directory, json, xml, yaml, db, hocon
+              directory, json, xml, yaml, db, hocon, changeListenerTest
 
 # All config sources must have a `type` setting that declares the type of the
 # config source. The type determines how rwConfig will load the source, and
@@ -177,6 +177,8 @@ rwc.db.username = admin
 rwc.hocon.type = hocon.plugin
 rwc.hocon.location = file:test.conf
 rwc.hocon.ignoreUnknownProperties = true
+rwc.changeListenerTest.type = json.plugin
+rwc.changeListenerTest.location = file:change-listener-test.json
 # You can use `<<` as a *deferred value* in a library setting, to indicate that
 # the *actual* value for this property is located in another config source. This
 # is useful for sensitive information like passwords. The config source that
