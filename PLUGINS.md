@@ -195,6 +195,29 @@ format used by Typesafe Config. HOCON is a superset of JSON, so it is flattened
 by the same rules described in
 [How Nested Formats Are Flattened](#how-nested-formats-are-flattened).
 
+> **A HOCON file can do more than hold values - trust one like you trust code.**
+> Unlike the other formats here, HOCON has directives, and Typesafe Config
+> carries them out while parsing:
+>
+> | written in the file | what happens |
+> |---|---|
+> | `include file("/etc/app/other.conf")` | that file is read, and its values become part of this source |
+> | `include url("http://host/other.conf")` | your application makes that request, from wherever it is running |
+> | `value = ${?HOME}` | an environment variable is read into a config value |
+>
+> None of this is a flaw in Typesafe Config - they are the features HOCON is
+> chosen for. It matters because of *where* a config file can come from. A
+> source loaded [over HTTP](docs/config-sources.md#loading-config-over-http) or
+> from a [mounted ConfigMap](docs/config-sources.md#kubernetes-and-container-secrets)
+> may be writable by someone who cannot change your code, and with HOCON that is
+> enough to read local files into your configuration or make your application
+> issue requests to addresses it can reach and the author cannot.
+>
+> So: a HOCON source should come from somewhere as trusted as your jar. If it
+> comes from somewhere less trusted, use `json.plugin`, `yaml.plugin`, or
+> `properties` instead - none of them has directives, and all of them parse a
+> document and nothing more.
+
 ### Required Properties
 - `location`
   - Where to read the source from. See
