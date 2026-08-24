@@ -263,11 +263,7 @@ than to find out at 3am.
 - a simple interface with virtually no learning curve
 - lightweight
 - high-speed retrieval of property values
-- fail-fast behavior - detect errors at startup whenever possible
-  - Maven and VS Code plugins are also available to detect many errors as you
-    code - for example when the your code expects a non-existent property or
-    an incorrect property type, change detection requests on sources that don't
-    support them, potential leakage of sensitive information, and other issues 
+- fail-fast behavior - detect errors at startup, at compile time, and as you code
 - more secure
   - values that aren't expressly needed are not added to the Config object, even
     if present in the config source
