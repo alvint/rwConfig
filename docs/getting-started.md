@@ -162,6 +162,86 @@ Mistakes in Java code are errors too. `config.getInt("prot")` throws
 `IncorrectTypeException`. Both are unchecked, because both are bugs you fix
 rather than conditions you handle.
 
+## Catching mistakes before startup
+
+Everything above is caught when the application runs. Two optional tools move
+most of it earlier - to the moment you save a file, and to the build. Both are
+front ends over the same rule set, so a finding reads the same wherever you meet
+it.
+
+Neither checks by loading a config source. Only the `rwconfig` file and your
+Java sources are read, so the checks work with no network, no database, and no
+secrets - which is the normal state of a developer's machine. Loading the
+sources for real is a separate thing you ask for, described below.
+
+### The VS Code extension
+
+Install **rwConfig Support** from the Marketplace, or from a terminal:
+
+```
+code --install-extension rabbitware.rwconfig
+```
+
+There is nothing to set up per project. The extension activates when a workspace
+contains an `rwconfig` file, and from then on it re-checks whenever you save a
+`.java` or `rwconfig` file, underlining what it finds. It also highlights the
+`rwconfig` file itself, which is worth having on its own.
+
+The checks run in a Java process, so `java` has to be on your `PATH` - or name
+one with the `rwconfig.javaPath` setting. Nothing else is needed; the analyzer
+ships inside the extension.
+
+`rwconfig.skipRules` takes rule ids to ignore, and `rwconfig.file` and
+`rwconfig.sourceRoots` are there for a layout the extension does not work out on
+its own. Two commands are in the palette: **rwConfig: Check code against the
+rwconfig file**, and **rwConfig: Test config sources** - the exception to
+everything above, since it loads every source exactly as the application would.
+It opens the files, URLs, and databases the file describes, and tells you
+whether the application would start *on this machine*. Run it when you want that
+answer, never on a timer.
+
+### The Maven plugin
+
+Add it to the build, and that is the whole of it:
+
+```xml
+<plugin>
+    <groupId>net.rabbitware.config</groupId>
+    <artifactId>rwconfig-maven-plugin</artifactId>
+    <version>0.2.0</version>
+    <executions>
+        <execution><goals><goal>check</goal></goals></execution>
+    </executions>
+</plugin>
+```
+
+The `check` goal binds to `process-sources`, so `mvn compile` runs it before
+anything is compiled - a misread property is more useful before the module is
+built than after. It looks for `src/main/resources/rwconfig`, then `rwconfig`,
+and a module that has neither is skipped silently, which makes this safe to put
+in a parent pom. To try it once without editing anything:
+
+```
+mvn net.rabbitware.config:rwconfig-maven-plugin:0.2.0:check
+```
+
+`rwconfig.failOnError`, `rwconfig.reportUnread`, `rwconfig.skipRules`, and
+`rwconfig.skip` decide what a finding does to the build.
+
+### What gets caught
+
+A property read that nothing declares, with the nearest declared name
+suggested. A getter that does not match the declared type. A source named in
+`rwc.sources` with no type, or missing something its type needs. An `rwc.`
+setting rwConfig would silently ignore. Credentials that would go out
+unencrypted. Change detection asked for with nothing to watch, or a listener
+added to a `Config` that was not built with it. A property declared and never
+read.
+
+The full list of rules, with what each one catches and how severe it is, is in
+[Checking your code against your
+`rwconfig`](../rwconfig-maven-plugin/README.md).
+
 ## Where to go next
 
 - **[The `rwconfig` file](config-file.md)** - every part of the file format:
@@ -172,6 +252,8 @@ rather than conditions you handle.
 - **[Writing a plugin](writing-a-plugin.md)** - adding a source type of your
   own.
 - **[Error messages](errors.md)** - what each startup error means.
+- **[Checking your code](../rwconfig-maven-plugin/README.md)** - every rule
+  the Maven plugin and the VS Code extension apply.
 - **[Bundled plugins](../PLUGINS.md)** - YAML, JSON, XML, HOCON, JDBC, and prefix.
 
 There is also a heavily commented [example `rwconfig`
