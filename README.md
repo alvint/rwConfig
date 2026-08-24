@@ -357,8 +357,7 @@ What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
     humans do, you will get unnecessarily weaker performance.
 - fail-fast behavior
 - no dependencies
-- compatibility with existing Java `.properties` files (some minor restrictions
-  on property names)
+- compatibility with the most popular configuration formats
 - simple, easy to learn `rwconfig` file syntax
 - declarative rather than code-based configuration
   - avoid `Optional`s and long method chains in the code by declaring types and
