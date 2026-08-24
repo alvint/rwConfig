@@ -3,7 +3,7 @@
 # rwConfig
 [![Maven Central](https://img.shields.io/maven-central/v/net.rabbitware.config/config)](https://central.sonatype.com/artifact/net.rabbitware.config/config)
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
-![Tests](https://img.shields.io/badge/tests-416-brightgreen)
+![Tests](https://img.shields.io/badge/tests-519-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
 
@@ -293,6 +293,10 @@ than to find out at 3am.
   - see the "Design Choices" section for more details
 - anything that would greatly increase size, or add dependencies to this project
   outside of Java Base
+
+## Changelog
+
+What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
 
 ## TODOs
 - APIs for other languages

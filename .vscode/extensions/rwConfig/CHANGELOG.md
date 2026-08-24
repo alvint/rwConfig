@@ -7,7 +7,18 @@ by hand.
 
 ## 0.2.0
 
-- Ships rwConfig 0.2.0, which adds change detection for config sources.
+- Ships rwConfig 0.2.0: change detection for config sources, `.env` files, and
+  optional HTTP credentials for any source that takes a location.
+- Checks the library settings themselves - a misspelled `rwc.` setting, one for a
+  source that is not declared, or one the source's type has no use for. rwConfig
+  accepts all of these silently, so they are only visible here.
+- Checks change detection against the code: a polling interval nothing enables, a
+  listener on a `Config` built without change detection, a listener for a source
+  that does not exist, and change detection with nothing that can ever change.
+- Checks credentials: ones that would never be sent, ones that would go
+  unencrypted, and a `password` with no `username`.
+- Warns when a secret-looking property is given a default in the `rwconfig` file,
+  which is a credential in a committed file.
 
 ## 0.1.1
 
