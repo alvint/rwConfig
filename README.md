@@ -242,6 +242,24 @@ These errors are treated as unchecked exceptions because (a) they are avoidable
 at coding time, and (b) encountering them at runtime guarantees that the code is
 not working as the developer intended from that point on.
 
+### 3½. Install the Helpers
+#### Maven Plugin
+```xml
+<plugins>
+  <plugin>
+      <groupId>net.rabbitware.config</groupId>
+      <artifactId>rwconfig-maven-plugin</artifactId>
+      <version>0.2.0</version>
+      <executions>
+          <execution><goals><goal>check</goal></goals></execution>
+      </executions>
+  </plugin>
+</plugins>
+```
+#### VS Code Extension
+Search for "rwConfig" in the VS Code Marketplace, or download it directly
+from the "Releases" section of this project page.
+
 ## Should I Rip Out My Old Config System And Use It?
 The short answer is "probably not". The more accurate answer is "it depends,
 but probably not". It's generally not worth the effort to make that kind of
