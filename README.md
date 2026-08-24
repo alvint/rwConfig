@@ -264,7 +264,11 @@ The VS Code extension catches the same issues as the Maven plugin even earlier
 (whenever you save), and highlights them directly in the editor.
 
 To install it, Search for "rwConfig" in the VS Code Extensions Marketplace, or
-download it directly from the "Releases" section of this project page.
+download it directly from the "Releases" section of this project page. If you
+have VS Code added to your path, you can also type this:
+```
+code --install-extension rabbitware.rwconfig
+```
 
 ## Should I Rip Out My Old Config System And Use It?
 The short answer is "probably not". The more accurate answer is "it depends,
