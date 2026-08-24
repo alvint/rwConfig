@@ -109,8 +109,8 @@ look at the [takeaway](benchmark/README.md).
   through one interface with built-in support for command line arguments,
   environment variables, system properties, `.properties` files, `.env` files,
   Kubernetes secrets and config maps, and directories. Plus YAML, JSON, XML, HOCON, and
-  databases via the bundled plugins. File-based sources can load from the file
-  system, a `jar`, http(s), or the classpath.
+  databases via the bundled plugins. Document-based sources can load from the
+  file system, a `jar`, http(s), or the classpath.
   
   Need something else? Add your own source type with a small plugin API!
 - **Layered sources, with precedence you declare** - Want an environment
