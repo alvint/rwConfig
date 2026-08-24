@@ -264,8 +264,9 @@ than to find out at 3am.
 - lightweight
 - high-speed retrieval of property values
 - fail-fast behavior - detect errors at startup whenever possible
-  - a compile-time plugin is also planned to detect when the Java side expects
-    a non-existent property or an incorrect property type
+  - compile-time plugins are also available to detect when the Java side expects
+    a non-existent property, an incorrect property type, and other correctable
+    errors 
 - more secure
   - values that aren't expressly needed are not added to the Config object, even
     if present in the config source
