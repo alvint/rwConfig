@@ -264,9 +264,7 @@ than to find out at 3am.
 - lightweight
 - high-speed retrieval of property values
 - fail-fast behavior - detect errors at startup, at compile time, and as you code
-- more secure
-  - values that aren't expressly needed are not added to the Config object, even
-    if present in the config source
+- sensible security for secrets (and possible secrets)
 
 ## Project _Non_-goals
 - a "one-size fits all" approach
