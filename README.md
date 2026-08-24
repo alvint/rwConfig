@@ -264,10 +264,10 @@ than to find out at 3am.
 - lightweight
 - high-speed retrieval of property values
 - fail-fast behavior - detect errors at startup whenever possible
-  - compile-time plugins are also available to detect many errors as you code -
-    for example when the your code expects a non-existent property or an
-    incorrect property type, change detection requests on sources that don't
-    them, potential leakage of sensitive information, and other issues 
+  - Maven and VS Code plugins are also available to detect many errors as you
+    code - for example when the your code expects a non-existent property or
+    an incorrect property type, change detection requests on sources that don't
+    support them, potential leakage of sensitive information, and other issues 
 - more secure
   - values that aren't expressly needed are not added to the Config object, even
     if present in the config source
