@@ -249,6 +249,7 @@ same issues--and even more--at compile time. Using the plugin as an additional
 safeguard is strongly recommended.
 ```xml
 <plugins>
+  ...
   <plugin>
       <groupId>net.rabbitware.config</groupId>
       <artifactId>rwconfig-maven-plugin</artifactId>
