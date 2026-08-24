@@ -244,6 +244,9 @@ not working as the developer intended from that point on.
 
 ### 3½. Install the Helpers
 #### Maven Plugin
+Why wait until startup to catch your issues? The Maven plugin catches many of the
+same issues--and even more--at compile time. Using the plugin as an additional
+safeguard is strongly recommended.
 ```xml
 <plugins>
   <plugin>
@@ -257,8 +260,11 @@ not working as the developer intended from that point on.
 </plugins>
 ```
 #### VS Code Extension
-Search for "rwConfig" in the VS Code Marketplace, or download it directly
-from the "Releases" section of this project page.
+The VS Code extension catches the same issues as the Maven plugin even earlier
+(whenever you save), and highlights them directly in the editor.
+
+To install it, Search for "rwConfig" in the VS Code Extensions Marketplace, or
+download it directly from the "Releases" section of this project page.
 
 ## Should I Rip Out My Old Config System And Use It?
 The short answer is "probably not". The more accurate answer is "it depends,
