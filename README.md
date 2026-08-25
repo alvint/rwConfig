@@ -248,17 +248,18 @@ Why wait until startup to catch your issues? The Maven plugin catches many of th
 same issues--and even more--at compile time. Using the plugin as an additional
 safeguard is strongly recommended.
 ```xml
-<plugins>
-  ...
-  <plugin>
-      <groupId>net.rabbitware.config</groupId>
-      <artifactId>rwconfig-maven-plugin</artifactId>
-      <version>0.2.0</version>
-      <executions>
-          <execution><goals><goal>check</goal></goals></execution>
-      </executions>
-  </plugin>
-</plugins>
+<build>
+  <plugins>
+    <plugin>
+        <groupId>net.rabbitware.config</groupId>
+        <artifactId>rwconfig-maven-plugin</artifactId>
+        <version>0.2.0</version>
+        <executions>
+            <execution><goals><goal>check</goal></goals></execution>
+        </executions>
+    </plugin>
+  </plugins>
+</build>
 ```
 #### VS Code Extension
 The VS Code extension catches the same issues as the Maven plugin even earlier
