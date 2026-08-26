@@ -72,5 +72,16 @@
             <version>2.3.232</version>
         </dependency>
     </dependencies>
-
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>net.rabbitware.config</groupId>
+                <artifactId>rwconfig-maven-plugin</artifactId>
+                <version>0.2.0</version>
+                <executions>
+                    <execution><goals><goal>check</goal></goals></execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
