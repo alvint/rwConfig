@@ -61,7 +61,7 @@ handle. The type, the default, and the allowed values were all settled before
 your first line of code ran.
 
 And when the configuration is wrong, you hear about it as you write your code
-and at startup--not at 3am:
+or at startup--not at 3am:
 
 ```
 value is not allowed for property `port` (in source `args`): 500
