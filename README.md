@@ -245,9 +245,9 @@ not working as the developer intended from that point on.
 
 ### 3½. Install the Helpers
 #### Maven Plugin
-Why wait until startup to catch your issues? The Maven plugin catches many of the
-same issues--and even more--at compile time. Using the plugin as an additional
-safeguard is strongly recommended.
+Why wait until startup to catch any issues? The Maven plugin catches those issues
+--and even more--at compile time. Using the plugin as an additional safeguard is
+strongly recommended.
 ```xml
 <build>
   <plugins>
