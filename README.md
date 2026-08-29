@@ -60,7 +60,8 @@ No `Optional`. No cast. No default value at the call site. No exception to
 handle. The type, the default, and the allowed values were all settled before
 your first line of code ran.
 
-And when the configuration is wrong, you hear about it at startup--not at 3am:
+And when the configuration is wrong, you hear about it as you code and at
+startup--not at 3am:
 
 ```
 value is not allowed for property `port` (in source `args`): 500
