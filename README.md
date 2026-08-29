@@ -287,7 +287,7 @@ give me some feedback. See
 Not really. But some people like numbers. What _really_ matters is the design
 philosophy. It's better to define up-front what your config properties should
 look like and how they should be loaded. And it's _much_ better to test if your
-config is up to snuff at coding time and app start (when you're in the office),
+config is up to snuff as you code and at app start (when you're in the office),
 than to find out at 3am.
 
 ## Project Goals
