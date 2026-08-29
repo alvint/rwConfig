@@ -118,8 +118,8 @@ look at the [takeaway](benchmark/README.md).
   variable to trump the same property in your config file? No problem! You're in
   control.
 - **VS Code and Maven plugins** - with these tools, even more configuration
-  errors are caught at coding or compile time. Most of the rest are caught at
-  startup.
+  errors are caught as you code or at compile time. Most of the rest are caught
+  at startup.
 - **Fast, uniform reads** - a read is one HashMap lookup of an already-parsed
   value: ~2.3 ns whether it's an `int`, a `String`, or a list.
 - **No `Optional`s, no fluent chains** - `config.getInt("port")` returns an
