@@ -113,7 +113,7 @@ look at the [takeaway](benchmark/README.md).
   databases via the bundled plugins. Document-based sources can load from the
   file system, a `jar`, http(s), or the classpath.
   
-  Need something else? Add your own source type with a small plugin API!
+  Need something else? Create your own source type with a small plugin API!
 - **Layered sources, with precedence you declare** - Want an environment
   variable to trump the same property in your config file? No problem! You're in
   control.
