@@ -38,8 +38,9 @@ values are allowed on the same line:
 int[80, 1024..65535] port = 8000
 ```
 
-Now the value of `port` must be either 80 or between 1024 and 65535. Attempts
-to set a value that is not allowed results in an exception at startup.
+Now the value of `port` must be either 80 or between 1024 and 65535. If you
+attempt to set a value that is not allowed then the app will not start. This is
+by design.
 
 Next, add a property that whose value must be supplied rather than defaulted,
 and a couple of lines to say where values may come from:
