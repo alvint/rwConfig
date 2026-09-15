@@ -121,7 +121,7 @@ look at the [takeaway](benchmark/README.md).
   environment variables, system properties, `.properties` files, `.env` files,
   Kubernetes secrets and config maps, and directories. Plus YAML, JSON, XML, HOCON, and
   databases via the bundled plugins. Document-based sources can load from the
-  file system, a `jar`, http(s), or the classpath.
+  file system, a jar file, http(s), or the classpath.
   
   Need something else? Create your own source type with a small plugin API!
 - **Layered sources, with precedence you declare** - Want an environment
