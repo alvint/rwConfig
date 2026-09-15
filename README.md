@@ -22,8 +22,8 @@ knowing that you won't be surprised by configuration issues when it's too
 late to do something about it.
 
 ## In A Nutshell
-Declare what your app needs, in one file. This is a complete, working
-`rwconfig`:
+Declare what properties your app needs and (if necessary) where to find
+them--all in one file. For example:
 
 ```
 int[80, 1024..65535] port = 8000
@@ -32,15 +32,15 @@ int[80, 1024..65535] port = 8000
 `port` is an `int`, it may only be 80 or a value from 1024 to 65535, and it
 defaults to 8000.
 
-Add a couple of lines to say where values may come from, and a property that
-must be supplied rather than defaulted:
+Add a property that whose value must be supplied rather than defaulted, and a
+couple of lines to say where values may come from:
 
 ```
-rwc.sources = environment
-rwc.environment.type = environmentVariables
-
 int[80, 1024..65535] port = 8000
 DBPassword
+
+rwc.sources = environment
+rwc.environment.type = environmentVariables
 ```
 
 `DBPassword` deliberately has no value here--it has to come from a config
