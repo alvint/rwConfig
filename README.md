@@ -26,14 +26,23 @@ Declare what properties your app needs and (if necessary) where to find
 them--all in one file. For example:
 
 ```
+int port = 8000
+```
+
+`port` is an `int` and its value defaults to `8000`.
+
+Suppose only some values are valid for the property `port`. You can define what
+values are allowed on the same line:
+
+```
 int[80, 1024..65535] port = 8000
 ```
 
-`port` is an `int`, it may only be 80 or a value from 1024 to 65535, and it
-defaults to 8000.
+Now the value of `port` must be either 80 or between 1024 and 65535. Attempts
+to set a value that is not allowed results in an exception at startup.
 
-Add a property that whose value must be supplied rather than defaulted, and a
-couple of lines to say where values may come from:
+Next, add a property that whose value must be supplied rather than defaulted,
+and a couple of lines to say where values may come from:
 
 ```
 int[80, 1024..65535] port = 8000
@@ -44,7 +53,7 @@ rwc.environment.type = environmentVariables
 ```
 
 `DBPassword` deliberately has no value here--it has to come from a config
-source, which in this file means the environment variable `DB_PASSWORD`. Miss
+source, which in this case means the environment variable `DB_PASSWORD`. Miss
 it and the application refuses to start, rather than running with a blank
 password. Sources can equally be the command line, a file you don't commit, a
 directory, or a database; you list the ones you want in `rwc.sources`, best
