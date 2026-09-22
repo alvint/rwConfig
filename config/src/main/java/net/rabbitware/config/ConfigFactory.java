@@ -282,7 +282,7 @@ public class ConfigFactory {
         var pattern = configLinePattern();
         // The file's own settings are not known until it has been read, so a
         // default written in the file is judged by its name alone. That is the
-        // default behaviour, and the only value at stake is one the author wrote
+        // default behavior, and the only value at stake is one the author wrote
         // in a file they control.
         final Redaction redaction = Redaction.DEFAULT;
         configFile.stream()

@@ -186,7 +186,7 @@ public class DotEnvPlugin extends LocationBasedConfigSourcePlugin {
     /**
      * Remove a trailing comment from an unquoted value. The {@code #} has to be
      * preceded by whitespace to count, so that a value which simply contains one
-     * - a password, a colour - survives.
+     * - a password, a color - survives.
      */
     private static String stripInlineComment(String value) {
         for (int i = 1; i < value.length(); i++) {

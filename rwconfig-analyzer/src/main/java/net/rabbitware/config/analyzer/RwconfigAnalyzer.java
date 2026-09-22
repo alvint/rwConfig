@@ -277,7 +277,7 @@ public final class RwconfigAnalyzer {
     /**
      * Check the library settings themselves: that each one is a setting, that it
      * belongs to a source that exists, and that the source's type has a use for
-     * it. None of these stops the library - an unrecognised setting is simply
+     * it. None of these stops the library - an unrecognized setting is simply
      * ignored - which is what makes them worth reporting here.
      */
     private void checkSettings(List<Finding> findings) {

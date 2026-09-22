@@ -86,7 +86,7 @@ class DotEnvPluginTest {
         @DisplayName("are part of the value when not - a `#` in a password is not a comment")
         void notStrippedWhenTouching() throws Exception {
             assertEquals(Map.of("PASSWORD", "pa#ssword"), parse("PASSWORD=pa#ssword\n"));
-            assertEquals(Map.of("COLOUR", "#ff0000"), parse("COLOUR=#ff0000\n"));
+            assertEquals(Map.of("COLOR", "#ff0000"), parse("COLOR=#ff0000\n"));
         }
 
         @Test

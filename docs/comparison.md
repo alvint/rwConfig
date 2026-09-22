@@ -159,7 +159,7 @@ layered sources and reloading; actively maintained.
 schema or validation.
 
 **Choose it when** you want something light and current and do not need
-declared types or validation. It is the closest neighbour to rwConfig in
+declared types or validation. It is the closest neighbor to rwConfig in
 spirit, and better established.
 
 ### Owner
