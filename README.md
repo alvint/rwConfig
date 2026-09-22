@@ -127,9 +127,9 @@ look at the [takeaway](benchmark/README.md).
 - **All of your config sources in one place** - get all of your config info
   through one interface with built-in support for command line arguments,
   environment variables, system properties, `.properties` files, `.env` files,
-  Kubernetes secrets and config maps, and directories. Plus YAML, JSON, XML, HOCON, and
-  databases via the bundled plugins. Document-based sources can load from the
-  file system, a jar file, http(s), or the classpath.
+  and directories (including Kubernetes secrets and config maps). Plus YAML,
+  JSON, XML, HOCON, and databases via the bundled plugins. Document-based
+  sources can load from the file system, a jar file, http(s), or the classpath.
   
   Need something else? Create your own source type with a small plugin API!
 - **Layered sources, with precedence you declare** - Want an environment
