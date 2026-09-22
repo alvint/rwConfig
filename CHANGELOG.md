@@ -8,6 +8,32 @@ This project uses [semantic versioning](https://semver.org). Before 1.0 the file
 format and the Java API may still change between minor versions; anything that
 would break an existing `rwconfig` file is called out here.
 
+## Unreleased
+
+Changed how plugins receive optional plugin settings, and fixed two bugs that
+made YAML sources unusable in ways their tests could not see.
+
+### Changed
+
+- **An optional plugin setting the `rwconfig` file does not mention is left out
+  of the map handed to `setPluginProperties`**, rather than included as a key
+  mapped to `null`. `get` returns `null` either way; what changes is that
+  `containsKey` now means the setting was given, and `getOrDefault` now returns
+  the default. A third-party plugin that relied on every optional name being
+  present as a key should read it with `get` instead.
+
+### Fixed
+
+- **A YAML source that did not set `resolveMergeKeys` failed at startup** with
+  `invalid boolean value : null`. The unset setting reached the plugin as a key
+  mapped to `null`, so `getOrDefault` returned that `null` rather than the
+  default. Every YAML source that took the default was affected, as would be
+  any plugin reading an optional setting the same way. Fixed by the change
+  above.
+- **The YAML plugin never received `username` or `password`**, so HTTP basic
+  authentication was silently ignored for YAML sources. It listed its own
+  optional setting in place of the inherited ones rather than alongside them.
+
 ## 0.2.0
 
 Change detection, `.env` files, and a much sharper analyzer. Existing `rwconfig`
