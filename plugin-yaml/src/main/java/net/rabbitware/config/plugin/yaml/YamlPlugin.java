@@ -33,7 +33,11 @@ public class YamlPlugin extends LocationBasedConfigSourcePlugin {
 
     @Override
     public Set<String> getOptionalPluginPropertyNames() {
-        return Set.of("resolveMergeKeys"); // default is true
+        // add `resolveMergeKeys` to the location-based properties supplied by
+        // the parent class
+        Set<String> names = new HashSet<>(super.getOptionalPluginPropertyNames());
+        names.add("resolveMergeKeys"); // default is true
+        return names;
     }
 
     @Override

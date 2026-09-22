@@ -297,4 +297,42 @@ class YamlPluginTest {
             assertEquals(false, new YamlPlugin().isChangeDetectionSupported());
         }
     }
+
+
+    @Nested
+    @DisplayName("optional properties")
+    class OptionalProperties {
+
+        @Test
+        @DisplayName("the plugin's own property does not displace the inherited ones")
+        void ownPropertyIsAddedToTheInheritedOnes() {
+            // returning only `resolveMergeKeys` here would mean `username` and
+            // `password` were never collected for a YAML source, so HTTP
+            // credentials would be silently dropped
+            assertEquals(
+                java.util.Set.of("username", "password", "resolveMergeKeys"),
+                new YamlPlugin().getOptionalPluginPropertyNames());
+        }
+
+        @Test
+        @DisplayName("credentials reach the plugin")
+        void credentialsAreAccepted() throws Exception {
+            Path file = tempDir.resolve("source.yaml");
+            Files.writeString(file, "a: 1\n");
+            YamlPlugin plugin = new YamlPlugin();
+            plugin.setSourceName("test");
+            Map<String, String> properties = new HashMap<>();
+            properties.put("location", "file:" + file);
+            properties.put("password", "hunter2");
+            properties.put("username", null);
+            properties.put("resolveMergeKeys", null);
+            // a password with no username is rejected, which only happens if
+            // the setting was collected and handed over in the first place
+            Exception e = assertThrows(Exception.class, () -> plugin.setPluginProperties(properties));
+            assertTrue(
+                String.valueOf(e.getMessage()).contains("username"),
+                "expected the missing-username error, but got: " + e.getMessage()
+            );
+        }
+    }
 }
