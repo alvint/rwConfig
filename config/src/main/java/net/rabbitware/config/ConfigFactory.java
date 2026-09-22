@@ -434,7 +434,10 @@ public class ConfigFactory {
                         String propertyValue = getPluginProperty(
                             configProperties, configSources, configPrefix, sourceName, propertyName, false
                         );
-                        properties.put(propertyName, propertyValue);
+                        // only add the property if it has a non-null value
+                        if (propertyValue != null) {
+                            properties.put(propertyName, propertyValue);
+                        }
                     });
                 // set the properties for the plugin
                 try {
