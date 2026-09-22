@@ -47,20 +47,28 @@ and a couple of lines to say where values may come from:
 
 ```
 int[80, 1024..65535] port = 8000
-DBPassword
+databasePassword
 
 rwc.sources = environment
 rwc.environment.type = environmentVariables
 ```
 
-`DBPassword` deliberately has no value here--it has to come from a config
-source, which in this case means the environment variable `DB_PASSWORD`. Miss
-it and the application refuses to start, rather than running with a blank
-password. Sources can equally be the command line, a file you don't commit, a
-directory, or a database; you list the ones you want in `rwc.sources`, best
-first.
+The property name `databasePassword` is valid by itself. Since no type was
+specified, `databasePassword` is a `string` - the default type. The property
+deliberately has no value here; its value has to come from a config source.
+In this case the value comes from the environment variable `DATABASE_PASSWORD`.
+Miss it and the application will not start, rather than running with a blank
+password.
 
-Read it with no ceremony:
+In the example above, the only config source declared is named `environment`
+and it gets its values from the environment variables. Config sources can be
+named anything you want, and in addition to environment variables they can get
+their values from the command line, the java system properties, a database, a
+directory (for example Kubernetes config maps or secrets), or a file. Files can
+be loaded from the filesystem, a URL, the classpath, or a jar. You list the
+sources that you want in `rwc.sources`, best first.
+
+Read property values with no ceremony:
 
 ```java
 int port = config.getInt("port");
@@ -77,7 +85,7 @@ or at startup--not at 3am:
 value is not allowed for property `port` (in source `args`): 500
 ```
 ```
-property `DBPassword` is not set by any config source, and has no default value defined in the `rwconfig` file
+property `databasePassword` is not set by any config source, and has no default value defined in the `rwconfig` file
 ```
 
 ## How Fast Is It?
