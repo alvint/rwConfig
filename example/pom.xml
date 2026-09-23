@@ -79,7 +79,12 @@
                 <artifactId>rwconfig-maven-plugin</artifactId>
                 <version>0.2.0</version>
                 <executions>
-                    <execution><goals><goal>check</goal></goals></execution>
+                    <execution>
+                        <?m2e execute onConfiguration?>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
