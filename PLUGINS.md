@@ -195,33 +195,49 @@ format used by Typesafe Config. HOCON is a superset of JSON, so it is flattened
 by the same rules described in
 [How Nested Formats Are Flattened](#how-nested-formats-are-flattened).
 
-> **A HOCON file can do more than hold values - trust one like you trust code.**
-> Unlike the other formats here, HOCON has directives, and Typesafe Config
-> carries them out while parsing:
+> **HOCON is the one format here that can reach outside its own document, so
+> the parts that do are off by default.** Unlike the other formats, HOCON has
+> directives, and Typesafe Config carries them out while parsing:
 >
-> | written in the file | what happens |
+> | written in the file | what it would do |
 > |---|---|
-> | `include file("/etc/app/other.conf")` | that file is read, and its values become part of this source |
-> | `include url("http://host/other.conf")` | your application makes that request, from wherever it is running |
-> | `value = ${?HOME}` | an environment variable is read into a config value |
+> | `include file("/etc/app/other.conf")` | read that file, and merge its values into this source |
+> | `include url("http://host/other.conf")` | make that request, from wherever your application is running |
+> | `value = ${?HOME}` | read an environment variable into a config value |
+> | `logs = ${user.home}/logs` | read a system property into a config value |
 >
 > None of this is a flaw in Typesafe Config - they are the features HOCON is
 > chosen for. It matters because of *where* a config file can come from. A
 > source loaded [over HTTP](docs/config-sources.md#loading-config-over-http) or
 > from a [mounted ConfigMap](docs/config-sources.md#kubernetes-and-container-secrets)
-> may be writable by someone who cannot change your code, and with HOCON that is
-> enough to read local files into your configuration or make your application
-> issue requests to addresses it can reach and the author cannot.
+> may be writable by someone who cannot change your code, and these directives
+> are enough to read local files into your configuration or make your
+> application issue requests to addresses it can reach and the author cannot.
 >
-> So: a HOCON source should come from somewhere as trusted as your jar. If it
-> comes from somewhere less trusted, use `json.plugin`, `yaml.plugin`, or
-> `properties` instead - none of them has directives, and all of them parse a
-> document and nothing more.
+> So the plugin refuses all of it unless the source is marked `trusted`. Mark
+> only a document that is as trusted as your jar. If you do not need the
+> directives at all, nothing changes - everything else about HOCON works as it
+> always did.
 
 ### Required Properties
 - `location`
   - Where to read the source from. See
     [Common Properties](#common-properties).
+
+### Optional Properties
+- `trusted` (default is `false`)
+  - Whether to carry out the directives above. With the default, `false`, the
+    document is confined to itself:
+    - every form of `include` is refused with an error naming the source and
+      this setting - a bare `include "other.conf"`, `include file(...)`,
+      `include url(...)`, and `include classpath(...)`;
+    - a substitution resolves only against the document, so `${?HOME}` and
+      `${?user.home}` leave the property unset, and `${HOME}` and
+      `${user.home}` are errors.
+
+    With `true`, `include` works as it would in a plain Typesafe Config
+    application, a substitution can reach system properties and environment
+    variables, and a line is logged at startup saying so.
 
 ### Details
 Everything HOCON adds over JSON happens before flattening, so it simply works:
@@ -280,24 +296,38 @@ you need the exact characters, quote the value - `"1.0"` stays `1.0`.
 property unset instead, which then falls through to a lower-precedence config
 source or to the default in your `rwconfig` file.
 
-### Two things this plugin does not do
-Both are consequences of rwConfig's design rather than gaps in the parser, but
-they will surprise anyone arriving from Typesafe Config.
+### Substitutions in a trusted source
+**A substitution is looked up in the document first, then in system
+properties, then in environment variables.** A path the document defines always
+wins, so `java { version = mine }` keeps `${java.version}` meaning `mine`.
 
-**`include` does not work.** The source is read into memory before being parsed,
-so a relative include has no directory to resolve against. An optional include
-finds nothing and is skipped silently; `include required("other.conf")` fails
-with an error naming the file. This is consistent with rwConfig's premise that
-every source an application reads is declared in the `rwconfig` file - an
-include would load configuration that nothing declared. Add the other file as
-its own config source instead, and give it the precedence you want.
+**System properties only fill in substitutions - they are never added to the
+source.** This differs from `ConfigFactory.load()` in a plain Typesafe Config
+application, which merges every system property into the result. Here, only the
+properties that the HOCON document directly contains come back.
 
-**Substitutions cannot reach system properties or the environment.**
-`${?user.home}` resolves to nothing, where `ConfigFactory.load()` in a plain
-Typesafe Config application would find it. Resolution is confined to the
-document, so a source cannot quietly pull in values from outside itself. Use
-rwConfig's own `systemProperties` and `environmentVariables` sources, whose
-precedence you declare in `rwc.sources`.
+**Use the correct substitution form inside of a larger value.** An optional
+substitution that finds nothing becomes empty, so `${?user.home}/logs` quietly
+turns into `/logs` when the property is missing. That is standard HOCON, but it
+is rarely what you meant. Using `${user.home}/logs` instead stops startup if
+`${user.home}` is not found.
+
+System properties are read each time the source is loaded, so one set after an
+earlier load in the same JVM is still seen.
+
+### `include` in a trusted source
+**A relative include resolves against the process working directory, then the
+classpath** - not against the file the source came from. The source is read
+into memory before being parsed, so the document has no origin of its own for a
+relative name to resolve against, and Typesafe Config falls back to those two.
+`include file("/absolute/path")` and `include url(...)` name their target
+outright and have no such ambiguity.
+
+Prefer declaring the other document as its own config source, and giving it the
+precedence you want. An include loads configuration that nothing in the
+`rwconfig` file declared, which is the one thing rwConfig is built to prevent -
+`trusted` exists for documents you control that already use includes, not as
+the recommended way to compose configuration.
 
 ## YAML (`yaml.plugin`)
 Loads properties from a YAML file.

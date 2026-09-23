@@ -271,7 +271,11 @@ class, and one source is enough.
   Typesafe Config or Commons Configuration.
 - **You want config bound to a class** with compile-time names. Jackson,
   SmallRye's `@ConfigMapping`, Spring's `@ConfigurationProperties`, or Owner.
-- **You need HOCON's includes and substitutions.** Typesafe Config.
+- **You want HOCON's includes and substitutions everywhere, by default.**
+  rwConfig's HOCON plugin carries them out only for sources marked as `trusted`,
+  and system properties fill in substitutions without being merged into the
+  document. Use Typesafe Config if you want the directives on unconditionally,
+  or if you want all system properties merged into your config.
 - **Your configuration is three values.** `Properties` is fine.
 
 ## On the numbers in this document

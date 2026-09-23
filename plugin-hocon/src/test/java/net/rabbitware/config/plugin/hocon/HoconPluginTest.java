@@ -1,12 +1,14 @@
 package net.rabbitware.config.plugin.hocon;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
@@ -23,10 +25,13 @@ import org.junit.jupiter.api.io.TempDir;
  * rewritten so that flattening cannot produce a conflict.
  *
  * <p>The rest cover what HOCON adds - substitutions, object merging, dotted
- * paths - and, just as importantly, the two things it does <em>not</em> do
- * here: {@code include} and substitution against system properties. Both are
- * pinned by tests so that a change in behavior shows up as a failure rather
- * than as a surprise in production.
+ * paths - and the line the {@code trusted} property draws. Untrusted is the
+ * default and confines a document to itself: no {@code include} reaches the
+ * file system, the classpath, or the network, and a substitution sees only
+ * what the document declares. Trusted turns all of it back on. Both sides are
+ * pinned by tests, because the untrusted side is a security boundary and a
+ * change to it should show up as a failure rather than as a surprise in
+ * production.
  */
 class HoconPluginTest {
 
@@ -40,11 +45,16 @@ class HoconPluginTest {
         return loadFile(file);
     }
 
-    /** Flatten the given file, which may sit alongside others. */
-    private Map<String, String> loadFile(Path file) throws Exception {
+    /** Flatten the given file, which may sit alongside others, with any extra settings as name/value pairs. */
+    private Map<String, String> loadFile(Path file, String... extraProperties) throws Exception {
         HoconPlugin plugin = new HoconPlugin();
         plugin.setSourceName("test");
-        plugin.setPluginProperties(Map.of("location", "file:" + file));
+        Map<String, String> properties = new HashMap<>();
+        properties.put("location", "file:" + file);
+        for (int i = 0; i < extraProperties.length; i += 2) {
+            properties.put(extraProperties[i], extraProperties[i + 1]);
+        }
+        plugin.setPluginProperties(properties);
         return plugin.getConfigSourceProperties();
     }
 
@@ -262,45 +272,94 @@ class HoconPluginTest {
 
 
     @Nested
-    @DisplayName("what this plugin deliberately does not do")
-    class Limitations {
+    @DisplayName("an untrusted source - the default - is confined to its own document")
+    class Untrusted {
 
         @Test
-        @DisplayName("`include` does not pull in a neighbouring file")
-        void includesAreNotResolvedRelativeToTheSource() throws Exception {
-            // the source is read to a string before being parsed, so it has no
-            // origin for a relative include to resolve against. An optional
-            // include therefore finds nothing and is silently skipped - every
-            // source rwConfig reads has to be one it was told about in the
-            // `rwconfig` file, so this is the intended outcome rather than a
-            // gap, but it does surprise people arriving from Typesafe Config
+        @DisplayName("a relative `include` is refused, and says how to allow it")
+        void relativeIncludeIsRefused() throws Exception {
+            // Typesafe Config resolves a bare include against the process
+            // working directory and then the classpath, so this is a real
+            // reach outside the document even though the source was parsed
+            // from a string with no origin of its own
             Files.writeString(tempDir.resolve("other.conf"), "fromInclude = yes\n");
             Path main = tempDir.resolve("main.conf");
             Files.writeString(main, "include \"other.conf\"\nx = 1\n");
-            Map<String, String> properties = loadFile(main);
-            assertEquals("1", properties.get("x"));
-            assertNull(properties.get("fromInclude"), "the include should not have been resolved");
+            Exception e = assertThrows(Exception.class, () -> loadFile(main));
+            assertTrue(
+                String.valueOf(e.getMessage()).contains("trusted"),
+                "the error should point at `trusted`, but got: " + e.getMessage()
+            );
         }
 
         @Test
-        @DisplayName("a required `include` fails outright")
-        void requiredIncludesFail() throws Exception {
-            Files.writeString(tempDir.resolve("other.conf"), "fromInclude = yes\n");
+        @DisplayName("`include file()` does not read the file it names")
+        void fileIncludeIsRefused() throws Exception {
+            Path other = tempDir.resolve("other.conf");
+            Files.writeString(other, "fromInclude = yes\n");
             Path main = tempDir.resolve("main.conf");
-            Files.writeString(main, "include required(\"other.conf\")\nx = 1\n");
+            Files.writeString(main, "include file(\"" + other + "\")\nx = 1\n");
             Exception e = assertThrows(Exception.class, () -> loadFile(main));
             assertTrue(
-                String.valueOf(e.getMessage()).contains("other.conf"),
-                "the error should name the file it could not find, but got: " + e.getMessage()
+                String.valueOf(e.getMessage()).contains("trusted"),
+                "the error should point at `trusted`, but got: " + e.getMessage()
+            );
+        }
+
+        @Test
+        @DisplayName("`include url()` does not make the request")
+        void urlIncludeIsRefused() throws Exception {
+            // port 1 has nothing listening, so a connection error here instead
+            // of our own message would mean the request had been attempted
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "include url(\"http://127.0.0.1:1/other.conf\")\nx = 1\n");
+            Exception e = assertThrows(Exception.class, () -> loadFile(main));
+            assertTrue(
+                String.valueOf(e.getMessage()).contains("trusted"),
+                "the request should have been refused rather than attempted, but got: " + e.getMessage()
+            );
+        }
+
+        @Test
+        @DisplayName("`include classpath()` is refused too")
+        void classpathIncludeIsRefused() throws Exception {
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "include classpath(\"other.conf\")\nx = 1\n");
+            Exception e = assertThrows(Exception.class, () -> loadFile(main));
+            assertTrue(
+                String.valueOf(e.getMessage()).contains("trusted"),
+                "the error should point at `trusted`, but got: " + e.getMessage()
+            );
+        }
+
+        @Test
+        @DisplayName("an optional substitution does not reach environment variables")
+        void environmentIsNotSubstituted() throws Exception {
+            // Typesafe Config consults the environment by default when
+            // resolving. An untrusted source turns that off, so a source
+            // cannot quietly pull in values from outside itself - use
+            // rwConfig's own `environmentVariables` source, whose precedence
+            // you declare
+            Map<String, String> properties = load("a = ${?PATH}\nb = 1\n");
+            assertNull(properties.get("a"), "the environment variable should not have been visible");
+            assertEquals("1", properties.get("b"));
+        }
+
+        @Test
+        @DisplayName("a required substitution on an environment variable fails")
+        void requiredEnvironmentSubstitutionFails() throws Exception {
+            Exception e = assertThrows(Exception.class, () -> load("a = ${PATH}\n"));
+            assertTrue(
+                String.valueOf(e.getMessage()).contains("PATH"),
+                "the error should name the substitution, but got: " + e.getMessage()
             );
         }
 
         @Test
         @DisplayName("substitutions do not reach system properties")
         void systemPropertiesAreNotSubstituted() throws Exception {
-            // resolution is confined to the document, so a source cannot quietly
-            // pick up values from outside it. Use rwConfig's own
-            // `systemProperties` source, with its declared precedence, instead
+            // looking them up is a reach outside the document, the same as
+            // the environment, so only a trusted source does it
             System.setProperty("hoconPluginTestProperty", "fromSystem");
             try {
                 Map<String, String> properties = load("a = ${?hoconPluginTestProperty}\nb = 1\n");
@@ -310,25 +369,155 @@ class HoconPluginTest {
                 System.clearProperty("hoconPluginTestProperty");
             }
         }
+
+        @Test
+        @DisplayName("a substitution within the document still resolves")
+        void inDocumentSubstitutionStillWorks() throws Exception {
+            assertEquals("8000", load("base = 8000\nport = ${base}\n").get("port"));
+        }
     }
 
 
-    @Test
-    @DisplayName("the example from PLUGINS.md produces the properties it documents")
-    void theDocumentedExample() throws Exception {
-        Map<String, String> properties = load("""
-            numberOfAccounts = 2
-            accounts = [
-              { name = alvin, role = admin },
-              { name = carl,  role = user  }
-            ]
-            """);
-        assertEquals("2", properties.get("numberOfAccounts"));
-        assertEquals("alvin", properties.get("accounts\\0\\name"));
-        assertEquals("admin", properties.get("accounts\\0\\role"));
-        assertEquals("carl", properties.get("accounts\\1\\name"));
-        assertEquals("user", properties.get("accounts\\1\\role"));
-        assertNull(properties.get("accounts"), "the list itself is structure, not a property");
+    @Nested
+    @DisplayName("a trusted source gets all of HOCON")
+    class Trusted {
+
+        @Test
+        @DisplayName("`include file()` reads the file")
+        void fileIncludeWorks() throws Exception {
+            Path other = tempDir.resolve("other.conf");
+            Files.writeString(other, "fromInclude = yes\n");
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "include file(\"" + other + "\")\nx = 1\n");
+            Map<String, String> properties = loadFile(main, "trusted", "true");
+            assertEquals("1", properties.get("x"));
+            assertEquals("yes", properties.get("fromInclude"));
+        }
+
+        @Test
+        @DisplayName("substitutions reach environment variables")
+        void environmentIsSubstituted() throws Exception {
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "a = ${?PATH}\n");
+            Map<String, String> properties = loadFile(main, "trusted", "true");
+            assertNotNull(properties.get("a"), "PATH should have been substituted");
+        }
+
+        @Test
+        @DisplayName("substitutions reach system properties")
+        void systemPropertiesAreSubstituted() throws Exception {
+            System.setProperty("hoconPluginTestProperty", "fromSystem");
+            try {
+                Path main = tempDir.resolve("main.conf");
+                Files.writeString(main, "a = ${?hoconPluginTestProperty}\nb = 1\n");
+                Map<String, String> properties = loadFile(main, "trusted", "true");
+                assertEquals("fromSystem", properties.get("a"));
+                assertEquals("1", properties.get("b"));
+            } finally {
+                System.clearProperty("hoconPluginTestProperty");
+            }
+        }
+
+        @Test
+        @DisplayName("a system property can be part of a larger value")
+        void systemPropertyInConcatenation() throws Exception {
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "logs = ${user.home}/logs\n");
+            Map<String, String> properties = loadFile(main, "trusted", "true");
+            assertEquals(System.getProperty("user.home") + "/logs", properties.get("logs"));
+        }
+
+        @Test
+        @DisplayName("system properties fill in substitutions but are not added to the source")
+        void systemPropertiesAreNotMerged() throws Exception {
+            // `ConfigFactory.load` would merge every system property into the
+            // result, which rwConfig would report as dozens of unknown
+            // properties - only the document's own keys may come back
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "home = ${user.home}\n");
+            Map<String, String> properties = loadFile(main, "trusted", "true");
+            assertEquals(Map.of("home", System.getProperty("user.home")), properties);
+        }
+
+        @Test
+        @DisplayName("the document wins over a system property at the same path")
+        void documentWinsOverSystemProperty() throws Exception {
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "java { version = mine }\nv = ${java.version}\n");
+            Map<String, String> properties = loadFile(main, "trusted", "true");
+            assertEquals("mine", properties.get("java\\version"));
+            assertEquals("mine", properties.get("v"));
+        }
+
+        @Test
+        @DisplayName("`java.version` is a string, not an object holding `java.version.date`")
+        void javaVersionIsAString() throws Exception {
+            // since Java 11 both are set, and parsed as a tree the longer name
+            // turns the shorter into an object - Typesafe Config drops the
+            // `java.version.*` keys to prevent that, and so must we
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "v = ${java.version}\n");
+            Map<String, String> properties = loadFile(main, "trusted", "true");
+            assertEquals(Map.of("v", System.getProperty("java.version")), properties);
+        }
+
+        @Test
+        @DisplayName("a system property set after an earlier load is still seen")
+        void systemPropertiesAreReadFresh() throws Exception {
+            // Typesafe Config caches `ConfigFactory.systemProperties()` for the
+            // life of the JVM, so reading through it would miss this
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "a = ${?hoconPluginTestLateProperty}\n");
+            assertNull(loadFile(main, "trusted", "true").get("a"));
+            System.setProperty("hoconPluginTestLateProperty", "late");
+            try {
+                assertEquals("late", loadFile(main, "trusted", "true").get("a"));
+            } finally {
+                System.clearProperty("hoconPluginTestLateProperty");
+            }
+        }
+    }
+
+
+    @Nested
+    @DisplayName("the `trusted` property itself")
+    class TrustedProperty {
+
+        private Map<String, String> loadWith(String trusted) throws Exception {
+            Path main = tempDir.resolve("main.conf");
+            Path other = tempDir.resolve("other.conf");
+            Files.writeString(other, "fromInclude = yes\n");
+            Files.writeString(main, "include file(\"" + other + "\")\nx = 1\n");
+            return loadFile(main, "trusted", trusted);
+        }
+
+        @Test
+        @DisplayName("defaults to false when the setting is absent")
+        void defaultsToFalse() throws Exception {
+            Path main = tempDir.resolve("main.conf");
+            Files.writeString(main, "include file(\"" + tempDir.resolve("other.conf") + "\")\nx = 1\n");
+            assertThrows(Exception.class, () -> loadFile(main));
+        }
+
+        @Test
+        @DisplayName("takes the same spellings as any other boolean setting")
+        void acceptsBooleanSpellings() throws Exception {
+            assertEquals("yes", loadWith("yes").get("fromInclude"));
+            assertEquals("yes", loadWith("on").get("fromInclude"));
+            assertEquals("yes", loadWith("1").get("fromInclude"));
+            assertThrows(Exception.class, () -> loadWith("no"));
+            assertThrows(Exception.class, () -> loadWith("off"));
+        }
+
+        @Test
+        @DisplayName("rejects a value that is not a boolean")
+        void rejectsNonBoolean() {
+            Exception e = assertThrows(Exception.class, () -> loadWith("maybe"));
+            assertTrue(
+                String.valueOf(e.getMessage()).contains("maybe"),
+                "the error should name the bad value, but got: " + e.getMessage()
+            );
+        }
     }
 
 
@@ -340,10 +529,13 @@ class HoconPluginTest {
         void requiredAndOptionalPropertyNames() {
             HoconPlugin plugin = new HoconPlugin();
             assertEquals(java.util.Set.of("location"), plugin.getRequiredPluginPropertyNames());
-            // inherited from LocationBasedConfigSourcePlugin: a source with a
-            // location can also be given HTTP credentials for it
+            // `username` and `password` are inherited from
+            // LocationBasedConfigSourcePlugin - a source with a location can
+            // also be given HTTP credentials for it - and have to survive this
+            // plugin adding one of its own
             assertEquals(
-                java.util.Set.of("username", "password"), plugin.getOptionalPluginPropertyNames());
+                java.util.Set.of("username", "password", "trusted"),
+                plugin.getOptionalPluginPropertyNames());
         }
 
         @Test

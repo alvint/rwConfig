@@ -283,11 +283,13 @@ Three things to know before relying on it:
   when the first check finds no header. The same 10 second timeouts apply, so an
   endpoint that stops responding raises an error event rather than blocking the
   polling thread.
-- **Mind which format you fetch.** A HOCON source can read local files, request
-  other URLs, and read environment variables while it parses - so a HOCON file
-  fetched from somewhere is as trusted as the server serving it. See the warning
-  in [PLUGINS.md](../PLUGINS.md#hocon-hoconplugin). JSON, YAML, XML, and
-  `properties` have no such directives.
+- **Mind which format you fetch.** HOCON has directives that read local files,
+  request other URLs, and read system properties and environment variables
+  while the document is parsed. The plugin refuses them unless the source sets `trusted = true`, so a
+  fetched HOCON file is safe by default - but do not mark one trusted when it
+  comes from a server you would not give the same standing as your jar. See the
+  warning in [PLUGINS.md](../PLUGINS.md#hocon-hoconplugin). JSON, YAML, XML, and
+  `properties` have no such directives at all.
 - **Credentials are optional.** An endpoint behind HTTP basic authentication
   takes a `username` and a `password`:
 

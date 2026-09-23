@@ -10,8 +10,17 @@ would break an existing `rwconfig` file is called out here.
 
 ## Unreleased
 
-Changed how plugins receive optional plugin settings, and fixed two bugs that
-made YAML sources unusable in ways their tests could not see.
+A security fix in the HOCON plugin, changed how plugins receive optional plugin
+settings, and fixed two bugs that made YAML sources unusable in ways their tests
+could not see.
+
+### Added
+
+- **`trusted` config setting on a HOCON source** (default `false`). This turns
+  on HOCON features that can reach outside of the document - `include` and substitutions from  system properties and environment variables. See Security below.
+- **A trusted HOCON source can substitute java system properties**. They only
+  fill in substitutions. Unlike Typesafe Config's `ConfigFactory.load()`, they
+  are not merged into the source and do not override the document's own values.
 
 ### Changed
 
@@ -33,6 +42,27 @@ made YAML sources unusable in ways their tests could not see.
 - **The YAML plugin never received `username` or `password`**, so HTTP basic
   authentication was silently ignored for YAML sources. It listed its own
   optional setting in place of the inherited ones rather than alongside them.
+
+### Security
+
+- **HOCON directives that reach outside the document are refused by default.**
+  `include` in every form - bare, `file()`, `url()`, and `classpath()` - and
+  substitutions that fall back to environment variables or system properties now
+  require the source to set [`trusted = true`](PLUGINS.md#hocon-hoconplugin).
+  Through version 0.2.0 these directives were always carried out, so a HOCON
+  file from anywhere the application could fetch it could read local files into
+  the configuration or make the application issue requests to addresses the
+  author could not reach.
+
+  **This is a breaking change for a HOCON source that uses `include` or an
+  environment substitution.** Such a document now fails at startup with an
+  error naming the source and this setting, rather than quietly loading less
+  than it used to. Set `trusted = true` on that source to restore the old
+  behavior, or declare the included document as a config source of its own.
+  A HOCON file that uses no directives is unaffected.
+
+  The 0.2.0 notes described this exposure as one rwConfig could not prevent.
+  That was wrong on the facts - it can, and now does.
 
 ## 0.2.0
 
