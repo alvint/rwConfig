@@ -30,6 +30,13 @@ could not see.
   `containsKey` now means the setting was given, and `getOrDefault` now returns
   the default. A third-party plugin that relied on every optional name being
   present as a key should read it with `get` instead.
+- **A number in a HOCON source arrives exactly as written**, rather than as
+  Typesafe Config normalizes it: `1.0` stays `1.0` rather than becoming `1`, and
+  `2.0e3` stays `2.0e3` rather than becoming `2000`. **This can break an `int`
+  or `long` property written with a fraction or an exponent** - `port = 8080.0`
+  used to be rewritten to `8080` before rwConfig parsed it, and is now rejected,
+  the same as it is from every other source. A `string` property gets the text
+  as written.
 
 ### Fixed
 
@@ -42,6 +49,13 @@ could not see.
 - **The YAML plugin never received `username` or `password`**, so HTTP basic
   authentication was silently ignored for YAML sources. It listed its own
   optional setting in place of the inherited ones rather than alongside them.
+- **YAML and HOCON sources lost digits from decimals.** Both libraries read a
+  decimal into a `double`, so `1.00000000000000000001` arrived as `1.0` from
+  YAML and `1` from HOCON, and `10.50` lost its trailing zero. Both now keep
+  every digit, and the scale.
+- **A HOCON list such as `[1.50, 2.00]` failed at startup** for a `doubleList`
+  property. Typesafe Config turns `2.00` into the integer `2`, so the list
+  looked mixed and was split into indexed properties that nothing declared.
 
 ### Security
 

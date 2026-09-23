@@ -19,6 +19,7 @@ import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigParseOptions;
 import com.typesafe.config.ConfigResolveOptions;
 import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
@@ -135,6 +136,23 @@ public class HoconPlugin extends LocationBasedConfigSourcePlugin {
         return copy;
     }
 
+    /**
+     * A scalar as text - and a number exactly as it was written.
+     * <p>
+     * Typesafe Config parses a number into a {@code double}, {@code int} or
+     * {@code long}, so its unwrapped value has lost what was written:
+     * {@code 1.00000000000000000001} becomes {@code 1}, and {@code 2.00}
+     * becomes the integer {@code 2}. It keeps the original text alongside,
+     * and hands that back when a number is read as a string, which is what
+     * this asks for. The text survives substitutions, so {@code copy = ${m}}
+     * copies {@code m} exactly as written too.
+     */
+    private static String text(ConfigValue value) {
+        return value.valueType() == ConfigValueType.NUMBER
+            ? value.atKey("value").getString("value")
+            : String.valueOf(value.unwrapped());
+    }
+
     // WARNING: this method is recursive and may throw a StackOverflowError for
     // deeply nested HOCON structures
     private void getContents(String prefix, ConfigValue value, Map<String, String> map) {
@@ -160,7 +178,7 @@ public class HoconPlugin extends LocationBasedConfigSourcePlugin {
                         if (i > 0) {
                             sb.append(",");
                         }
-                        sb.append(String.valueOf(list.get(i).unwrapped()));
+                        sb.append(text(list.get(i)));
                     }
                     add(map, prefix, sb.toString());
                 } else { // treat as indexed objects
@@ -171,7 +189,7 @@ public class HoconPlugin extends LocationBasedConfigSourcePlugin {
             }
             default -> {
                 switch (value.valueType()) {
-                    case STRING, NUMBER, BOOLEAN, NULL -> add(map, prefix, value.unwrapped());
+                    case STRING, NUMBER, BOOLEAN, NULL -> add(map, prefix, text(value));
                     default -> logger.warn("unsupported value type at prefix `{}`: {}", prefix, value.valueType());
                 }
             }
@@ -192,7 +210,7 @@ public class HoconPlugin extends LocationBasedConfigSourcePlugin {
                 case STRING -> hasStrings = 1;
                 case BOOLEAN -> hasBooleans = 1;
                 case NUMBER -> {
-                    String number = value.unwrapped().toString();
+                    String number = text(value);
                     if (number.matches("[+-]?\\d+")) {
                         hasIntegers = 1;
                     } else if (number.matches("[+-]?(?:\\d+\\.\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?|[+-]?\\d+[eE][+-]?\\d+")) {

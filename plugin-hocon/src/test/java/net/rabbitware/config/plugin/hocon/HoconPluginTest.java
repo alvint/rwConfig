@@ -94,12 +94,20 @@ class HoconPluginTest {
         }
 
         @Test
-        @DisplayName("scientific notation - HOCON normalizes to a whole number where JSON keeps a decimal")
+        @DisplayName("scientific notation is kept as written")
         void scientificNotation() throws Exception {
-            // the JSON plugin yields `1.0E+5,2.0E+5` for the same input, because
-            // its parser hands back a BigDecimal. Typesafe Config unwraps these
-            // to a Long instead, so they collapse as integers
-            assertEquals("100000,200000", loadList("[1.0e5, 2.0e5]").get("x"));
+            // Typesafe Config unwraps these to a Long, which would have made
+            // them `100000,200000` - the text is what was written
+            assertEquals("1.0e5,2.0e5", loadList("[1.0e5, 2.0e5]").get("x"));
+        }
+
+        @Test
+        @DisplayName("decimals whose fraction is zero still collapse with the rest")
+        void decimalsWithZeroFraction() throws Exception {
+            // unwrapped, `2.00` is the integer `2`, so the list looked mixed and
+            // was split into `x\0` and `x\1` - which no `doubleList` or
+            // `bigDecimalList` declaration could accept
+            assertEquals("1.50,2.00", loadList("[1.50, 2.00]").get("x"));
         }
 
         @Test
@@ -244,15 +252,37 @@ class HoconPluginTest {
         }
 
         @Test
-        @DisplayName("numbers are normalized - `1.0` arrives as `1`, but a quoted value is untouched")
-        void numbersAreNormalised() throws Exception {
+        @DisplayName("numbers arrive exactly as written, not as Typesafe Config normalizes them")
+        void numbersAreKeptAsWritten() throws Exception {
             Map<String, String> properties =
                 load("a = 1.0\nb = 100.0\nc = 2.0e3\nd = 1.25\ne = \"1.0\"\n");
-            assertEquals("1", properties.get("a"), "a redundant fractional part is dropped");
-            assertEquals("100", properties.get("b"));
-            assertEquals("2000", properties.get("c"), "exponents are expanded");
-            assertEquals("1.25", properties.get("d"), "a real fraction is left alone");
-            assertEquals("1.0", properties.get("e"), "quoting keeps the exact characters");
+            assertEquals("1.0", properties.get("a"), "a zero fraction is kept");
+            assertEquals("100.0", properties.get("b"));
+            assertEquals("2.0e3", properties.get("c"), "an exponent is not expanded");
+            assertEquals("1.25", properties.get("d"));
+            assertEquals("1.0", properties.get("e"), "a quoted value is unchanged");
+        }
+
+        @Test
+        @DisplayName("a decimal keeps digits a double cannot hold")
+        void decimalPrecisionIsKept() throws Exception {
+            Map<String, String> properties = load("d = 1.00000000000000000001\nm = 10.50\n");
+            assertEquals("1.00000000000000000001", properties.get("d"));
+            assertEquals("10.50", properties.get("m"), "the trailing zero is part of the scale");
+        }
+
+        @Test
+        @DisplayName("an integer too large for a long is kept whole")
+        void largeIntegerIsKept() throws Exception {
+            assertEquals(
+                "123456789012345678901234567890",
+                load("i = 123456789012345678901234567890\n").get("i"));
+        }
+
+        @Test
+        @DisplayName("a substitution copies a number exactly as it was written")
+        void substitutionKeepsText() throws Exception {
+            assertEquals("10.50", load("m = 10.50\ncopy = ${m}\n").get("copy"));
         }
 
         @Test

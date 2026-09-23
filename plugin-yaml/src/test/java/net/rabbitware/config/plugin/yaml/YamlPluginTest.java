@@ -269,6 +269,57 @@ class YamlPluginTest {
     }
 
     @Nested
+    @DisplayName("a decimal arrives exactly as written")
+    class Decimals {
+
+        @Test
+        @DisplayName("digits a double cannot hold are kept")
+        void precisionIsKept() throws Exception {
+            // through a double this was `1.0`, before a `bigDecimal` property
+            // ever saw it
+            assertEquals("1.00000000000000000001", load("d: 1.00000000000000000001\n").get("d"));
+        }
+
+        @Test
+        @DisplayName("a trailing zero is kept, since it is part of the scale")
+        void scaleIsKept() throws Exception {
+            assertEquals("10.50", load("m: 10.50\n").get("m"));
+        }
+
+        @Test
+        @DisplayName("in a list too")
+        void listItemsAreKept() throws Exception {
+            assertEquals("1.50,2.00", loadSequence("[1.50, 2.00]").get("x"));
+        }
+
+        @Test
+        @DisplayName("an exponent is written in Java's form - `1e3` arrives as `1E+3`")
+        void exponentForm() throws Exception {
+            // the value is exact, but the text is BigDecimal's. It still parses
+            // as a `double` or a `bigDecimal`
+            assertEquals("1E+3", load("e: 1e3\n").get("e"));
+        }
+
+        @Test
+        @DisplayName("the special values are unchanged")
+        void specialValues() throws Exception {
+            Map<String, String> properties = load("a: .inf\nb: -.inf\nc: .nan\n");
+            assertEquals("Infinity", properties.get("a"));
+            assertEquals("-Infinity", properties.get("b"));
+            assertEquals("NaN", properties.get("c"));
+        }
+
+        @Test
+        @DisplayName("an integer too large for a long is kept whole")
+        void largeIntegerIsKept() throws Exception {
+            assertEquals(
+                "123456789012345678901234567890",
+                load("i: 123456789012345678901234567890\n").get("i"));
+        }
+    }
+
+
+    @Nested
     @DisplayName("whether changes can be detected depends on the location")
     class ChangeDetection {
 

@@ -1,4 +1,5 @@
 package net.rabbitware.config.plugin.yaml;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,8 +9,11 @@ import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snakeyaml.engine.v2.api.ConstructNode;
 import org.snakeyaml.engine.v2.api.Load;
 import org.snakeyaml.engine.v2.api.LoadSettings;
+import org.snakeyaml.engine.v2.nodes.ScalarNode;
+import org.snakeyaml.engine.v2.nodes.Tag;
 import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
 
 /**
@@ -25,6 +29,26 @@ import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
  */
 public class YamlPlugin extends LocationBasedConfigSourcePlugin {
     private static final Logger logger = LoggerFactory.getLogger(YamlPlugin.class);
+
+    /**
+     * Builds a YAML float as a {@link BigDecimal}, so that it keeps every digit
+     * and the scale it was written with - {@code 10.50} stays {@code 10.50}.
+     * The library's own float constructor goes through a {@code double}, which
+     * would turn {@code 1.00000000000000000001} into {@code 1.0} before the
+     * value ever reached a {@code bigDecimal} property.
+     * <p>
+     * The special values are handled exactly as that constructor handles them.
+     * It cannot simply be extended, because its package is not exported.
+     */
+    private static final ConstructNode EXACT_FLOAT = node -> {
+        String value = ((ScalarNode) node).getValue();
+        return switch (value) {
+            case ".inf" -> Double.POSITIVE_INFINITY;
+            case "-.inf" -> Double.NEGATIVE_INFINITY;
+            case ".nan" -> Double.NaN;
+            default -> new BigDecimal(value);
+        };
+    };
     private boolean resolveMergeKeys = true; // default is true
 
     public YamlPlugin() {
@@ -56,7 +80,10 @@ public class YamlPlugin extends LocationBasedConfigSourcePlugin {
         logger.debug("loading resource from location: {}", getLocation());
         String sourceContent = loadLocation();
         // parse the YAML content and flatten it into a map of properties
-        LoadSettings settings = LoadSettings.builder().setLabel("rwConfig YAML plugin").build();
+        LoadSettings settings = LoadSettings.builder()
+            .setLabel("rwConfig YAML plugin")
+            .setTagConstructors(Map.of(Tag.FLOAT, EXACT_FLOAT))
+            .build();
         Load load = new Load(settings);
         Object yaml = load.loadFromString(sourceContent);
         if (resolveMergeKeys) {

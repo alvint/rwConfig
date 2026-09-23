@@ -284,12 +284,10 @@ ambiguous bare `K`, `M` and `G`, which mean 1024-based units there and are
 routinely written meaning 1000-based ones. It is a rejection rather than a
 different answer, so nothing is silently misread.
 
-**Numbers are normalized, so what you write is not always what you get.**
-Typesafe Config drops a redundant fractional part and expands exponents, so
-`1.0` arrives as `1`, `100.0` as `100`, and `2.0e3` as `2000`; `1.5` and `1.25`
-are untouched. This is harmless for `int` and `double` properties, which parse
-either form, but a property declared as a `string` gets the normalized text. If
-you need the exact characters, quote the value - `"1.0"` stays `1.0`.
+**Numbers arrive exactly as written.** Typesafe Config normally parses a number
+into a `double`, `int`, or `long`, which would turn `1.00000000000000000001`
+into `1` and `2.00` into `2`. This plugin reads the text that was written
+instead, so rwConfig types such as `bigDecimal` never lose precision.
 
 **An unresolved substitution stops startup** rather than producing a blank -
 `port = ${MISSING}` is an error. The optional form, `${?MISSING}`, leaves the
@@ -362,6 +360,13 @@ accounts:
   - name: carl                  ->  accounts\1\name = carl
     role: user                  ->  accounts\1\role = user
 ```
+
+**A decimal arrives exactly as written.** The YAML library normally reads a
+decimal into a `double`, turning `1.00000000000000000001` into `1.0` and `10.50`
+into `10.5`. This plugin keeps every digit, and the scale, so nothing is lost
+before the value reaches your property. An exponent is the one thing written
+differently; `1e3` arrives as `1E+3`, which is the same number to every numeric
+type. `.inf` and `.nan` are unchanged.
 
 Merge keys are the one thing YAML adds.
 
