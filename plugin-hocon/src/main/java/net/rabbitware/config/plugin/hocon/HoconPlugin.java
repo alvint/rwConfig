@@ -171,8 +171,8 @@ public class HoconPlugin extends LocationBasedConfigSourcePlugin {
                 }
             }
             case ConfigList list -> {
-                // treat uniform primitive arrays as a list
-                if (arrayIsPrimitiveAndUniform(list)) { // treat as a list
+                // treat arrays of values as a list
+                if (arrayIsAllValues(list)) { // treat as a list
                     StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < list.size(); i++) {
                         if (i > 0) {
@@ -197,35 +197,20 @@ public class HoconPlugin extends LocationBasedConfigSourcePlugin {
     }
 
 
-    // returns true if the given list contains only primitive elements of the
-    // same type
-    private boolean arrayIsPrimitiveAndUniform(ConfigList a) {
-        int hasStrings = 0;
-        int hasIntegers = 0;
-        int hasFloats = 0;
-        int hasBooleans = 0;
+    // return true if the given list contains only values
+    private boolean arrayIsAllValues(ConfigList a) {
         for (int i = 0; i < a.size(); i++) {
             ConfigValue value = a.get(i);
-            switch (value.valueType()) {
-                case STRING -> hasStrings = 1;
-                case BOOLEAN -> hasBooleans = 1;
-                case NUMBER -> {
-                    String number = text(value);
-                    if (number.matches("[+-]?\\d+")) {
-                        hasIntegers = 1;
-                    } else if (number.matches("[+-]?(?:\\d+\\.\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?|[+-]?\\d+[eE][+-]?\\d+")) {
-                        hasFloats = 1;
-                    } else {
-                        return false;
-                    }
-                }
-                case NULL -> hasStrings = 1; // treat null as a string for uniformity
-                case OBJECT, LIST -> {
-                    return false; // non-primitive object found
-                }
+            if (!(
+                value.valueType() == ConfigValueType.NULL ||
+                value.valueType() == ConfigValueType.STRING ||
+                value.valueType() == ConfigValueType.NUMBER ||
+                value.valueType() == ConfigValueType.BOOLEAN
+            )) {
+                return false; // non-value object found
             }
         }
-        return hasStrings + hasIntegers + hasFloats + hasBooleans <= 1;
+        return true;
     }
 
     private void add(Map<String, String> map, String key, Object value) {

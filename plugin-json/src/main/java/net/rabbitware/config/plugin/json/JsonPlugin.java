@@ -59,8 +59,8 @@ public class JsonPlugin extends LocationBasedConfigSourcePlugin {
                 }
             }
             case org.json.JSONArray jsonArray -> {
-                // treat uniform primitive arrays as a list
-                if (arrayIsPrimitiveAndUniform(jsonArray)) {
+                // treat arrays of values as a list
+                if (arrayIsAllValues(jsonArray)) {
                     // treat as a list
                     StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < jsonArray.length(); i++) {
@@ -92,38 +92,15 @@ public class JsonPlugin extends LocationBasedConfigSourcePlugin {
     }
 
 
-    // returns true if the given JSONArray contains only primitive elements of
-    // the same type
-    private boolean arrayIsPrimitiveAndUniform(org.json.JSONArray a) {
-        int hasString = 0;
-        int hasIntegers = 0;
-        int hasFloats = 0;
-        int hasBooleans = 0;
+    // return true if the given JSONArray contains only values
+    private boolean arrayIsAllValues(org.json.JSONArray a) {
         for (int i = 0; i < a.length(); i++) {
-            switch (a.get(i)) {
-                case String s -> hasString = 1;
-                case Boolean b -> hasBooleans = 1;
-                case Number n -> {
-                    String number = n.toString();
-                    if (number.matches("[+-]?\\d+")) {
-                        hasIntegers = 1;
-                    } else if (number.matches("[+-]?(?:\\d+\\.\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?|[+-]?\\d+[eE][+-]?\\d+")) {
-                        hasFloats = 1;
-                    } else {
-                        return false;
-                    }
-                }
-                case null -> hasString = 1; // treat null as a string for uniformity
-                case Object o -> {
-                    if (o == JSONObject.NULL) {
-                        hasString = 1; // treat null as a string for uniformity
-                    } else {
-                        return false; // non-primitive object found
-                    }
-                }
+            Object o = a.get(i);
+            if (!(o == JSONObject.NULL || o instanceof String || o instanceof Number || o instanceof Boolean)) {
+                return false; // non-value object found
             }
         }
-        return hasString + hasIntegers + hasFloats + hasBooleans <= 1;
+        return true;
     }
 
     private void add(Map<String, String> map, String key, Object value) {

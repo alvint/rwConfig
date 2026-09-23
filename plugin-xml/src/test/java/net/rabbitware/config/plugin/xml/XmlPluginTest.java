@@ -16,7 +16,9 @@ import org.junit.jupiter.api.io.TempDir;
  * Tests for flattening an XML source into properties.
  *
  * <p>Most of these cover which repeated elements are collapsed into a single
- * comma-separated value and which fall back to indexed names. XML text is
+ * comma-separated value and which fall back to indexed names. Repeated plain
+ * values collapse whatever mix of types they hold, and only child elements keep
+ * indexed names. XML text is
  * converted to numbers before it gets here, so a decimal arrives as a
  * {@code BigDecimal} and a large whole number as a {@code BigInteger}.
  */
@@ -49,7 +51,7 @@ class XmlPluginTest {
 
 
     @Nested
-    @DisplayName("repeated elements of one primitive type become a comma-separated list")
+    @DisplayName("repeated elements holding plain values become a comma-separated list")
     class Collapsed {
 
         @Test
@@ -87,26 +89,25 @@ class XmlPluginTest {
         void booleans() throws Exception {
             assertEquals("true,false", loadRepeated("true", "false").get("root\\x\\v"));
         }
+
+        @Test
+        @DisplayName("whole numbers and decimals together - `9.99, 10` is an ordinary price list")
+        void integersMixedWithDecimals() throws Exception {
+            assertEquals("1,2.5,3", loadRepeated("1", "2.5", "3").get("root\\x\\v"));
+            assertEquals("9.99,10", loadRepeated("9.99", "10").get("root\\x\\v"));
+        }
+
+        @Test
+        @DisplayName("strings and numbers together - a `stringList` can read either")
+        void stringsMixedWithNumbers() throws Exception {
+            assertEquals("a,1", loadRepeated("a", "1").get("root\\x\\v"));
+        }
     }
 
 
     @Nested
-    @DisplayName("repeated elements of mixed or non-primitive values keep indexed names")
+    @DisplayName("repeated elements holding child elements keep indexed names")
     class Indexed {
-
-        @Test
-        void integersMixedWithDecimals() throws Exception {
-            Map<String, String> properties = loadRepeated("1", "2.5", "3");
-            assertNull(properties.get("root\\x\\v"), "the array should not have been collapsed");
-            assertEquals("1", properties.get("root\\x\\v\\0"));
-            assertEquals("2.5", properties.get("root\\x\\v\\1"));
-            assertEquals("3", properties.get("root\\x\\v\\2"));
-        }
-
-        @Test
-        void stringsMixedWithNumbers() throws Exception {
-            assertNull(loadRepeated("a", "1").get("root\\x\\v"));
-        }
 
         @Test
         void childElements() throws Exception {
@@ -115,6 +116,15 @@ class XmlPluginTest {
             );
             assertNull(properties.get("root\\x\\v"));
             assertEquals("1", properties.get("root\\x\\v\\0\\a"));
+            assertEquals("2", properties.get("root\\x\\v\\1\\a"));
+        }
+
+        @Test
+        @DisplayName("one element with children among plain values is enough")
+        void oneElementWithChildrenAmongPlainValues() throws Exception {
+            Map<String, String> properties = load("<root><x><v>1</v><v><a>2</a></v></x></root>");
+            assertNull(properties.get("root\\x\\v"));
+            assertEquals("1", properties.get("root\\x\\v\\0"));
             assertEquals("2", properties.get("root\\x\\v\\1\\a"));
         }
     }
@@ -130,24 +140,14 @@ class XmlPluginTest {
                 <val>3</val>
                 <val>5</val>
               </ints>
-              <floats>
-                <val>1.5</val>
-                <val>3.5</val>
-                <val>5.5</val>
-              </floats>
-              <mixed>
-                <val>1</val>
-                <val>2.5</val>
-                <val>3</val>
-              </mixed>
+              <prices>
+                <val>9.99</val>
+                <val>10</val>
+              </prices>
             </foo>
             """);
         assertEquals("1,3,5", properties.get("foo\\ints\\val"));
-        assertEquals("1.5,3.5,5.5", properties.get("foo\\floats\\val"));
-        assertEquals("1", properties.get("foo\\mixed\\val\\0"));
-        assertEquals("2.5", properties.get("foo\\mixed\\val\\1"));
-        assertEquals("3", properties.get("foo\\mixed\\val\\2"));
-        assertNull(properties.get("foo\\mixed\\val"));
+        assertEquals("9.99,10", properties.get("foo\\prices\\val"));
     }
 
     @Test

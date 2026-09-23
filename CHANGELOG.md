@@ -53,6 +53,17 @@ could not see.
   `getType()` with no `default` has to handle them. A class implementing
   `Config` itself, such as a test double, has the new getters to implement.
 
+- **An array of plain values becomes one list value, whatever mix it holds.**
+  Only an array of one kind - all strings, all whole numbers, all decimals, or
+  all booleans - used to be joined, and any other was split into indexed
+  properties. So `prices: [9.99, 10]` failed at startup for a `doubleList` or
+  `bigDecimalList`, with an error about `prices\0` that did not say why. It now
+  arrives as `9.99,10`, and the declared type decides how the items are read.
+  Only an array holding an object or another array is still split. This applies
+  to JSON, XML, YAML, and HOCON sources. **A declaration naming one element of
+  such an array, like `prices\0`, no longer matches anything** - declare the
+  array itself as a list type instead.
+
 ### Fixed
 
 - **A YAML source that did not set `resolveMergeKeys` failed at startup** with

@@ -250,9 +250,11 @@ bundled plugins use so your plugin feels the same as theirs:
 - **A backslash separates levels.** `server` containing `port` becomes
   `server\port`.
 - **Array elements use their index.** `accounts\0\name`, `accounts\1\name`.
-- **A uniform array of primitives collapses into one comma-separated value**,
-  so it can be read as a list type. `[1, 2, 3]` becomes `1,2,3`, readable as an
-  `intList`. Mixed-type arrays fall back to indexed names.
+- **An array of plain values collapses into one comma-separated value**, so it
+  can be read as a list type. `[1, 2, 3]` becomes `1,2,3`, readable as an
+  `intList`, and `[9.99, 10]` becomes `9.99,10`, readable as a `doubleList` -
+  what the items are read as is the declaration's business, not the plugin's.
+  Only an array holding an object or another array falls back to indexed names.
 - **Escape a literal backslash in a key** by doubling it, so a nested `a`/`b`
   (`a\b`) cannot collide with a flat key that really is called `a\b`
   (`a\\b`).
@@ -311,8 +313,9 @@ for a fuller one. Cases worth covering:
 - a missing required property is rejected
 - an optional property left out uses its default and does not fail
 - an unreachable or malformed source throws rather than returning a partial map
-- if you flatten hierarchical data, that arrays, empty containers, nulls, and
-  mixed-type arrays all come out as intended
+- if you flatten hierarchical data, that arrays, empty containers, nulls,
+  arrays mixing types of value, and arrays holding objects all come out as
+  intended
 
 Then add one end-to-end test that runs a real `rwconfig` through
 `ConfigFactory` with your plugin declared, which is the only way to check the

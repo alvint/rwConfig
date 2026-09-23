@@ -65,7 +65,7 @@ class HoconPluginTest {
 
 
     @Nested
-    @DisplayName("a list of one primitive type becomes a comma-separated list")
+    @DisplayName("a list of plain values becomes a comma-separated list")
     class Collapsed {
 
         @Test
@@ -102,11 +102,9 @@ class HoconPluginTest {
         }
 
         @Test
-        @DisplayName("decimals whose fraction is zero still collapse with the rest")
+        @DisplayName("decimals whose fraction is zero keep it")
         void decimalsWithZeroFraction() throws Exception {
-            // unwrapped, `2.00` is the integer `2`, so the list looked mixed and
-            // was split into `x\0` and `x\1` - which no `doubleList` or
-            // `bigDecimalList` declaration could accept
+            // unwrapped, `2.00` is the integer `2` - the text is what was written
             assertEquals("1.50,2.00", loadList("[1.50, 2.00]").get("x"));
         }
 
@@ -131,36 +129,26 @@ class HoconPluginTest {
         void nulls() throws Exception {
             assertEquals("a,null", loadList("[a, null]").get("x"));
         }
+
+        @Test
+        @DisplayName("whole numbers and decimals together - `[9.99, 10]` is an ordinary price list")
+        void integersMixedWithDecimals() throws Exception {
+            assertEquals("1,2.5,3", loadList("[1, 2.5, 3]").get("x"));
+            assertEquals("9.99,10", loadList("[9.99, 10]").get("x"));
+        }
+
+        @Test
+        @DisplayName("strings, numbers, and booleans together - a `stringList` can read any of them")
+        void anyMixOfPlainValues() throws Exception {
+            assertEquals("a,1", loadList("[a, 1]").get("x"));
+            assertEquals("true,a", loadList("[true, a]").get("x"));
+        }
     }
 
 
     @Nested
-    @DisplayName("a list of mixed or non-primitive values keeps indexed names")
+    @DisplayName("a list holding an object or another list keeps indexed names")
     class Indexed {
-
-        @Test
-        void integersMixedWithDecimals() throws Exception {
-            Map<String, String> properties = loadList("[1, 2.5, 3]");
-            assertNull(properties.get("x"), "the list should not have been collapsed");
-            assertEquals("1", properties.get("x\\0"));
-            assertEquals("2.5", properties.get("x\\1"));
-            assertEquals("3", properties.get("x\\2"));
-        }
-
-        @Test
-        void stringsMixedWithNumbers() throws Exception {
-            Map<String, String> properties = loadList("[a, 1]");
-            assertNull(properties.get("x"));
-            assertEquals("a", properties.get("x\\0"));
-            assertEquals("1", properties.get("x\\1"));
-        }
-
-        @Test
-        void booleansMixedWithStrings() throws Exception {
-            Map<String, String> properties = loadList("[true, a]");
-            assertNull(properties.get("x"));
-            assertEquals("true", properties.get("x\\0"));
-        }
 
         @Test
         void objects() throws Exception {
@@ -176,6 +164,15 @@ class HoconPluginTest {
             assertNull(properties.get("x"));
             assertEquals("1,2", properties.get("x\\0"));
             assertEquals("3,4", properties.get("x\\1"));
+        }
+
+        @Test
+        @DisplayName("one object among plain values is enough")
+        void oneObjectAmongPlainValues() throws Exception {
+            Map<String, String> properties = loadList("[1, {a = 2}]");
+            assertNull(properties.get("x"));
+            assertEquals("1", properties.get("x\\0"));
+            assertEquals("2", properties.get("x\\1\\a"));
         }
     }
 

@@ -20,10 +20,11 @@ import org.junit.jupiter.api.io.TempDir;
  * Tests for flattening a JSON source into properties.
  *
  * <p>Most of these cover which arrays are collapsed into a single
- * comma-separated value and which fall back to indexed names. Note that the
- * check cannot look at the element classes alone: the JSON parser hands back a
- * {@code BigDecimal} for a decimal, a {@code BigInteger} for a large whole
- * number, and a sentinel object (not a Java {@code null}) for {@code null}.
+ * comma-separated value and which fall back to indexed names. An array of plain
+ * values collapses whatever mix of types it holds - the declared type decides
+ * how the items are read - and only an object or a nested array keeps indexed
+ * names. Note that the JSON parser hands back a sentinel object for
+ * {@code null}, not a Java {@code null}, and it has to count as a plain value.
  */
 class JsonPluginTest {
 
@@ -47,7 +48,7 @@ class JsonPluginTest {
 
 
     @Nested
-    @DisplayName("an array of one primitive type becomes a comma-separated list")
+    @DisplayName("an array of plain values becomes a comma-separated list")
     class Collapsed {
 
         @Test
@@ -113,39 +114,33 @@ class JsonPluginTest {
             assertEquals("null,null", loadArray("[null,null]").get("x"));
             assertEquals("a,null,c", loadArray("[\"a\",null,\"c\"]").get("x"));
         }
+
+        @Test
+        @DisplayName("whole numbers and decimals together - `[9.99, 10]` is an ordinary price list")
+        void integersMixedWithDecimals() throws Exception {
+            assertEquals("1,2.5,3", loadArray("[1,2.5,3]").get("x"));
+            assertEquals("9.99,10", loadArray("[9.99,10]").get("x"));
+        }
+
+        @Test
+        @DisplayName("a whole number written as a decimal keeps how it was written")
+        void integersMixedWithWholeDecimals() throws Exception {
+            assertEquals("1,2.0", loadArray("[1,2.0]").get("x"));
+        }
+
+        @Test
+        @DisplayName("strings, numbers, and booleans together - a `stringList` can read any of them")
+        void anyMixOfPlainValues() throws Exception {
+            assertEquals("a,1", loadArray("[\"a\",1]").get("x"));
+            assertEquals("true,a", loadArray("[true,\"a\"]").get("x"));
+            assertEquals("1,null,3", loadArray("[1,null,3]").get("x"));
+        }
     }
 
 
     @Nested
-    @DisplayName("an array of mixed or non-primitive values keeps indexed names")
+    @DisplayName("an array holding an object or another array keeps indexed names")
     class Indexed {
-
-        @Test
-        void integersMixedWithDecimals() throws Exception {
-            Map<String, String> properties = loadArray("[1,2.5,3]");
-            assertNull(properties.get("x"), "the array should not have been collapsed");
-            assertEquals("1", properties.get("x\\0"));
-            assertEquals("2.5", properties.get("x\\1"));
-            assertEquals("3", properties.get("x\\2"));
-        }
-
-        @Test
-        @DisplayName("a whole number written as a decimal still counts as a decimal")
-        void integersMixedWithWholeDecimals() throws Exception {
-            assertNull(loadArray("[1,2.0]").get("x"));
-        }
-
-        @Test
-        void stringsMixedWithNumbers() throws Exception {
-            assertNull(loadArray("[\"a\",1]").get("x"));
-        }
-
-        @Test
-        void numbersMixedWithNulls() throws Exception {
-            Map<String, String> properties = loadArray("[1,null,3]");
-            assertNull(properties.get("x"));
-            assertEquals("null", properties.get("x\\1"));
-        }
 
         @Test
         void objects() throws Exception {
@@ -164,8 +159,12 @@ class JsonPluginTest {
         }
 
         @Test
-        void booleansMixedWithStrings() throws Exception {
-            assertNull(loadArray("[true,\"a\"]").get("x"));
+        @DisplayName("one object among plain values is enough, since it has no place in a flat list")
+        void oneObjectAmongPlainValues() throws Exception {
+            Map<String, String> properties = loadArray("[1,{\"a\":2}]");
+            assertNull(properties.get("x"));
+            assertEquals("1", properties.get("x\\0"));
+            assertEquals("2", properties.get("x\\1\\a"));
         }
     }
 
@@ -203,17 +202,17 @@ class JsonPluginTest {
             {
               "strings": ["a", "b", "c"],
               "ints": [1, 2, 3, 4, 5],
-              "floats": [1.5, 2.5, 3.5],
-              "mixed": [1, 2.5, 3]
+              "prices": [9.99, 10, 12.5],
+              "servers": [{"port": 80},
+                          {"port": 443}]
             }
             """);
         assertEquals("a,b,c", properties.get("strings"));
         assertEquals("1,2,3,4,5", properties.get("ints"));
-        assertEquals("1.5,2.5,3.5", properties.get("floats"));
-        assertEquals("1", properties.get("mixed\\0"));
-        assertEquals("2.5", properties.get("mixed\\1"));
-        assertEquals("3", properties.get("mixed\\2"));
-        assertNull(properties.get("mixed"));
+        assertEquals("9.99,10,12.5", properties.get("prices"));
+        assertEquals("80", properties.get("servers\\0\\port"));
+        assertEquals("443", properties.get("servers\\1\\port"));
+        assertNull(properties.get("servers"));
     }
 
     @Test

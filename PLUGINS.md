@@ -116,32 +116,32 @@ collide](#keys-that-would-collide) and the library can now ingest any nested
 format and keep property names unambiguous.
 
 ### Lists
-There is one exception to the path rule. If an array holds a homogenous list of
-booleans, strings, floating-point numbers, or integers, the whole array becomes
-a single comma-separated value on the key that holds it, rather than one
-property per index. That is what makes it readable by a `stringList`, `intList`,
-and the other list types.
+There is one exception to the path rule. If an array holds only plain values -
+strings, numbers, booleans, and nulls, in any mix - the whole array becomes a
+single comma-separated value on the key that holds it, rather than one property
+per index. That is what makes it readable by a `stringList`, `intList`, and the
+other list types.
 
-If the array holds anything else - objects, nested arrays, or a mixture of
-scalar types - the ordinary path rule applies and you get one indexed property
-per element.
+The type you declare decides how the items are read, not the array. So
+`[9.99, 10]` suits a `doubleList` or a `bigDecimalList` even though one item is
+a whole number, and the same array given to an `intList` fails at startup on
+`9.99`, with an error naming it.
+
+If the array holds an object or another array anywhere in it, the ordinary path
+rule applies and you get one indexed property per element.
 
 ```json
 {
   "strings": ["a", "b", "c"],   ->  strings = a,b,c
   "ints": [1, 2, 3, 4, 5],      ->  ints = 1,2,3,4,5
-  "floats": [1.5, 2.5, 3.5],    ->  floats = 1.5,2.5,3.5
-  "mixed": [1, 2.5, 3]          ->  mixed\0 = 1
-}                                   mixed\1 = 2.5
-                                    mixed\2 = 3
+  "prices": [9.99, 10, 12.5],   ->  prices = 9.99,10,12.5
+  "servers": [{"port": 80},     ->  servers\0\port = 80
+              {"port": 443}]    ->  servers\1\port = 443
+}
 ```
 
-`mixed` falls back because it mixes integers and floating-point numbers, which
-is not a type any rwConfig list can hold.
-
-An empty array counts as homogenous, and its value is the empty string. That
-works out because a property declared with any list type reads an empty string
-as an empty list.
+An empty array becomes the empty string. That works out because a property
+declared with any list type reads an empty string as an empty list.
 
 ### Nulls and empty values
 A null becomes the string `"null"`. If the property is declared in your
@@ -427,8 +427,8 @@ into a list, the same as any repeated scalar:
 
 **Repeated elements are an array.** If an element contains several children with
 the same name, they are treated as a list under that shared name - which then
-follows the [list rules](#lists), collapsing to a comma-separated value when the
-values are homogenous.
+follows the [list rules](#lists), collapsing to a comma-separated value when every
+value is a plain one.
 
 ```xml
 <project xmlns="http://maven.apache.org/POM/4.0.0">   ->  project\xmlns = http://maven.apache.org/POM/4.0.0
@@ -452,10 +452,9 @@ their indexes. Repeated *scalar* elements collapse instead:
 
 ```xml
 <foo>
-  <ints><val>1</val><val>3</val><val>5</val></ints>       ->  foo\ints\val = 1,3,5
-  <mixed><val>1</val><val>2.5</val><val>3</val></mixed>   ->  foo\mixed\val\0 = 1
-</foo>                                                        foo\mixed\val\1 = 2.5
-                                                              foo\mixed\val\2 = 3
+  <ints><val>1</val><val>3</val><val>5</val></ints>          ->  foo\ints\val = 1,3,5
+  <prices><val>9.99</val><val>10</val></prices>              ->  foo\prices\val = 9.99,10
+</foo>
 ```
 
 XML has no null literal, so the null rule never fires in practice. An empty

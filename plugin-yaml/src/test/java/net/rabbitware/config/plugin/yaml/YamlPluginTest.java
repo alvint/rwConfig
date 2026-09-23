@@ -19,7 +19,10 @@ import org.junit.jupiter.api.io.TempDir;
  * Tests for flattening a YAML source into properties.
  *
  * <p>Most of these cover which sequences are collapsed into a single
- * comma-separated value and which fall back to indexed names. Unlike the JSON
+ * comma-separated value and which fall back to indexed names. A sequence of
+ * plain values collapses whatever mix of types it holds, and a mapping, a
+ * nested sequence, or a value the plugin cannot write out - such as one tagged
+ * {@code !!binary} - keeps indexed names. Unlike the JSON
  * and XML sources, a YAML null arrives as a real Java {@code null}, so it has
  * to be handled without tripping over it.
  */
@@ -45,7 +48,7 @@ class YamlPluginTest {
 
 
     @Nested
-    @DisplayName("a sequence of one primitive type becomes a comma-separated list")
+    @DisplayName("a sequence of plain values becomes a comma-separated list")
     class Collapsed {
 
         @Test
@@ -106,33 +109,27 @@ class YamlPluginTest {
         void blockStyleSequences() throws Exception {
             assertEquals("1.5,2.5", load("x:\n  - 1.5\n  - 2.5\n").get("x"));
         }
+
+        @Test
+        @DisplayName("whole numbers and decimals together - `[9.99, 10]` is an ordinary price list")
+        void integersMixedWithDecimals() throws Exception {
+            assertEquals("1,2.5,3", loadSequence("[1, 2.5, 3]").get("x"));
+            assertEquals("9.99,10", loadSequence("[9.99, 10]").get("x"));
+        }
+
+        @Test
+        @DisplayName("strings, numbers, booleans, and nulls together - a `stringList` can read any of them")
+        void anyMixOfPlainValues() throws Exception {
+            assertEquals("a,1", loadSequence("[a, 1]").get("x"));
+            assertEquals("true,a", loadSequence("[true, a]").get("x"));
+            assertEquals("1,null,3", loadSequence("[1, null, 3]").get("x"));
+        }
     }
 
 
     @Nested
-    @DisplayName("a sequence of mixed or non-primitive values keeps indexed names")
+    @DisplayName("a sequence holding a mapping or another sequence keeps indexed names")
     class Indexed {
-
-        @Test
-        void integersMixedWithDecimals() throws Exception {
-            Map<String, String> properties = loadSequence("[1, 2.5, 3]");
-            assertNull(properties.get("x"), "the sequence should not have been collapsed");
-            assertEquals("1", properties.get("x\\0"));
-            assertEquals("2.5", properties.get("x\\1"));
-            assertEquals("3", properties.get("x\\2"));
-        }
-
-        @Test
-        void stringsMixedWithNumbers() throws Exception {
-            assertNull(loadSequence("[a, 1]").get("x"));
-        }
-
-        @Test
-        void numbersMixedWithNulls() throws Exception {
-            Map<String, String> properties = loadSequence("[1, null, 3]");
-            assertNull(properties.get("x"));
-            assertEquals("null", properties.get("x\\1"));
-        }
 
         @Test
         void mappings() throws Exception {
@@ -151,8 +148,28 @@ class YamlPluginTest {
         }
 
         @Test
-        void booleansMixedWithStrings() throws Exception {
-            assertNull(loadSequence("[true, a]").get("x"));
+        @DisplayName("one mapping among plain values is enough")
+        void oneMappingAmongPlainValues() throws Exception {
+            Map<String, String> properties = loadSequence("[1, {a: 2}]");
+            assertNull(properties.get("x"));
+            assertEquals("1", properties.get("x\\0"));
+            assertEquals("2", properties.get("x\\1\\a"));
+        }
+
+        @Test
+        @DisplayName("a tagged value the plugin cannot write out is skipped, rather than joined as junk")
+        void taggedValuesAreNotJoined() throws Exception {
+            // `!!binary` is a byte array and `!!set` a Set - joined, they came out
+            // as `[B@51016012` and `[a, b]`. Indexed, each is skipped with a
+            // warning, the same as outside a sequence
+            Map<String, String> properties = loadSequence("[!!binary aGVsbG8=, plain]");
+            assertNull(properties.get("x"));
+            assertNull(properties.get("x\\0"));
+            assertEquals("plain", properties.get("x\\1"));
+            properties = loadSequence("[!!set {a, b}, plain]");
+            assertNull(properties.get("x"));
+            assertNull(properties.get("x\\0"));
+            assertEquals("plain", properties.get("x\\1"));
         }
     }
 
@@ -245,16 +262,17 @@ class YamlPluginTest {
               - 3
               - 4
               - 5
-            floats: [1.5, 2.5, 3.5]
-            mixed: [1, 2.5, 3]
+            prices: [9.99, 10, 12.5]
+            servers:
+              - port: 80
+              - port: 443
             """);
         assertEquals("a,b,c", properties.get("strings"));
         assertEquals("1,2,3,4,5", properties.get("ints"));
-        assertEquals("1.5,2.5,3.5", properties.get("floats"));
-        assertEquals("1", properties.get("mixed\\0"));
-        assertEquals("2.5", properties.get("mixed\\1"));
-        assertEquals("3", properties.get("mixed\\2"));
-        assertNull(properties.get("mixed"));
+        assertEquals("9.99,10,12.5", properties.get("prices"));
+        assertEquals("80", properties.get("servers\\0\\port"));
+        assertEquals("443", properties.get("servers\\1\\port"));
+        assertNull(properties.get("servers"));
     }
 
     @Test
