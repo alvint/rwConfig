@@ -114,6 +114,76 @@ describe('the `duration` and `size` types', () => {
     });
 });
 
+describe('the big number types', () => {
+    test('they are highlighted as types', async () => {
+        for (const [line, type] of [
+            ['bigInteger total = 1', 'bigInteger'],
+            ['bigDecimal price = 9.99', 'bigDecimal'],
+            ['bigDecimal[0.01..999.99] price = 9.99', 'bigDecimal'],
+            ['BIGDECIMAL price = 1', 'BIGDECIMAL'],
+        ]) {
+            assert.ok(
+                (await scopesOf(line, type)).some((scope) => scope.includes('storage.type')),
+                `expected ${type} to be a type in ${JSON.stringify(line)}`
+            );
+        }
+    });
+
+    test('the list forms are types too', async () => {
+        // the list names start with the scalar ones, so this is also the
+        // longer name winning over the shorter
+        assert.ok((await scopesOf('bigIntegerList ids = 1, 2', 'bigIntegerList')).some(
+            (scope) => scope.includes('storage.type')));
+        assert.ok((await scopesOf('bigDecimalList rates = 0.5', 'bigDecimalList')).some(
+            (scope) => scope.includes('storage.type')));
+    });
+
+    test('a property whose name merely starts with one is not a type', async () => {
+        for (const line of ['bigIntegerCount = x', 'bigDecimalish = y']) {
+            const tokens = await tokenize(line);
+            assert.ok(
+                !tokens.some((token) => token.scopes.some((scope) => scope.includes('storage.type'))),
+                `expected no type token in ${JSON.stringify(line)}`
+            );
+        }
+    });
+
+    test('values beyond a long or a double are not flagged as invalid', async () => {
+        await assertValid('bigInteger total = 123456789012345678901234567890');
+        await assertValid('bigDecimal exact = 1.00000000000000000001');
+        await assertValid('bigDecimal exponent = 1.5e3');
+        await assertValid('bigIntegerList ids = 1, 123456789012345678901234567890');
+        await assertValid('bigDecimalList[0..1] rates = 0.25, 0.50');
+    });
+
+    test('a value the parser would reject is marked invalid', async () => {
+        // these share the `int`/`long` and `double` rules, which already
+        // match what BigInteger and BigDecimal accept: no size limit on the
+        // digits, and no NaN or Infinity
+        for (const line of [
+            'bigInteger x = abc',
+            'bigInteger x = 1.5',              // a fraction is not an integer, however big
+            'bigInteger x = 1e3',
+            'bigInteger[a..b] x = 1',
+            'bigIntegerList x = 1, two',
+            'bigDecimal x = abc',
+            'bigDecimal x = 1.2.3',
+            'bigDecimal x = NaN',              // a BigDecimal cannot hold it
+            'bigDecimal x = 1.5d',             // a Java double suffix, which BigDecimal does not take
+            'bigDecimal[a..b] x = 1',
+            'bigDecimalList x = 0.1, NaN',
+        ]) {
+            await assertInvalid(line);
+        }
+    });
+
+    test('the decimal forms BigDecimal accepts are not flagged', async () => {
+        await assertValid('bigDecimal x = .5');
+        await assertValid('bigDecimal x = 1.');
+        await assertValid('bigDecimal x = -1.5E-3');
+    });
+});
+
 describe('the parts of a declaration', () => {
     test('a type, a name and a value', async () => {
         const line = 'int myProp = 42';

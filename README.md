@@ -143,9 +143,11 @@ look at the [takeaway](benchmark/README.md).
 - **No `Optional`s, no fluent chains** - `config.getInt("port")` returns an
   `int`, because types, defaults, and validation were settled at startup. On the
   API side it's a similar API to `java.util.Map`, with types tacked on.
-- **Types and lists** - `boolean`, `int`, `long`, `double`, `string`, `size`,
-  `duration`, and `timestamp`. Also `booleanList`, `intList`, `longList`,
-  `doubleList`, `stringList`, `sizeList`, `durationList`, and `timestampList`.
+- **Types and lists** - `boolean`, `int`, `long`, `double`, `string`,
+  `bigInteger`, `bigDecimal`, `size`, `duration`, and `timestamp`. Also
+  `booleanList`, `intList`, `longList`, `doubleList`, `stringList`,
+  `bigIntegerList`, `bigDecimalList`, `sizeList`, `durationList`, and
+  `timestampList`.
 - **Nearly dependency-free** - the Java Base module and slf4j, which itself only
   requires Java Base.
 - **Secure by omission** - values your app never declared are not added to the
@@ -244,7 +246,7 @@ Retrieving a property is painless:
 int port = config.getInt("port");
 
 // get the type of the property `port`
-Config.PropertyType propertyType = config.getType("port");
+RuntimeType propertyType = config.getType("port");
 
 System.out.println("type of `port`: " + propertyType.name);
 System.out.println("value of `port`: " + port);

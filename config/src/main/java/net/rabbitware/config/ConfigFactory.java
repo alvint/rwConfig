@@ -1,4 +1,6 @@
 package net.rabbitware.config;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,7 +17,6 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config.ConfigException;
-import net.rabbitware.config.Config.PropertyType;
 import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
 import net.rabbitware.config.plugin.api.SimpleConfigSourcePlugin;
 import net.rabbitware.config.plugin.commandline.CommandLinePlugin;
@@ -692,7 +693,7 @@ public class ConfigFactory {
      * @throws ConfigException
      * if the file cannot be read, or a line in it is not valid
      */
-    public static Map<String, PropertyType> declaredTypes(String location) throws ConfigException {
+    public static Map<String, RuntimeType> declaredTypes(String location) throws ConfigException {
         List<String> configFile = loadConfigFile(location);
         List<String> declarations = configFile.stream()
             .map(s -> s.replaceAll("^\\s*[!#].*$", ""))
@@ -705,7 +706,7 @@ public class ConfigFactory {
                 configPrefix = parts[1].trim();
             }
         }
-        Map<String, PropertyType> types = new HashMap<>();
+        Map<String, RuntimeType> types = new HashMap<>();
         Matcher matcher = configLinePattern().matcher("");
         for (String line : configFile) {
             if (line.replaceAll("^\\s*[!#].*$", "").trim().isEmpty()) {
@@ -720,8 +721,7 @@ public class ConfigFactory {
                 continue; // a library setting, not an application property
             }
             String type = matcher.group(1);
-            types.put(name, runtimeTypeOf(
-                DeclaredType.fromString(type != null && !type.isEmpty() ? type : "string")));
+            types.put(name, DeclaredType.fromString(type != null && !type.isEmpty() ? type : "string").runtimeType);
         }
         return Map.copyOf(types);
     }
@@ -803,22 +803,6 @@ public class ConfigFactory {
         return false;
     }
 
-    /** The run-time type a declared type is read as. */
-    private static PropertyType runtimeTypeOf(DeclaredType declaredType) {
-        return switch (declaredType) {
-            case BOOLEAN -> PropertyType.BOOLEAN;
-            case INT -> PropertyType.INT;
-            case LONG, DURATION, SIZE, TIMESTAMP -> PropertyType.LONG;
-            case DOUBLE -> PropertyType.DOUBLE;
-            case STRING -> PropertyType.STRING;
-            case BOOLEAN_LIST -> PropertyType.BOOLEAN_LIST;
-            case INT_LIST -> PropertyType.INT_LIST;
-            case LONG_LIST, DURATION_LIST, SIZE_LIST, TIMESTAMP_LIST -> PropertyType.LONG_LIST;
-            case DOUBLE_LIST -> PropertyType.DOUBLE_LIST;
-            case STRING_LIST -> PropertyType.STRING_LIST;
-        };
-    }
-
     private static PropertyInfo getPropertyInfo(Redaction redaction, String name, String type, String allowedValues, String defaultValue)
             throws ConfigException {
         DeclaredType propertyType = DeclaredType.fromString(type);
@@ -832,8 +816,9 @@ public class ConfigFactory {
         return new PropertyInfo(propertyType, allowedValuesList, value);
     }
 
-    private static List<Range> parseAllowedValues(Redaction redaction, String name, DeclaredType propertyType, String allowedValues)
-            throws ConfigException {
+    private static List<Range> parseAllowedValues(
+        Redaction redaction, String name, DeclaredType propertyType, String allowedValues
+    ) throws ConfigException {
         List<Range> ranges = new LinkedList<>();
         if (allowedValues != null) {
             DeclaredType rangeType = 
@@ -843,6 +828,8 @@ public class ConfigFactory {
                     case LONG, LONG_LIST -> DeclaredType.LONG;
                     case DOUBLE, DOUBLE_LIST -> DeclaredType.DOUBLE;
                     case STRING, STRING_LIST -> DeclaredType.STRING;
+                    case BIG_INTEGER, BIG_INTEGER_LIST -> DeclaredType.BIG_INTEGER;
+                    case BIG_DECIMAL, BIG_DECIMAL_LIST -> DeclaredType.BIG_DECIMAL;
                     case DURATION, DURATION_LIST -> DeclaredType.DURATION;
                     case SIZE, SIZE_LIST -> DeclaredType.SIZE;
                     case TIMESTAMP, TIMESTAMP_LIST -> DeclaredType.TIMESTAMP;
@@ -878,8 +865,7 @@ public class ConfigFactory {
         try {
             return switch (propertyType) {
                 case BOOLEAN -> {
-                    // unescape any escaped characters in the value string (and
-                    // trim whitespace)
+                    // unescape any escaped characters in the value string (and trim whitespace)
                     var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
                     // parse
                     boolean value;
@@ -916,8 +902,7 @@ public class ConfigFactory {
                     yield new Value.Boolean(value);
                 }
                 case INT -> {
-                    // unescape any escaped characters in the value string (and
-                    // trim whitespace)
+                    // unescape any escaped characters in the value string (and trim whitespace)
                     var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
                     // parse
                     int value = Integer.parseInt(unescapedValueString);
@@ -933,43 +918,6 @@ public class ConfigFactory {
                     }
                     // value is allowed; return it
                     yield new Value.Integer(value);
-                }
-                case TIMESTAMP -> {
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
-                    long value = parseTimestamp(propertyName, sourceName, unescapedValueString);
-                    if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
-                        ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
-                    )) {
-                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
-                        throw new ConfigException(
-                            "value is not allowed for property `" + propertyName + "` (in " + source + "): "
-                            + redaction.show(propertyName, sourceName, unescapedValueString)
-                        );
-                    }
-                    yield new Value.Long(value);
-                }
-                case DURATION, SIZE -> {
-                    // unescape any escaped characters in the value string (and
-                    // trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
-                    // parse the number and its unit into the canonical unit -
-                    // milliseconds for a duration, bytes for a size
-                    long value = propertyType == DeclaredType.DURATION
-                        ? parseDuration(propertyName, sourceName, unescapedValueString)
-                        : parseSize(propertyName, sourceName, unescapedValueString);
-                    // check if value is allowed. The range was parsed in the
-                    // same units, so both sides are already canonical
-                    if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
-                        ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
-                    )) {
-                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
-                        throw new ConfigException(
-                            "value is not allowed for property `" + propertyName + "` (in " + source + "): "
-                            + redaction.show(propertyName, sourceName, unescapedValueString)
-                        );
-                    }
-                    // value is allowed; return it
-                    yield new Value.Long(value);
                 }
                 case LONG -> {
                     // unescape any escaped characters in the value string (and
@@ -1026,14 +974,107 @@ public class ConfigFactory {
                     // value is allowed; return it
                     yield new Value.String(unescapedValueString);
                 }
+                case BIG_INTEGER -> {
+                    // unescape any escaped characters in the value string (and trim whitespace)
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    // parse
+                    BigInteger value = new BigInteger(unescapedValueString);
+                    // check if value is allowed
+                    if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
+                        ((Value.BigInteger)range.min).bi.compareTo(value) <= 0 &&
+                        value.compareTo(((Value.BigInteger)range.max).bi) <= 0
+                    )) {
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+                        throw new ConfigException(
+                            "value is not allowed for property `" + propertyName + "` (in " + source + "): "
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
+                        );
+                    }
+                    // value is allowed; return it
+                    yield new Value.BigInteger(value);
+                }
+                case BIG_DECIMAL -> {
+                    // unescape any escaped characters in the value string (and trim whitespace)
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    // parse
+                    BigDecimal value = new BigDecimal(unescapedValueString);
+                    // check if value is allowed
+                    if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
+                        ((Value.BigDecimal)range.min).bd.compareTo(value) <= 0 &&
+                        value.compareTo(((Value.BigDecimal)range.max).bd) <= 0
+                    )) {
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+                        throw new ConfigException(
+                            "value is not allowed for property `" + propertyName + "` (in " + source + "): "
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
+                        );
+                    }
+                    // value is allowed; return it
+                    yield new Value.BigDecimal(value);
+                }
+                case DURATION -> {
+                    // unescape any escaped characters in the value string (and trim whitespace)
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    // parse the number as milliseconds
+                    long value = parseDuration(propertyName, sourceName, unescapedValueString);
+                    // check if value is allowed
+                    if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
+                        ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
+                    )) {
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+                        throw new ConfigException(
+                            "value is not allowed for property `" + propertyName + "` (in " + source + "): "
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
+                        );
+                    }
+                    // value is allowed; return it
+                    yield new Value.Long(value);
+                }
+                case SIZE -> {
+                    // unescape any escaped characters in the value string (and trim whitespace)
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    // parse the number as bytes
+                    long value = parseSize(propertyName, sourceName, unescapedValueString);
+                    // check if value is allowed
+                    if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
+                        ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
+                    )) {
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+                        throw new ConfigException(
+                            "value is not allowed for property `" + propertyName + "` (in " + source + "): "
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
+                        );
+                    }
+                    // value is allowed; return it
+                    yield new Value.Long(value);
+                }
+                case TIMESTAMP -> {
+                    // unescape any escaped characters in the value string (and trim whitespace)
+                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    // parse the number as milliseconds from the epoch
+                    long value = parseTimestamp(propertyName, sourceName, unescapedValueString);
+                    // check if value is allowed
+                    if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
+                        ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
+                    )) {
+                        String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
+                        throw new ConfigException(
+                            "value is not allowed for property `" + propertyName + "` (in " + source + "): "
+                            + redaction.show(propertyName, sourceName, unescapedValueString)
+                        );
+                    }
+                    // value is allowed; return it
+                    yield new Value.Long(value);
+                }
                 // for list types, we don't check the allowed values here -
                 // we check them when we parse the individual values
                 case BOOLEAN_LIST -> {
                     List<Value.Boolean> list = valueString.isEmpty()
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
-                            .map(s ->(Value.Boolean)
-                                parseValue(sourceName, propertyName, s, DeclaredType.BOOLEAN, allowedValues, redaction))
+                            .map(s -> (Value.Boolean)
+                                parseValue(sourceName, propertyName, s, DeclaredType.BOOLEAN, allowedValues, redaction)
+                            )
                             .toList();
                     yield new Value.BooleanList(list);
                 }
@@ -1041,8 +1082,9 @@ public class ConfigFactory {
                     List<Value.Integer> list = valueString.isEmpty()
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
-                            .map(s ->(Value.Integer)
-                                parseValue(sourceName, propertyName, s, DeclaredType.INT, allowedValues, redaction))
+                            .map(s -> (Value.Integer)
+                                parseValue(sourceName, propertyName, s, DeclaredType.INT, allowedValues, redaction)
+                            )
                             .toList();
                     yield new Value.IntegerList(list);
                 }
@@ -1050,7 +1092,7 @@ public class ConfigFactory {
                     List<Value.Long> list = valueString.isEmpty()
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
-                            .map(s ->(Value.Long)
+                            .map(s -> (Value.Long)
                                 parseValue(sourceName, propertyName, s, DeclaredType.LONG, allowedValues, redaction))
                             .toList();
                     yield new Value.LongList(list);
@@ -1059,31 +1101,11 @@ public class ConfigFactory {
                     List<Value.Double> list = valueString.isEmpty()
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),", -1))
-                            .map(s ->(Value.Double)
-                                parseValue(sourceName, propertyName, s, DeclaredType.DOUBLE, allowedValues, redaction))
+                            .map(s -> (Value.Double)
+                                parseValue(sourceName, propertyName, s, DeclaredType.DOUBLE, allowedValues, redaction)
+                            )
                             .toList();
                     yield new Value.DoubleList(list);
-                }
-                case TIMESTAMP_LIST -> {
-                    List<Value.Long> list = valueString.isEmpty()
-                        ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
-                            .map(s -> (Value.Long)
-                                parseValue(sourceName, propertyName, s, DeclaredType.TIMESTAMP, allowedValues, redaction))
-                            .toList();
-                    yield new Value.LongList(list);
-                }
-                case DURATION_LIST, SIZE_LIST -> {
-                    DeclaredType itemType = propertyType == DeclaredType.DURATION_LIST
-                        ? DeclaredType.DURATION
-                        : DeclaredType.SIZE;
-                    List<Value.Long> list = valueString.isEmpty()
-                        ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
-                            .map(s -> (Value.Long)
-                                parseValue(sourceName, propertyName, s, itemType, allowedValues, redaction))
-                            .toList();
-                    yield new Value.LongList(list);
                 }
                 case STRING_LIST -> {
                     // preserve trailing whitespace (but not leading), and split
@@ -1091,10 +1113,67 @@ public class ConfigFactory {
                     List<Value.String> list = valueString.isEmpty()
                         ? List.of()
                         : Stream.of(valueString.split("(?<!\\\\),\\s*", -1))
-                            .map(s ->(Value.String)
-                                parseValue(sourceName, propertyName, s, DeclaredType.STRING, allowedValues, redaction))
+                            .map(s -> (Value.String)
+                                parseValue(sourceName, propertyName, s, DeclaredType.STRING, allowedValues, redaction)
+                            )
                             .toList();
                     yield new Value.StringList(list);
+                }
+                case BIG_INTEGER_LIST -> {
+                    List<Value.BigInteger> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s -> (Value.BigInteger)
+                                parseValue(
+                                    sourceName, propertyName, s, DeclaredType.BIG_INTEGER, allowedValues, redaction
+                                )
+                            )
+                            .toList();
+                    yield new Value.BigIntegerList(list);
+                }
+                case BIG_DECIMAL_LIST -> {
+                    List<Value.BigDecimal> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s -> (Value.BigDecimal)
+                                parseValue(
+                                    sourceName, propertyName, s, DeclaredType.BIG_DECIMAL, allowedValues, redaction
+                                )
+                            )
+                            .toList();
+                    yield new Value.BigDecimalList(list);
+                }
+                case DURATION_LIST -> {
+                    List<Value.Long> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s -> (Value.Long)
+                                parseValue(sourceName, propertyName, s, DeclaredType.DURATION, allowedValues, redaction)
+                            )
+                            .toList();
+                    yield new Value.LongList(list);
+                }
+                case SIZE_LIST -> {
+                    List<Value.Long> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s -> (Value.Long)
+                                parseValue(sourceName, propertyName, s, DeclaredType.SIZE, allowedValues, redaction)
+                            )
+                            .toList();
+                    yield new Value.LongList(list);
+                }
+                case TIMESTAMP_LIST -> {
+                    List<Value.Long> list = valueString.isEmpty()
+                        ? List.of()
+                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                            .map(s -> (Value.Long)
+                                parseValue(
+                                    sourceName, propertyName, s, DeclaredType.TIMESTAMP, allowedValues, redaction
+                                )
+                            )
+                            .toList();
+                    yield new Value.LongList(list);
                 }
             };
         } catch (ConfigException e) {

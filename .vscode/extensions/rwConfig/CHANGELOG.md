@@ -5,6 +5,15 @@ the two are one thing to install and one thing to reason about. `package-jars.sh
 takes the version from the jars it bundles, so there is nothing to keep in step
 by hand.
 
+## Unreleased
+
+- Highlights the new `bigInteger` and `bigDecimal` types and their list forms,
+  and marks a value, list item, or allowed value they would reject as invalid.
+- Checks reads through their getters - `getBigInteger`, `getBigDecimal`, the two
+  list forms, and their short names - the same way as every other read: a
+  misspelled name, the wrong getter for the declared type, and properties never
+  read.
+
 ## 0.2.0
 
 - Ships rwConfig 0.2.0: change detection for config sources, `.env` files, and

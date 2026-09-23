@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -655,7 +657,7 @@ class ConfigFileTest {
         void theyAreLongsAtRuntime() throws IOException {
             Config config = config("duration d = 1s");
             assertEquals(1_000, config.getLong("d"));
-            assertEquals(Config.PropertyType.LONG, config.getType("d"));
+            assertEquals(RuntimeType.LONG, config.getType("d"));
         }
     }
 
@@ -679,6 +681,36 @@ class ConfigFileTest {
         void severalRangesAndSingleValuesCanBeMixed() throws IOException {
             Config config = config("intList[80, 1024..65535] myPorts = 1520, 8080, 80");
             assertEquals(List.of(1520, 8080, 80), config.getil("myPorts"));
+        }
+
+        @Test
+        @DisplayName("a `bigInteger` range can have bounds beyond a `long`")
+        void aBigIntegerRange() throws IOException {
+            String range = "bigInteger[0..100000000000000000000000] myProp = ";
+            assertEquals(
+                new BigInteger("99999999999999999999999"),
+                config(range + "99999999999999999999999").getbi("myProp"));
+            rejected(range + "100000000000000000000001");
+        }
+
+        @Test
+        @DisplayName("a `bigDecimal` range compares values, not how many decimal places they were written with")
+        void aBigDecimalRangeIgnoresScale() throws IOException {
+            // `BigDecimal.equals` says 1.0 and 1.00 differ; a range must not
+            assertEquals(new BigDecimal("1.00"), config("bigDecimal[0.0..1.0] myProp = 1.00").getbd("myProp"));
+            assertEquals(new BigDecimal("1"), config("bigDecimal[0.0..1.0] myProp = 1").getbd("myProp"));
+            assertEquals(new BigDecimal("1.00"), config("bigDecimal[1.0, 2.0] myProp = 1.00").getbd("myProp"));
+            rejected("bigDecimal[0.0..1.0] myProp = 1.00000000000000000001");
+        }
+
+        @Test
+        @DisplayName("each item of a big number list is checked against the allowed values")
+        void bigNumberListItemsAreChecked() throws IOException {
+            assertEquals(
+                List.of(new BigDecimal("0.25"), new BigDecimal("0.50")),
+                config("bigDecimalList[0..1] myProp = 0.25, 0.50").getbdl("myProp"));
+            rejected("bigDecimalList[0..1] myProp = 0.25, 1.5");
+            rejected("bigIntegerList[1..10] myProp = 5, 11");
         }
 
         @Test
@@ -752,6 +784,21 @@ class ConfigFileTest {
     class Lists {
 
         @Test
+        @DisplayName("a big number list reads like any other list, and can be empty")
+        void bigNumberLists() throws IOException {
+            Config config = config(
+                "bigIntegerList ids = 1, 123456789012345678901234567890",
+                "bigDecimalList rates = 0.10,0.20",
+                "bigDecimalList none ="
+            );
+            assertEquals(
+                List.of(BigInteger.ONE, new BigInteger("123456789012345678901234567890")),
+                config.getbil("ids"));
+            assertEquals(List.of(new BigDecimal("0.10"), new BigDecimal("0.20")), config.getbdl("rates"));
+            assertEquals(List.of(), config.getbdl("none"));
+        }
+
+        @Test
         void anEmptyValueIsAnEmptyList() throws IOException {
             assertEquals(List.of(), config("intList myList =").getil("myList"));
             assertEquals(List.of(), config("stringList myList =").getsl("myList"));
@@ -807,7 +854,7 @@ class ConfigFileTest {
         @Test
         void theDefaultTypeIsString() throws IOException {
             Config config = config("myProp = 42");
-            assertEquals(Config.PropertyType.STRING, config.getType("myProp"));
+            assertEquals(RuntimeType.STRING, config.getType("myProp"));
             assertEquals("42", config.gets("myProp"));
         }
 
@@ -828,6 +875,27 @@ class ConfigFileTest {
             assertEquals(3.14159, config.getd("myDouble"), 1e-9);
         }
 
+        @Test
+        @DisplayName("`bigInteger` and `bigDecimal` hold values no `long` or `double` can")
+        void bigNumberTypes() throws IOException {
+            Config config = config(
+                "bigInteger huge = 123456789012345678901234567890",
+                "bigInteger negative = -123456789012345678901234567890",
+                "bigInteger signed = +42",
+                "bigDecimal exact = 1.00000000000000000001",
+                "bigDecimal price = 10.50",
+                "bigDecimal exponent = 1.5e3",
+                "bigDecimal leadingPoint = .5"
+            );
+            assertEquals(new BigInteger("123456789012345678901234567890"), config.getbi("huge"));
+            assertEquals(new BigInteger("-123456789012345678901234567890"), config.getbi("negative"));
+            assertEquals(BigInteger.valueOf(42), config.getbi("signed"));
+            assertEquals(new BigDecimal("1.00000000000000000001"), config.getbd("exact"));
+            assertEquals("10.50", config.getbd("price").toString(), "the scale is kept");
+            assertEquals(0, new BigDecimal("1500").compareTo(config.getbd("exponent")));
+            assertEquals(new BigDecimal("0.5"), config.getbd("leadingPoint"));
+        }
+
         @ParameterizedTest
         @ValueSource(strings = {"true", "yes", "on", "1", "TRUE", "Yes"})
         void truthyBooleans(String value) throws IOException {
@@ -846,6 +914,14 @@ class ConfigFileTest {
             "int myProp = notanumber",
             "boolean myProp = maybe",
             "double myProp = 1.2.3",
+            "bigInteger myProp = 1.5",        // a fraction is not an integer, however big
+            "bigInteger myProp = 0x1F",       // no hex, the same as `int` and `long`
+            "bigInteger myProp = 1e3",        // no exponent, the same as `long`
+            "bigDecimal myProp = NaN",        // a `double` takes it, a `BigDecimal` cannot hold it
+            "bigDecimal myProp = Infinity",
+            "bigDecimal myProp = 1.2.3",
+            "bigIntegerList myProp = 1, two",
+            "bigDecimalList myProp = 1.5, NaN",
         })
         void aValueThatDoesNotMatchItsTypeIsRejected(String line) {
             rejected(line);
@@ -916,15 +992,15 @@ class ConfigFileTest {
 
         @ParameterizedTest
         @ValueSource(strings = {
-            "boolean", "int", "long", "double", "string",
-            "booleanList", "intList", "longList", "doubleList", "stringList",
+            "boolean", "int", "long", "double", "string", "bigInteger", "bigDecimal",
+            "booleanList", "intList", "longList", "doubleList", "stringList", "bigIntegerList", "bigDecimalList",
         })
         @DisplayName("<type>Suffix is a string property named <type>Suffix, not a typed property named Suffix")
         void aNameBeginningWithATypeName(String type) throws IOException {
             String name = type + "Suffix";
             Config config = config(name + " = a value");
             assertEquals(Set.of(name), Set.copyOf(config.getPropertyNames()));
-            assertEquals(Config.PropertyType.STRING, config.getType(name));
+            assertEquals(RuntimeType.STRING, config.getType(name));
             assertEquals("a value", config.gets(name));
         }
 
@@ -954,16 +1030,20 @@ class ConfigFileTest {
         @DisplayName("a type followed directly by an allowed values list is still a type")
         void aTypeFollowedByABracket() throws IOException {
             Config config = config("int[0..100] myProp = 90");
-            assertEquals(Config.PropertyType.INT, config.getType("myProp"));
+            assertEquals(RuntimeType.INT, config.getType("myProp"));
             assertEquals(90, config.geti("myProp"));
         }
 
         @Test
         @DisplayName("a type that starts with the name of another type resolves to the longer one")
         void aTypeThatStartsWithAnotherType() throws IOException {
-            Config config = config("intList myPorts = 1, 2", "longList myLongs = 3");
-            assertEquals(Config.PropertyType.INT_LIST, config.getType("myPorts"));
-            assertEquals(Config.PropertyType.LONG_LIST, config.getType("myLongs"));
+            Config config = config(
+                "intList myPorts = 1, 2", "longList myLongs = 3",
+                "bigIntegerList myIds = 4", "bigDecimalList myRates = 0.5");
+            assertEquals(RuntimeType.INT_LIST, config.getType("myPorts"));
+            assertEquals(RuntimeType.LONG_LIST, config.getType("myLongs"));
+            assertEquals(RuntimeType.BIG_INTEGER_LIST, config.getType("myIds"));
+            assertEquals(RuntimeType.BIG_DECIMAL_LIST, config.getType("myRates"));
             assertEquals(List.of(1, 2), config.getil("myPorts"));
         }
 

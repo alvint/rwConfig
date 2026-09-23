@@ -96,6 +96,25 @@ class ConfigSourceTest {
     class SourceTypes {
 
         @Test
+        @DisplayName("a big number from a source is read exactly, the same as a default")
+        void bigNumbersFromASource() throws IOException {
+            Config config = config(
+                new String[] {"rate=0.10"},
+                "rwc.sources = args, local",
+                "rwc.args.type = commandLineArguments",
+                "rwc.local.type = properties",
+                "rwc.local.location = " + propertiesFile("big.properties",
+                    "total=123456789012345678901234567890", "price=1.00000000000000000001"),
+                "bigInteger total = 0",
+                "bigDecimal price = 0",
+                "bigDecimal rate = 0"
+            );
+            assertEquals(new java.math.BigInteger("123456789012345678901234567890"), config.getbi("total"));
+            assertEquals(new java.math.BigDecimal("1.00000000000000000001"), config.getbd("price"));
+            assertEquals("0.10", config.getbd("rate").toString());
+        }
+
+        @Test
         void systemProperties() throws IOException {
             setSystemProperty("myTestProperty", "fromSystemProperties");
             Config config = config(

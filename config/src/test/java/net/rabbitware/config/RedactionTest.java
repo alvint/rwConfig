@@ -35,6 +35,11 @@ class RedactionTest {
 
     /** Build a config whose one property fails its range check, and return the error. */
     private String errorFor(String property, String... librarySettings) throws IOException {
+        return rangeError("int", property, librarySettings);
+    }
+
+    /** The same, for a property of the given type. */
+    private String rangeError(String type, String property, String... librarySettings) throws IOException {
         Path values = tempDir.resolve("app.properties");
         Files.writeString(values, property + "=9999\n");
         Path file = tempDir.resolve("rwconfig");
@@ -43,7 +48,7 @@ class RedactionTest {
             "rwc.f.type = properties",
             "rwc.f.location = file:" + values));
         lines.addAll(Arrays.asList(librarySettings));
-        lines.add("int[1..100] " + property + " = 5");
+        lines.add(type + "[1..100] " + property + " = 5");
         Files.write(file, lines);
         ConfigException e = assertThrows(ConfigException.class, () -> ConfigFactory.create(
             new String[] { ConfigFactory.CONFIG_FILE_PATH_PROPERTY + "=file:" + file }));
@@ -70,6 +75,15 @@ class RedactionTest {
             String message = errorFor(property);
             assertTrue(message.contains("9999"), property + " should have shown its value: " + message);
             assertFalse(message.contains("****"), message);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "bigInteger", "bigDecimal", "bigIntegerList", "bigDecimalList" })
+        @DisplayName("the big number types, which check their ranges separately, withhold it too")
+        void bigNumberTypes(String type) throws IOException {
+            String message = rangeError(type, "apiSecret");
+            assertTrue(message.contains("****"), type + " should have been redacted: " + message);
+            assertFalse(message.contains("9999"), message);
         }
 
         @Test

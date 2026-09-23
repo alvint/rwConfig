@@ -125,6 +125,120 @@ class RwconfigAnalyzerTest {
             """), Finding.Rule.WRONG_TYPE).size());
     }
 
+    @Nested
+    @DisplayName("the big number types")
+    class BigNumbers {
+
+        private static final String BIG = """
+            bigInteger total = 1
+            bigDecimal price = 9.99
+            bigIntegerList ids = 1
+            bigDecimalList rates = 0.5
+            """;
+
+        @Test
+        @DisplayName("a correct read is not reported, by the long name or the short one")
+        void correctReadsAreQuiet() throws IOException {
+            List<Finding> findings = analyze(BIG, """
+                class App {
+                    void m(net.rabbitware.config.Config c) {
+                        c.getBigInteger("total");
+                        c.getbd("price");
+                        c.getBigIntegerList("ids");
+                        c.getbdl("rates");
+                    }
+                }
+                """);
+            assertEquals(List.of(), findings);
+        }
+
+        @Test
+        @DisplayName("a read through a big number getter counts as a read")
+        void theyCountAsReads() throws IOException {
+            // before these getters were known, nothing read through them was a
+            // read at all - every property here was reported as unread
+            List<Finding> findings = analyze(BIG, """
+                class App {
+                    void m(net.rabbitware.config.Config c) {
+                        c.getbi("total");
+                        c.getBigDecimal("price");
+                    }
+                }
+                """);
+            assertEquals(
+                List.of("ids", "rates"),
+                of(findings, Finding.Rule.UNREAD_PROPERTY).stream()
+                    .map(f -> f.message().replaceAll(".*`(\\w+)`.*", "$1"))
+                    .sorted().toList());
+        }
+
+        @Test
+        @DisplayName("a misspelled name read through a big number getter is still caught")
+        void unknownProperty() throws IOException {
+            List<Finding> findings = of(analyze(BIG, """
+                class App { void m(net.rabbitware.config.Config c) { c.getBigInteger("totl"); } }
+                """), Finding.Rule.UNKNOWN_PROPERTY);
+            assertEquals(1, findings.size());
+            assertTrue(findings.get(0).message().contains("did you mean `total`"), findings.get(0).message());
+        }
+
+        @Test
+        @DisplayName("reading one with the wrong getter names the right one, rather than failing the analysis")
+        void wrongType() throws IOException {
+            // the analyzer used to throw here - it had no getter to suggest
+            List<Finding> findings = of(analyze(BIG, """
+                class App {
+                    void m(net.rabbitware.config.Config c) {
+                        c.getLong("total");
+                        c.getString("price");
+                        c.getBigInteger("ids");
+                        c.getDoubleList("rates");
+                    }
+                }
+                """), Finding.Rule.WRONG_TYPE);
+            assertEquals(
+                List.of("getBigInteger", "getBigDecimal", "getBigIntegerList", "getBigDecimalList"),
+                findings.stream().map(f -> f.message().replaceAll(".*use `(\\w+)`.*", "$1")).toList());
+        }
+    }
+
+    @Test
+    @DisplayName("every run-time type has a getter to suggest, and it is a real method on Config")
+    void everyTypeHasAGetter() throws Exception {
+        // a type without one made the analyzer throw instead of reporting
+        for (net.rabbitware.config.RuntimeType type : net.rabbitware.config.RuntimeType.values()) {
+            String getter = RwconfigAnalyzer.getterFor(type);
+            net.rabbitware.config.Config.class.getMethod(getter, String.class);
+        }
+    }
+
+    @Test
+    @DisplayName("every getter on Config that takes a property name is recognized as a read")
+    void everyGetterIsRecognized() throws IOException {
+        // found by reflection, so a getter added to Config cannot be missed
+        // here the way the big number getters once were
+        List<String> getters = java.util.Arrays.stream(net.rabbitware.config.Config.class.getMethods())
+            .filter(m -> m.getName().startsWith("get"))
+            .filter(m -> m.getParameterCount() == 1 && m.getParameterTypes()[0] == String.class)
+            .map(java.lang.reflect.Method::getName)
+            .sorted()
+            .toList();
+        StringBuilder calls = new StringBuilder();
+        for (int i = 0; i < getters.size(); i++) {
+            calls.append("c.").append(getters.get(i)).append("(\"undeclared").append(i).append("\");\n");
+        }
+        List<Finding> findings = of(analyze(
+            "class App { void m(net.rabbitware.config.Config c) {\n" + calls + "} }\n"),
+            Finding.Rule.UNKNOWN_PROPERTY);
+        List<String> recognized = findings.stream()
+            .map(f -> f.message().replaceAll(".*`undeclared(\\d+)`.*", "$1"))
+            .map(i -> getters.get(Integer.parseInt(i)))
+            .sorted()
+            .toList();
+        assertEquals(getters, recognized, "getters the analyzer does not treat as reads");
+        assertTrue(getters.size() > 20, "the reflection found the getters: " + getters);
+    }
+
     @Test
     @DisplayName("a name that is not a literal cannot be checked, and is not guessed at")
     void computedNamesAreLeftAlone() throws IOException {

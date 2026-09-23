@@ -49,17 +49,21 @@ Config config = ConfigFactory.create("app config", true, args);
 One method per type, each returning a primitive or a `List`:
 
 ```java
-boolean debug   = config.getBoolean("debugMode");
-int     port    = config.getInt("port");
-long    maxSize = config.getLong("maxUploadSize");
-double  rate    = config.getDouble("samplingRate");
-String  name    = config.getString("appName");
+boolean    debug   = config.getBoolean("debugMode");
+int        port    = config.getInt("port");
+long       maxSize = config.getLong("maxUploadSize");
+double     rate    = config.getDouble("samplingRate");
+String     name    = config.getString("appName");
+BigInteger total   = config.getBigInteger("ledgerTotal");
+BigDecimal price   = config.getBigDecimal("unitPrice");
 
-List<Boolean> flags   = config.getBooleanList("featureFlags");
-List<Integer> ports   = config.getIntList("workerPorts");
-List<Long>    ids     = config.getLongList("accountIds");
-List<Double>  weights = config.getDoubleList("weights");
-List<String>  hosts   = config.getStringList("hosts");
+List<Boolean>    flags   = config.getBooleanList("featureFlags");
+List<Integer>    ports   = config.getIntList("workerPorts");
+List<Long>       ids     = config.getLongList("accountIds");
+List<Double>     weights = config.getDoubleList("weights");
+List<String>     hosts   = config.getStringList("hosts");
+List<BigInteger> keys    = config.getBigIntegerList("shardKeys");
+List<BigDecimal> rates   = config.getBigDecimalList("taxRates");
 ```
 
 No `Optional`, no default parameter, no cast. The type and the default were
@@ -74,6 +78,8 @@ Every method has a short alias, if you prefer terse code at the call site:
 | `getLong` | `getl` | | `getLongList` | `getll` |
 | `getDouble` | `getd` | | `getDoubleList` | `getdl` |
 | `getString` | `gets` | | `getStringList` | `getsl` |
+| `getBigInteger` | `getbi` | | `getBigIntegerList` | `getbil` |
+| `getBigDecimal` | `getbd` | | `getBigDecimalList` | `getbdl` |
 
 Returned lists are unmodifiable.
 
@@ -86,7 +92,7 @@ copy them into well-named ones.
 
 ```java
 boolean exists = config.has("port");                  // is it declared?
-Config.PropertyType type = config.getType("port");    // INT
+RuntimeType type = config.getType("port");            // INT
 Set<String> names = config.getPropertyNames();        // every declared name
 ```
 
@@ -94,15 +100,16 @@ Set<String> names = config.getPropertyNames();        // every declared name
 contains only your application's properties - library settings
 itself are never included.
 
-`PropertyType` is an enum: `BOOLEAN`, `INT`, `LONG`, `DOUBLE`, `STRING`,
-`BOOLEAN_LIST`, `INT_LIST`, `LONG_LIST`, `DOUBLE_LIST`, `STRING_LIST`. Each has
-a `name` field holding the spelling used in the `rwconfig` file (`intList` and
-so on).
+`RuntimeType` is an enum: `BOOLEAN`, `INT`, `LONG`, `DOUBLE`, `STRING`,
+`BIG_INTEGER`, `BIG_DECIMAL`, `BOOLEAN_LIST`, `INT_LIST`, `LONG_LIST`,
+`DOUBLE_LIST`, `STRING_LIST`, `BIG_INTEGER_LIST`, `BIG_DECIMAL_LIST`. Each has a
+`name` field holding the spelling used in the `rwconfig` file (`intList` and so
+on). Through 0.2.0 it was `Config.PropertyType`.
 
 **These are the run-time types, which is not quite the list of types you can
 write in the file.** `duration`, `size`, `timestamp`, and their list forms are parsed into
 longs. For example, a property *declared* as `duration timeout` is *read* with
-`var duration = config.getLong("duration")`.
+`long timeout = config.getLong("timeout")`.
 
 Iterating everything, which is what the [example
 application](../example/src/main/java/net/rabbitware/config/example/Test.java)

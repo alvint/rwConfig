@@ -54,12 +54,38 @@ configuration without putting the value in a shared file.
 
 ### Types
 
-`boolean`, `int`, `long`, `double`, `string`, `duration`, `size`, `timestamp`, and a list
-form of each: `booleanList`, `intList`, `longList`, `doubleList`,
-`stringList`, `durationList`, `sizeList`, and `timestampList`. Omitting the type gives you
-`string`.
+`boolean`, `int`, `long`, `double`, `string`, `bigInteger`, `bigDecimal`,
+`duration`, `size`, `timestamp`, and a list form of each: `booleanList`,
+`intList`, `longList`, `doubleList`, `stringList`, `bigIntegerList`,
+`bigDecimalList`, `durationList`, `sizeList`, and `timestampList`. Omitting the
+type gives you `string`.
 
 Booleans accept `true`/`false`, `yes`/`no`, `on`/`off`, `1`/`0`, in any case.
+
+`bigInteger` and `bigDecimal` are for numbers a `long` or a `double` cannot
+hold: an integer of any size, and a decimal with every digit kept. Money is the
+usual reason - `0.1` has no exact `double`, and a `bigDecimal` is exactly what
+was written.
+
+```
+bigInteger accountId = 123456789012345678901234567890
+                                 getBigInteger -> 123456789012345678901234567890
+bigDecimal[0.00..999.99] price = 10.50
+                                 getBigDecimal -> 10.50
+```
+
+- **They are types of their own.** A `bigDecimal` is read with `getBigDecimal`,
+  not `getDouble`, and a `double` is not read with `getBigDecimal` - the getter
+  matches the declaration, as it does for every other type.
+- **A `bigDecimal` keeps the scale it was written with.** `10.50` comes back as
+  `10.50`, not `10.5`. Java's `BigDecimal.equals` counts those two as different,
+  so compare with `compareTo` where that matters.
+- **Allowed values compare by value, not by scale**, so `bigDecimal[0.0..1.0]`
+  accepts `1`, `1.0`, and `1.00` alike.
+- **The written forms are Java's.** A `bigInteger` is an optional sign and
+  digits - no fraction, exponent, or hex, the same as a `long`. A `bigDecimal`
+  also takes a fraction and an exponent (`1.5e3`, `.5`); `NaN` and `Infinity`
+  are rejected, since a `BigDecimal` cannot hold them.
 
 `duration` and `size` are whole numbers written with a unit. Although they are
 _declared_ as a `duration` and `size`, at runtime they are retrieved as `long`
@@ -71,7 +97,7 @@ runtime are milliseconds for duration and bytes for size.
 | `duration` | milliseconds | `ms`, `s`, `m`, `h`, `d` |
 | `size` | bytes | `B`, `KB`, `MB`, `GB`, `TB`, `KiB`, `MiB`, `GiB`, `TiB` |
 
-`timestamp`, and `timestampList`express a moment in time rather
+`timestamp` and `timestampList` express a moment in time rather
 than a length of one. It is an ISO-8601 date and time read as milliseconds
 since the epoch, so it too is a `long` at runtime:
 

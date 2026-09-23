@@ -22,6 +22,13 @@ could not see.
   fill in substitutions. Unlike Typesafe Config's `ConfigFactory.load()`, they
   are not merged into the source and do not override the document's own values.
 
+- **`bigInteger` and `bigDecimal` property types**, with `bigIntegerList` and
+  `bigDecimalList`, for numbers a `long` or a `double` cannot hold. They are
+  read with `getBigInteger` and `getBigDecimal` (`getbi`, `getbd`) and their
+  list forms. A `bigDecimal` keeps every digit and the scale it
+  was written with; allowed values compare by value, so `bigDecimal[0.0..1.0]`
+  accepts `1.00`.
+
 ### Changed
 
 - **An optional plugin setting the `rwconfig` file does not mention is left out
@@ -37,6 +44,14 @@ could not see.
   used to be rewritten to `8080` before rwConfig parsed it, and is now rejected,
   the same as it is from every other source. A `string` property gets the text
   as written.
+
+- **`Config.PropertyType` is now `RuntimeType`**, a top-level enum in
+  `net.rabbitware.config`, and is what `getType` returns. **This breaks code
+  that names `Config.PropertyType`** - replace it with `RuntimeType`; the
+  constants keep their names. It also has four new constants, `BIG_INTEGER`,
+  `BIG_DECIMAL`, `BIG_INTEGER_LIST`, and `BIG_DECIMAL_LIST`, so a `switch` over
+  `getType()` with no `default` has to handle them. A class implementing
+  `Config` itself, such as a test double, has the new getters to implement.
 
 ### Fixed
 

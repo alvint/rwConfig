@@ -35,8 +35,8 @@ import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.TreeScanner;
 import com.sun.source.util.Trees;
 
-import net.rabbitware.config.Config.PropertyType;
 import net.rabbitware.config.ConfigFactory;
+import net.rabbitware.config.RuntimeType;
 
 /**
  * Checks Java sources against the property declarations in an {@code rwconfig}
@@ -54,23 +54,27 @@ import net.rabbitware.config.ConfigFactory;
 public final class RwconfigAnalyzer {
 
     /** The getters, and the declared type each one reads. */
-    private static final Map<String, PropertyType> GETTERS = Map.ofEntries(
-        Map.entry("getBoolean", PropertyType.BOOLEAN),     Map.entry("getb", PropertyType.BOOLEAN),
-        Map.entry("getInt", PropertyType.INT),             Map.entry("geti", PropertyType.INT),
-        Map.entry("getLong", PropertyType.LONG),           Map.entry("getl", PropertyType.LONG),
-        Map.entry("getDouble", PropertyType.DOUBLE),       Map.entry("getd", PropertyType.DOUBLE),
-        Map.entry("getString", PropertyType.STRING),       Map.entry("gets", PropertyType.STRING),
-        Map.entry("getBooleanList", PropertyType.BOOLEAN_LIST), Map.entry("getbl", PropertyType.BOOLEAN_LIST),
-        Map.entry("getIntList", PropertyType.INT_LIST),    Map.entry("getil", PropertyType.INT_LIST),
-        Map.entry("getLongList", PropertyType.LONG_LIST),  Map.entry("getll", PropertyType.LONG_LIST),
-        Map.entry("getDoubleList", PropertyType.DOUBLE_LIST), Map.entry("getdl", PropertyType.DOUBLE_LIST),
-        Map.entry("getStringList", PropertyType.STRING_LIST), Map.entry("getsl", PropertyType.STRING_LIST)
+    private static final Map<String, RuntimeType> GETTERS = Map.ofEntries(
+        Map.entry("getBoolean", RuntimeType.BOOLEAN),                 Map.entry("getb", RuntimeType.BOOLEAN),
+        Map.entry("getInt", RuntimeType.INT),                         Map.entry("geti", RuntimeType.INT),
+        Map.entry("getLong", RuntimeType.LONG),                       Map.entry("getl", RuntimeType.LONG),
+        Map.entry("getDouble", RuntimeType.DOUBLE),                   Map.entry("getd", RuntimeType.DOUBLE),
+        Map.entry("getString", RuntimeType.STRING),                   Map.entry("gets", RuntimeType.STRING),
+        Map.entry("getBigInteger", RuntimeType.BIG_INTEGER),          Map.entry("getbi", RuntimeType.BIG_INTEGER),
+        Map.entry("getBigDecimal", RuntimeType.BIG_DECIMAL),          Map.entry("getbd", RuntimeType.BIG_DECIMAL),
+        Map.entry("getBooleanList", RuntimeType.BOOLEAN_LIST),        Map.entry("getbl", RuntimeType.BOOLEAN_LIST),
+        Map.entry("getIntList", RuntimeType.INT_LIST),                Map.entry("getil", RuntimeType.INT_LIST),
+        Map.entry("getLongList", RuntimeType.LONG_LIST),              Map.entry("getll", RuntimeType.LONG_LIST),
+        Map.entry("getDoubleList", RuntimeType.DOUBLE_LIST),          Map.entry("getdl", RuntimeType.DOUBLE_LIST),
+        Map.entry("getStringList", RuntimeType.STRING_LIST),          Map.entry("getsl", RuntimeType.STRING_LIST),
+        Map.entry("getBigIntegerList", RuntimeType.BIG_INTEGER_LIST), Map.entry("getbil", RuntimeType.BIG_INTEGER_LIST),
+        Map.entry("getBigDecimalList", RuntimeType.BIG_DECIMAL_LIST), Map.entry("getbdl", RuntimeType.BIG_DECIMAL_LIST)
     );
 
     /** Getters that take a name but are not type-specific. */
     private static final Set<String> NAME_ONLY = Set.of("has", "getType");
 
-    private final Map<String, PropertyType> declared;
+    private final Map<String, RuntimeType> declared;
     private final Settings settings;
 
     /** Where the file is. A finding has to point somewhere openable. */
@@ -920,7 +924,7 @@ public final class RwconfigAnalyzer {
                 return;
             }
             readProperties.add(name);
-            PropertyType actual = declared.get(name);
+            RuntimeType actual = declared.get(name);
             if (actual == null) {
                 findings.add(finding(
                     argument, Finding.Severity.ERROR, Finding.Rule.UNKNOWN_PROPERTY,
@@ -929,7 +933,7 @@ public final class RwconfigAnalyzer {
                 ));
                 return;
             }
-            PropertyType expected = GETTERS.get(method);
+            RuntimeType expected = GETTERS.get(method);
             if (expected != null && expected != actual) {
                 findings.add(finding(
                     argument, Finding.Severity.ERROR, Finding.Rule.WRONG_TYPE,
@@ -973,7 +977,7 @@ public final class RwconfigAnalyzer {
      * long name and a short alias; the long one is named here, since a message
      * telling someone to use `getsl` is not much of a hint.
      */
-    static String getterFor(PropertyType type) {
+    static String getterFor(RuntimeType type) {
         return GETTERS.entrySet().stream()
             .filter(entry -> entry.getValue() == type)
             .map(Map.Entry::getKey)

@@ -141,12 +141,12 @@
                 },
                 {
                     "comment": "type",
-                    "match": "(?<=^\\s*)(?i:boolean|int|long|double|string|duration|size|timestamp|intList|stringList|booleanList|longList|doubleList|durationList|sizeList|timestampList)(?=\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$)",
+                    "match": "(?<=^\\s*)(?i:boolean|int|long|double|string|bigInteger|bigDecimal|duration|size|timestamp|booleanList|intList|longList|doubleList|stringList|bigIntegerList|bigDecimalList|durationList|sizeList|timestampList)(?=\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$)",
                     "name": "storage.type.rwconfig"
                 },
                 {
                     "comment": "invalid type name",
-                    "match": "^(?!\\s*(?i:\\[|boolean|int|long|double|string|duration|size|timestamp|intList|stringList|booleanList|longList|doubleList|durationList|sizeList|timestampList)(?:\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$))(?:\\s+[^\\[=]*|[^\\[=]+)(?=\\s*\\[|\\s+[^\\s=])",
+                    "match": "^(?!\\s*(?i:\\[|boolean|int|long|double|string|bigInteger|bigDecimal|duration|size|timestamp|booleanList|intList|longList|doubleList|stringList|bigIntegerList|bigDecimalList|durationList|sizeList|timestampList)(?:\\s*\\[|\\s+[^\\s\\[=]+\\s*(?:=|$)|\\s*$))(?:\\s+[^\\[=]*|[^\\[=]+)(?=\\s*\\[|\\s+[^\\s=])",
                     "name": "invalid.illegal.type-name.rwconfig"
                 },
                 {
@@ -166,7 +166,7 @@
                 },
                 {
                     "comment": "integer",
-                    "begin": "(?<=^\\s*(?i:int|long)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+                    "begin": "(?<=^\\s*(?i:int|long|bigInteger)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
                     "end": "(?<![\\\\\\n])$",
                     "patterns": [
                         {
@@ -185,7 +185,7 @@
                 },
                 {
                     "comment": "integer list",
-                    "begin": "(?<=^\\s*(?i:intList|longList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+                    "begin": "(?<=^\\s*(?i:intList|longList|bigIntegerList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
                     "end": "(?<![\\\\\\n])$",
                     "patterns": [
                         {
@@ -217,7 +217,7 @@
                 },
                 {
                     "comment": "integer range",
-                    "begin": "(?<=^\\s*(?i:int|intList|long|longList)\\s*)\\[[ \\t]*",
+                    "begin": "(?<=^\\s*(?i:int|intList|long|longList|bigInteger|bigIntegerList)\\s*)\\[[ \\t]*",
                     "end": "\\]|(?<![\\\\\\n])$",
                     "patterns": [
                         {
@@ -269,7 +269,7 @@
                 },
                 {
                     "comment": "double",
-                    "begin": "(?<=^\\s*(?i:double)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+                    "begin": "(?<=^\\s*(?i:double|bigDecimal)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
                     "end": "(?<![\\\\\\n])$",
                     "patterns": [
                         {
@@ -288,7 +288,7 @@
                 },
                 {
                     "comment": "double list",
-                    "begin": "(?<=^\\s*(?i:doubleList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+                    "begin": "(?<=^\\s*(?i:doubleList|bigDecimalList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
                     "end": "(?<![\\\\\\n])$",
                     "patterns": [
                         {
@@ -320,7 +320,7 @@
                 },
                 {
                     "comment": "double range",
-                    "begin": "(?<=^\\s*(?i:double|doubleList)\\s*)\\[[ \\t]*",
+                    "begin": "(?<=^\\s*(?i:double|doubleList|bigDecimal|bigDecimalList)\\s*)\\[[ \\t]*",
                     "end": "\\]|(?<![\\\\\\n])$",
                     "patterns": [
                         {

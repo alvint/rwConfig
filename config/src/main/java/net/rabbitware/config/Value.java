@@ -2,22 +2,27 @@ package net.rabbitware.config;
 import java.util.List;
 
 sealed abstract class Value permits
-        Value.Integer, Value.Long, Value.Double, Value.String, Value.Boolean,
-        Value.IntegerList, Value.LongList, Value.DoubleList, Value.StringList, Value.BooleanList {
+        Value.Boolean, Value.Integer, Value.Long, Value.Double, Value.String, Value.BigInteger, Value.BigDecimal,
+        Value.BooleanList, Value.IntegerList, Value.LongList, Value.DoubleList, Value.StringList, Value.BigIntegerList,
+        Value.BigDecimalList {
 
     @Override
     public java.lang.String toString() {
         return switch (this) {
+            case Value.Boolean b -> java.lang.String.valueOf(b.b);
             case Value.Integer i -> java.lang.String.valueOf(i.i);
             case Value.Long l -> java.lang.String.valueOf(l.l);
             case Value.Double d -> java.lang.String.valueOf(d.d);
             case Value.String s -> s.s;
-            case Value.Boolean b -> java.lang.String.valueOf(b.b);
+            case Value.BigInteger bi -> bi.bi.toString();
+            case Value.BigDecimal bd -> bd.bd.toString();
             case Value.IntegerList il -> il.list.toString();
             case Value.LongList ll -> ll.list.toString();
             case Value.DoubleList dl -> dl.list.toString();
             case Value.StringList sl -> sl.list.toString();
             case Value.BooleanList bl -> bl.list.toString();
+            case Value.BigIntegerList bi -> bi.list.toString();
+            case Value.BigDecimalList bd -> bd.list.toString();
         };
     }
 
@@ -61,6 +66,22 @@ sealed abstract class Value permits
         }
     }
 
+    static final class BigInteger extends Value {
+        final java.math.BigInteger bi;
+
+        public BigInteger(java.math.BigInteger bi) {
+            this.bi = bi;
+        }
+    }
+
+    static final class BigDecimal extends Value {
+        final java.math.BigDecimal bd;
+
+        public BigDecimal(java.math.BigDecimal bd) {
+            this.bd = bd;
+        }
+    }
+
     static final class BooleanList extends Value {
         final List<Value.Boolean> list;
 
@@ -97,6 +118,22 @@ sealed abstract class Value permits
         final List<Value.String> list;
 
         public StringList(List<Value.String> list) {
+            this.list = List.copyOf(list);
+        }
+    }
+    
+    static final class BigIntegerList extends Value {
+        final List<Value.BigInteger> list;
+
+        public BigIntegerList(List<Value.BigInteger> list) {
+            this.list = List.copyOf(list);
+        }
+    }
+
+    static final class BigDecimalList extends Value {
+        final List<Value.BigDecimal> list;
+
+        public BigDecimalList(List<Value.BigDecimal> list) {
             this.list = List.copyOf(list);
         }
     }

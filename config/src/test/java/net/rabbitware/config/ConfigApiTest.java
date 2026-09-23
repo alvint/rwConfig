@@ -7,12 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
@@ -24,7 +27,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import net.rabbitware.config.Config.IncorrectTypeException;
 import net.rabbitware.config.Config.PropertyNotFoundException;
-import net.rabbitware.config.Config.PropertyType;
 
 /**
  * Tests for the {@link Config} interface - the part of the library that
@@ -50,11 +52,15 @@ class ConfigApiTest {
             "long myLong = 5000000000",
             "double myDouble = 1.5",
             "string myString = hello",
+            "bigInteger myBigInteger = 123456789012345678901234567890",
+            "bigDecimal myBigDecimal = 10.50",
             "booleanList myBooleanList = true, false",
             "intList myIntList = 1, 2, 3",
             "longList myLongList = 5000000000, 1",
             "doubleList myDoubleList = 1.5, 2.5",
-            "stringList myStringList = a, b, c"
+            "stringList myStringList = a, b, c",
+            "bigIntegerList myBigIntegerList = 1, 123456789012345678901234567890",
+            "bigDecimalList myBigDecimalList = 0.1, 10.50"
         );
     }
 
@@ -83,6 +89,8 @@ class ConfigApiTest {
             assertEquals(5000000000L, config.getLong("myLong"));
             assertEquals(1.5, config.getDouble("myDouble"), 1e-9);
             assertEquals("hello", config.getString("myString"));
+            assertEquals(new BigInteger("123456789012345678901234567890"), config.getBigInteger("myBigInteger"));
+            assertEquals(new BigDecimal("10.50"), config.getBigDecimal("myBigDecimal"));
         }
 
         @Test
@@ -92,6 +100,23 @@ class ConfigApiTest {
             assertEquals(List.of(5000000000L, 1L), config.getLongList("myLongList"));
             assertEquals(List.of(1.5, 2.5), config.getDoubleList("myDoubleList"));
             assertEquals(List.of("a", "b", "c"), config.getStringList("myStringList"));
+            assertEquals(
+                List.of(BigInteger.ONE, new BigInteger("123456789012345678901234567890")),
+                config.getBigIntegerList("myBigIntegerList"));
+            assertEquals(
+                List.of(new BigDecimal("0.1"), new BigDecimal("10.50")),
+                config.getBigDecimalList("myBigDecimalList"));
+        }
+
+        @Test
+        @DisplayName("a `bigDecimal` keeps the scale it was written with, and digits a double cannot hold")
+        void bigDecimalIsExact() throws IOException {
+            // `BigDecimal.equals` compares scale, so this also shows that
+            // `10.50` did not become `10.5` on the way in
+            assertEquals(2, config.getBigDecimal("myBigDecimal").scale());
+            assertEquals("10.50", config.getBigDecimal("myBigDecimal").toString());
+            Config exact = configFrom("bigDecimal tiny = 1.00000000000000000001");
+            assertEquals(new BigDecimal("1.00000000000000000001"), exact.getBigDecimal("tiny"));
         }
 
         @Test
@@ -107,6 +132,10 @@ class ConfigApiTest {
             assertEquals(config.getLongList("myLongList"), config.getll("myLongList"));
             assertEquals(config.getDoubleList("myDoubleList"), config.getdl("myDoubleList"));
             assertEquals(config.getStringList("myStringList"), config.getsl("myStringList"));
+            assertEquals(config.getBigInteger("myBigInteger"), config.getbi("myBigInteger"));
+            assertEquals(config.getBigDecimal("myBigDecimal"), config.getbd("myBigDecimal"));
+            assertEquals(config.getBigIntegerList("myBigIntegerList"), config.getbil("myBigIntegerList"));
+            assertEquals(config.getBigDecimalList("myBigDecimalList"), config.getbdl("myBigDecimalList"));
         }
     }
 
@@ -123,16 +152,31 @@ class ConfigApiTest {
 
         @Test
         void getTypeReportsTheDeclaredType() {
-            assertEquals(PropertyType.BOOLEAN, config.getType("myBoolean"));
-            assertEquals(PropertyType.INT, config.getType("myInt"));
-            assertEquals(PropertyType.LONG, config.getType("myLong"));
-            assertEquals(PropertyType.DOUBLE, config.getType("myDouble"));
-            assertEquals(PropertyType.STRING, config.getType("myString"));
-            assertEquals(PropertyType.BOOLEAN_LIST, config.getType("myBooleanList"));
-            assertEquals(PropertyType.INT_LIST, config.getType("myIntList"));
-            assertEquals(PropertyType.LONG_LIST, config.getType("myLongList"));
-            assertEquals(PropertyType.DOUBLE_LIST, config.getType("myDoubleList"));
-            assertEquals(PropertyType.STRING_LIST, config.getType("myStringList"));
+            assertEquals(RuntimeType.BOOLEAN, config.getType("myBoolean"));
+            assertEquals(RuntimeType.INT, config.getType("myInt"));
+            assertEquals(RuntimeType.LONG, config.getType("myLong"));
+            assertEquals(RuntimeType.DOUBLE, config.getType("myDouble"));
+            assertEquals(RuntimeType.STRING, config.getType("myString"));
+            assertEquals(RuntimeType.BOOLEAN_LIST, config.getType("myBooleanList"));
+            assertEquals(RuntimeType.INT_LIST, config.getType("myIntList"));
+            assertEquals(RuntimeType.LONG_LIST, config.getType("myLongList"));
+            assertEquals(RuntimeType.DOUBLE_LIST, config.getType("myDoubleList"));
+            assertEquals(RuntimeType.STRING_LIST, config.getType("myStringList"));
+            assertEquals(RuntimeType.BIG_INTEGER, config.getType("myBigInteger"));
+            assertEquals(RuntimeType.BIG_DECIMAL, config.getType("myBigDecimal"));
+            assertEquals(RuntimeType.BIG_INTEGER_LIST, config.getType("myBigIntegerList"));
+            assertEquals(RuntimeType.BIG_DECIMAL_LIST, config.getType("myBigDecimalList"));
+        }
+
+        @Test
+        @DisplayName("the fixture holds a property of every run-time type")
+        void everyRuntimeTypeIsCovered() {
+            // so a type added to `RuntimeType` without being added here fails,
+            // rather than going untested by every check that uses this fixture
+            assertEquals(
+                Set.of(RuntimeType.values()),
+                config.getPropertyNames().stream().map(config::getType).collect(Collectors.toSet())
+            );
         }
 
         @Test
@@ -140,7 +184,9 @@ class ConfigApiTest {
             assertEquals(
                 Set.of(
                     "myBoolean", "myInt", "myLong", "myDouble", "myString",
-                    "myBooleanList", "myIntList", "myLongList", "myDoubleList", "myStringList"
+                    "myBigInteger", "myBigDecimal",
+                    "myBooleanList", "myIntList", "myLongList", "myDoubleList", "myStringList",
+                    "myBigIntegerList", "myBigDecimalList"
                 ),
                 config.getPropertyNames()
             );
@@ -172,6 +218,28 @@ class ConfigApiTest {
             assertThrows(IncorrectTypeException.class, () -> config.getb("myInt"));
             assertThrows(IncorrectTypeException.class, () -> config.getd("myInt"));
             assertThrows(IncorrectTypeException.class, () -> config.getl("myString"));
+        }
+
+        @Test
+        @DisplayName("a big number is its own type - it is not read as a long or a double, nor they as it")
+        void bigNumbersAreNotInterchangeableWithTheirSmallCounterparts() {
+            assertThrows(IncorrectTypeException.class, () -> config.getl("myBigInteger"));
+            assertThrows(IncorrectTypeException.class, () -> config.getd("myBigDecimal"));
+            assertThrows(IncorrectTypeException.class, () -> config.getbi("myLong"));
+            assertThrows(IncorrectTypeException.class, () -> config.getbd("myDouble"));
+            assertThrows(IncorrectTypeException.class, () -> config.getbd("myBigInteger"));
+            assertThrows(IncorrectTypeException.class, () -> config.getbi("myBigDecimal"));
+            assertThrows(IncorrectTypeException.class, () -> config.getbil("myBigInteger"));
+            assertThrows(IncorrectTypeException.class, () -> config.getbdl("myDoubleList"));
+        }
+
+        @Test
+        @DisplayName("an undeclared property is not found through the big number getters either")
+        void bigNumberGettersReportAnUndeclaredProperty() {
+            assertThrows(PropertyNotFoundException.class, () -> config.getbi("nothingCalledThis"));
+            assertThrows(PropertyNotFoundException.class, () -> config.getbd("nothingCalledThis"));
+            assertThrows(PropertyNotFoundException.class, () -> config.getbil("nothingCalledThis"));
+            assertThrows(PropertyNotFoundException.class, () -> config.getbdl("nothingCalledThis"));
         }
 
         @Test
@@ -208,6 +276,8 @@ class ConfigApiTest {
         void aReturnedListCannotBeModified() {
             List<Integer> values = config.getil("myIntList");
             assertThrows(UnsupportedOperationException.class, () -> values.add(4));
+            List<BigDecimal> decimals = config.getbdl("myBigDecimalList");
+            assertThrows(UnsupportedOperationException.class, () -> decimals.add(BigDecimal.ONE));
         }
 
         @Test
@@ -294,16 +364,17 @@ class ConfigApiTest {
         }
     }
     @Test
-    @DisplayName("`PropertyType` holds only types a property can actually have at run time")
-    void propertyTypeHasNoUnreachableConstants() throws IOException {
+    @DisplayName("`RuntimeType` holds only types a property can actually have at run time")
+    void runtimeTypeHasNoUnreachableConstants() throws IOException {
         // `duration` and `size` can be written in the `rwconfig` file but are
         // parsed into longs, so they never come back from `getType`. Keeping
         // them out of this enum is what lets a caller's switch over
         // `getType()` stay exhaustive without handling impossible cases
         assertEquals(
-            List.of("boolean", "int", "long", "double", "string",
-                    "booleanList", "intList", "longList", "doubleList", "stringList"),
-            Stream.of(Config.PropertyType.values()).map(type -> type.name).toList()
+            List.of("boolean", "int", "long", "double", "string", "bigInteger", "bigDecimal",
+                    "booleanList", "intList", "longList", "doubleList", "stringList",
+                    "bigIntegerList", "bigDecimalList"),
+            Stream.of(RuntimeType.values()).map(type -> type.name).toList()
         );
     }
 
@@ -316,10 +387,10 @@ class ConfigApiTest {
             "durationList delays = 1s, 2s",
             "sizeList tiers = 1KiB, 1MiB"
         );
-        assertEquals(Config.PropertyType.LONG, config.getType("timeout"));
-        assertEquals(Config.PropertyType.LONG, config.getType("cache"));
-        assertEquals(Config.PropertyType.LONG_LIST, config.getType("delays"));
-        assertEquals(Config.PropertyType.LONG_LIST, config.getType("tiers"));
+        assertEquals(RuntimeType.LONG, config.getType("timeout"));
+        assertEquals(RuntimeType.LONG, config.getType("cache"));
+        assertEquals(RuntimeType.LONG_LIST, config.getType("delays"));
+        assertEquals(RuntimeType.LONG_LIST, config.getType("tiers"));
     }
     @Nested
     @DisplayName("the global instance holder")

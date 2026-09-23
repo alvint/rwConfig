@@ -1,11 +1,13 @@
 package net.rabbitware.config;
-import java.util.TreeSet;
+import java.math.BigInteger;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,17 +17,21 @@ public class ConfigImpl implements Config {
     private final String name;
     private boolean changeDetectionEnabled;
 
-    private final Map<String, PropertyType> types = new HashMap<>();
+    private final Map<String, RuntimeType> types = new HashMap<>();
     private final Map<String, Value.Boolean> booleanValues = new HashMap<>();
     private final Map<String, Value.Integer> integerValues = new HashMap<>();
     private final Map<String, Value.Long> longValues = new HashMap<>();
     private final Map<String, Value.Double> doubleValues = new HashMap<>();
     private final Map<String, String> stringValues = new HashMap<>();
+    private final Map<String, BigInteger> bigIntegerValues = new HashMap<>();
+    private final Map<String, BigDecimal> bigDecimalValues = new HashMap<>();
     private final Map<String, List<Boolean>> booleanListValues = new HashMap<>();
     private final Map<String, List<Integer>> integerListValues = new HashMap<>();
     private final Map<String, List<Long>> longListValues = new HashMap<>();
     private final Map<String, List<Double>> doubleListValues = new HashMap<>();
     private final Map<String, List<String>> stringListValues = new HashMap<>();
+    private final Map<String, List<BigInteger>> bigIntegerListValues = new HashMap<>();
+    private final Map<String, List<BigDecimal>> bigDecimalListValues = new HashMap<>();
 
     private final Object changeListenersLock = new Object();
     private final Map<String, ChangeListener> changeListeners = new LinkedHashMap<>();
@@ -56,8 +62,8 @@ public class ConfigImpl implements Config {
     }
 
     @Override
-    public PropertyType getType(String name) throws ConfigException {
-        PropertyType type = types.get(name);
+    public RuntimeType getType(String name) throws ConfigException {
+        RuntimeType type = types.get(name);
         if (type == null) {
             throw new PropertyNotFoundException(name);
         }
@@ -72,7 +78,7 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.BOOLEAN.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.BOOLEAN.name, type);
     }
 
     @Override
@@ -83,7 +89,7 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.INT.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.INT.name, type);
     }
 
     @Override
@@ -94,7 +100,7 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.LONG.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.LONG.name, type);
     }
 
     @Override
@@ -105,7 +111,7 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.DOUBLE.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.DOUBLE.name, type);
     }
 
     @Override
@@ -116,7 +122,29 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.STRING.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.STRING.name, type);
+    }
+
+    @Override
+    public BigInteger getBigInteger(String name) throws ConfigException {
+        BigInteger value = bigIntegerValues.get(name);
+        if (value != null) { // found it
+            return value;
+        }
+        // not found or incorrect type
+        String type = getType(name).name;
+        throw new IncorrectTypeException(name, RuntimeType.BIG_INTEGER.name, type);
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(String name) throws ConfigException {
+        BigDecimal value = bigDecimalValues.get(name);
+        if (value != null) { // found it
+            return value;
+        }
+        // not found or incorrect type
+        String type = getType(name).name;
+        throw new IncorrectTypeException(name, RuntimeType.BIG_DECIMAL.name, type);
     }
 
     @Override
@@ -127,7 +155,7 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.BOOLEAN_LIST.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.BOOLEAN_LIST.name, type);
     }
 
     @Override
@@ -138,7 +166,7 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.INT_LIST.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.INT_LIST.name, type);
     }
 
     @Override
@@ -149,7 +177,7 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.LONG_LIST.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.LONG_LIST.name, type);
     }
 
     @Override
@@ -160,7 +188,7 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.DOUBLE_LIST.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.DOUBLE_LIST.name, type);
     }
 
     @Override
@@ -171,7 +199,29 @@ public class ConfigImpl implements Config {
         }
         // not found or incorrect type
         String type = getType(name).name;
-        throw new IncorrectTypeException(name, PropertyType.STRING_LIST.name, type);
+        throw new IncorrectTypeException(name, RuntimeType.STRING_LIST.name, type);
+    }
+
+    @Override
+    public List<BigInteger> getBigIntegerList(String name) throws ConfigException {
+        List<BigInteger> value = bigIntegerListValues.get(name);
+        if (value != null) { // found it
+            return value;
+        }
+        // not found or incorrect type
+        String type = getType(name).name;
+        throw new IncorrectTypeException(name, RuntimeType.BIG_INTEGER_LIST.name, type);
+    }
+
+    @Override
+    public List<BigDecimal> getBigDecimalList(String name) throws ConfigException {
+        List<BigDecimal> value = bigDecimalListValues.get(name);
+        if (value != null) { // found it
+            return value;
+        }
+        // not found or incorrect type
+        String type = getType(name).name;
+        throw new IncorrectTypeException(name, RuntimeType.BIG_DECIMAL_LIST.name, type);
     }
 
     @Override
@@ -200,6 +250,16 @@ public class ConfigImpl implements Config {
     }
 
     @Override
+    public BigInteger getbi(String name) throws ConfigException {
+        return getBigInteger(name);
+    }
+
+    @Override
+    public BigDecimal getbd(String name) throws ConfigException {
+        return getBigDecimal(name);
+    }
+
+    @Override
     public List<Boolean> getbl(String name) throws ConfigException {
         return getBooleanList(name);
     }
@@ -222,6 +282,16 @@ public class ConfigImpl implements Config {
     @Override
     public List<String> getsl(String name) throws ConfigException {
         return getStringList(name);
+    }
+
+    @Override
+    public List<BigInteger> getbil(String name) throws ConfigException {
+        return getBigIntegerList(name);
+    }
+
+    @Override
+    public List<BigDecimal> getbdl(String name) throws ConfigException {
+        return getBigDecimalList(name);
     }
 
     @Override
@@ -425,143 +495,255 @@ public class ConfigImpl implements Config {
         switch (value) {
             case Value.Boolean booleanValue -> {
                 logger.debug("adding boolean property `{}`", name);
-                types.put(name, PropertyType.BOOLEAN);
+                types.put(name, RuntimeType.BOOLEAN);
                 booleanValues.put(name, booleanValue);
                 integerValues.remove(name);
                 longValues.remove(name);
                 doubleValues.remove(name);
                 stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.remove(name);
                 integerListValues.remove(name);
                 longListValues.remove(name);
                 doubleListValues.remove(name);
                 stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
             }
             case Value.Integer integerValue -> {
                 logger.debug("adding int property `{}`", name);
-                types.put(name, PropertyType.INT);
+                types.put(name, RuntimeType.INT);
                 booleanValues.remove(name);
                 integerValues.put(name, integerValue);
                 longValues.remove(name);
                 doubleValues.remove(name);
                 stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.remove(name);
                 integerListValues.remove(name);
                 longListValues.remove(name);
                 doubleListValues.remove(name);
                 stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
             }
             case Value.Long longValue -> {
                 logger.debug("adding long property `{}`", name);
-                types.put(name, PropertyType.LONG);
+                types.put(name, RuntimeType.LONG);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.put(name, longValue);
                 doubleValues.remove(name);
                 stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.remove(name);
                 integerListValues.remove(name);
                 longListValues.remove(name);
                 doubleListValues.remove(name);
                 stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
             }
             case Value.Double doubleValue -> {
                 logger.debug("adding double property `{}`", name);
-                types.put(name, PropertyType.DOUBLE);
+                types.put(name, RuntimeType.DOUBLE);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
                 doubleValues.put(name, doubleValue);
                 stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.remove(name);
                 integerListValues.remove(name);
                 longListValues.remove(name);
                 doubleListValues.remove(name);
                 stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
             }
             case Value.String stringValue -> {
                 logger.debug("adding string property `{}`", name);
-                types.put(name, PropertyType.STRING);
+                types.put(name, RuntimeType.STRING);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
                 doubleValues.remove(name);
                 stringValues.put(name, stringValue.s);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.remove(name);
                 integerListValues.remove(name);
                 longListValues.remove(name);
                 doubleListValues.remove(name);
                 stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
             }
-            case Value.BooleanList booleanListValue -> {
-                logger.debug("adding boolean list property `{}`", name);
-                types.put(name, PropertyType.BOOLEAN_LIST);
+            case Value.BigInteger bigIntegerValue -> {
+                logger.debug("adding big integer property `{}`", name);
+                types.put(name, RuntimeType.BIG_INTEGER);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
                 doubleValues.remove(name);
                 stringValues.remove(name);
+                bigIntegerValues.put(name, bigIntegerValue.bi);
+                bigDecimalValues.remove(name);
+                booleanListValues.remove(name);
+                integerListValues.remove(name);
+                longListValues.remove(name);
+                doubleListValues.remove(name);
+                stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
+            }
+            case Value.BigDecimal bigDecimalValue -> {
+                logger.debug("adding big decimal property `{}`", name);
+                types.put(name, RuntimeType.BIG_DECIMAL);
+                booleanValues.remove(name);
+                integerValues.remove(name);
+                longValues.remove(name);
+                doubleValues.remove(name);
+                stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.put(name, bigDecimalValue.bd);
+                booleanListValues.remove(name);
+                integerListValues.remove(name);
+                longListValues.remove(name);
+                doubleListValues.remove(name);
+                stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
+            }
+            case Value.BooleanList booleanListValue -> {
+                logger.debug("adding boolean list property `{}`", name);
+                types.put(name, RuntimeType.BOOLEAN_LIST);
+                booleanValues.remove(name);
+                integerValues.remove(name);
+                longValues.remove(name);
+                doubleValues.remove(name);
+                stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.put(name, booleanListValue.list.stream().map(b -> b.b).toList());
                 integerListValues.remove(name);
                 longListValues.remove(name);
                 doubleListValues.remove(name);
                 stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
             }
             case Value.IntegerList integerListValue -> {
                 logger.debug("adding int list property `{}`", name);
-                types.put(name, PropertyType.INT_LIST);
+                types.put(name, RuntimeType.INT_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
                 doubleValues.remove(name);
                 stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.remove(name);
                 integerListValues.put(name, integerListValue.list.stream().map(i -> i.i).toList());
                 longListValues.remove(name);
                 doubleListValues.remove(name);
                 stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
             }
             case Value.LongList longListValue -> {
                 logger.debug("adding long list property `{}`", name);
-                types.put(name, PropertyType.LONG_LIST);
+                types.put(name, RuntimeType.LONG_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
                 doubleValues.remove(name);
                 stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.remove(name);
                 integerListValues.remove(name);
                 longListValues.put(name, longListValue.list.stream().map(l -> l.l).toList());
                 doubleListValues.remove(name);
                 stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
             }
             case Value.DoubleList doubleListValue -> {
                 logger.debug("adding double list property `{}`", name);
-                types.put(name, PropertyType.DOUBLE_LIST);
+                types.put(name, RuntimeType.DOUBLE_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
                 doubleValues.remove(name);
                 stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.remove(name);
                 integerListValues.remove(name);
                 longListValues.remove(name);
                 doubleListValues.put(name, doubleListValue.list.stream().map(d -> d.d).toList() );
                 stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
             }
             case Value.StringList stringListValue -> {
                 logger.debug("adding string list property `{}`", name);
-                types.put(name, PropertyType.STRING_LIST);
+                types.put(name, RuntimeType.STRING_LIST);
                 booleanValues.remove(name);
                 integerValues.remove(name);
                 longValues.remove(name);
                 doubleValues.remove(name);
                 stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
                 booleanListValues.remove(name);
                 integerListValues.remove(name);
                 longListValues.remove(name);
                 doubleListValues.remove(name);
                 stringListValues.put(name, stringListValue.list.stream().map(s -> s.s).toList());
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.remove(name);
+            }
+            case Value.BigIntegerList bigIntegerListValue -> {
+                logger.debug("adding big integer list property `{}`", name);
+                types.put(name, RuntimeType.BIG_INTEGER_LIST);
+                booleanValues.remove(name);
+                integerValues.remove(name);
+                longValues.remove(name);
+                doubleValues.remove(name);
+                stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
+                booleanListValues.remove(name);
+                integerListValues.remove(name);
+                longListValues.remove(name);
+                doubleListValues.remove(name);
+                stringListValues.remove(name);
+                bigIntegerListValues.put(name, bigIntegerListValue.list.stream().map(bi -> bi.bi).toList());
+                bigDecimalListValues.remove(name);
+            }
+            case Value.BigDecimalList bigDecimalListValue -> {
+                logger.debug("adding big decimal list property `{}`", name);
+                types.put(name, RuntimeType.BIG_DECIMAL_LIST);
+                booleanValues.remove(name);
+                integerValues.remove(name);
+                longValues.remove(name);
+                doubleValues.remove(name);
+                stringValues.remove(name);
+                bigIntegerValues.remove(name);
+                bigDecimalValues.remove(name);
+                booleanListValues.remove(name);
+                integerListValues.remove(name);
+                longListValues.remove(name);
+                doubleListValues.remove(name);
+                stringListValues.remove(name);
+                bigIntegerListValues.remove(name);
+                bigDecimalListValues.put(name, bigDecimalListValue.list.stream().map(bd -> bd.bd).toList());
             }
         }
     }
@@ -574,11 +756,15 @@ public class ConfigImpl implements Config {
         longValues.remove(name);
         doubleValues.remove(name);
         stringValues.remove(name);
+        bigIntegerValues.remove(name);
+        bigDecimalValues.remove(name);
         booleanListValues.remove(name);
         integerListValues.remove(name);
         longListValues.remove(name);
         doubleListValues.remove(name);
         stringListValues.remove(name);
+        bigIntegerListValues.remove(name);
+        bigDecimalListValues.remove(name);
     }
 
 

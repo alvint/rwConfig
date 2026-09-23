@@ -1,4 +1,6 @@
 package net.rabbitware.config;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -41,7 +43,7 @@ public interface Config {
      * @throws ConfigException
      * if the config does not contain a property with the given name
      */
-    public PropertyType getType(String name) throws ConfigException;
+    public RuntimeType getType(String name) throws ConfigException;
 
     /**
      * Get the value of the property with the given name.
@@ -117,6 +119,32 @@ public interface Config {
      * the value of the property with the given name
      * @throws ConfigException
      * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code BigInteger})
+     */
+    public BigInteger getBigInteger(String name) throws ConfigException;
+    
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code BigDecimal})
+     */
+    public BigDecimal getBigDecimal(String name) throws ConfigException;
+
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
      * property is not compatible with the specified type
      * ({@code List<Boolean>})
      */
@@ -175,6 +203,32 @@ public interface Config {
      */
     public List<String> getStringList(String name) throws ConfigException;
 
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code List<BigInteger>})
+     */
+    public List<BigInteger> getBigIntegerList(String name) throws ConfigException;
+
+    /**
+     * Get the value of the property with the given name.
+     *
+     * @param name
+     * the name of the property
+     * @return
+     * the value of the property with the given name
+     * @throws ConfigException
+     * if the config does not contain a property with the given name, or if the
+     * property is not compatible with the specified type ({@code List<BigDecimal>})
+     */
+    public List<BigDecimal> getBigDecimalList(String name) throws ConfigException;
+
     // abbreviated method names for convenience
 
     /** same as {@link #getBoolean(String)} */
@@ -187,6 +241,10 @@ public interface Config {
     public double getd(String name) throws ConfigException;
     /** same as {@link #getString(String)} */
     public String gets(String name) throws ConfigException;
+    /** same as {@link #getBigInteger(String)} */
+    public BigInteger getbi(String name) throws ConfigException;
+    /** same as {@link #getBigDecimal(String)} */
+    public BigDecimal getbd(String name) throws ConfigException;
 
     /** same as {@link #getBooleanList(String)} */
     public List<Boolean> getbl(String name) throws ConfigException;
@@ -198,6 +256,10 @@ public interface Config {
     public List<Double> getdl(String name) throws ConfigException;
     /** same as {@link #getStringList(String)} */
     public List<String> getsl(String name) throws ConfigException;
+    /** same as {@link #getBigIntegerList(String)} */
+    public List<BigInteger> getbil(String name) throws ConfigException;
+    /** same as {@link #getBigDecimalList(String)} */
+    public List<BigDecimal> getbdl(String name) throws ConfigException;
 
     /**
      * Check if change detection is enabled for this configuration.
@@ -254,41 +316,10 @@ public interface Config {
      */
     public void discard();
 
+
     //
     // nested classes
     //
-
-    /**
-     * Represents the type of a property in the configuration.
-     * This includes primitive types like BOOLEAN, INT, LONG, DOUBLE, STRING,
-     * as well as their corresponding list types.
-     */
-    public static enum PropertyType {
-        BOOLEAN("boolean"), INT("int"), LONG("long"), DOUBLE("double"), STRING("string"),
-        BOOLEAN_LIST("booleanList"), INT_LIST("intList"), LONG_LIST("longList"), DOUBLE_LIST("doubleList"),
-        STRING_LIST("stringList");
-
-        public final String name;
-        private static final java.util.Map<String, PropertyType> nameToTypeMap = new java.util.HashMap<>();
-
-        static {
-            for (PropertyType type : PropertyType.values()) {
-                nameToTypeMap.put(type.name.toLowerCase(), type);
-            }
-        }
-
-        public static PropertyType fromString(String type) {
-            PropertyType propertyType = nameToTypeMap.get(type.toLowerCase());
-            if (propertyType != null) {
-                return propertyType;
-            }
-            throw new ConfigException("unknown property type: " + type);
-        }
-
-        private PropertyType(String name) {
-            this.name = name;
-        }
-    }
 
     /**
      * A global holder for one {@code Config}, for applications that would

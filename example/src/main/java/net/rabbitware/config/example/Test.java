@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.Config;
 import net.rabbitware.config.ConfigFactory;
+import net.rabbitware.config.RuntimeType;
 
 public class Test {
     private static final Logger logger = LoggerFactory.getLogger(Test.class);
@@ -20,7 +21,7 @@ public class Test {
         Config config = ConfigFactory.create("test config", true, args);
 
         config.getPropertyNames().stream().forEach(name -> {
-            Config.PropertyType type = config.getType(name);
+            RuntimeType type = config.getType(name);
             System.out.println("\n type of property `" + name + "`: " + type.name);
             switch (type) {
                 case BOOLEAN -> {
@@ -38,6 +39,12 @@ public class Test {
                 case STRING -> {
                     System.out.println("value of property `" + name + "`: " + config.getString(name));
                 }
+                case BIG_INTEGER -> {
+                    System.out.println("value of property `" + name + "`: " + config.getBigInteger(name));
+                }
+                case BIG_DECIMAL -> {
+                    System.out.println("value of property `" + name + "`: " + config.getBigDecimal(name));
+                }
                 case BOOLEAN_LIST -> {
                     System.out.println("value of property `" + name + "`: " + config.getBooleanList(name));
                 }
@@ -52,6 +59,12 @@ public class Test {
                 }
                 case STRING_LIST -> {
                     System.out.println("value of property `" + name + "`: " + config.getStringList(name));
+                }
+                case BIG_INTEGER_LIST -> {
+                    System.out.println("value of property `" + name + "`: " + config.getBigIntegerList(name));
+                }
+                case BIG_DECIMAL_LIST -> {
+                    System.out.println("value of property `" + name + "`: " + config.getBigDecimalList(name));
                 }
             }
         });
