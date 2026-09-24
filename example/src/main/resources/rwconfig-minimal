@@ -25,7 +25,7 @@ rwc.environment.type = environmentVariables
 # values and the default are all optional.
 
 # an int, restricted to 80 or anything from 1024 to 65535, defaulting to 8000
-int[80, 1024:65535] port = 8000
+int[80, 1024..65535] port = 8000
 
 # no type means `string`, and no `=` means no default - so this one must be
 # supplied by a source, or startup fails. Set it with `DBPassword=secret` on
