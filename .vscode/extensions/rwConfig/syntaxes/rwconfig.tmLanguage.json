@@ -104,19 +104,27 @@
             "name": "invalid.illegal.escape.rwconfig"
         },
         "integer.valid": {
-            "match": "-?\\d+(?=\\\\?$)",
+            "match": "[+-]?\\d+(?=\\\\?$)",
             "name": "constant.numeric.rwconfig"
         },
         "integer.invalid": {
-            "match": "(?!-?\\d+\\\\?$)(?:(?!\\\\$).)+(?=\\\\?$)",
+            "match": "(?![+-]?\\d+\\\\?$)(?:(?!\\\\$).)+(?=\\\\?$)",
             "name": "invalid.illegal.numeric.rwconfig"
         },
         "double.valid": {
-            "match": "-?(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?(?=\\\\?$)",
+            "match": "[+-]?(?:NaN|Infinity|(?:(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?|0[xX](?:[0-9a-fA-F]+\\.?|[0-9a-fA-F]*\\.[0-9a-fA-F]+)[pP][+-]?\\d+)[fFdD]?)(?=\\\\?$)",
             "name": "constant.numeric.rwconfig"
         },
         "double.invalid": {
-            "match": "(?!-?(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?\\\\?$)(?:(?!\\\\$).)+(?=\\\\?$)",
+            "match": "(?![+-]?(?:NaN|Infinity|(?:(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?|0[xX](?:[0-9a-fA-F]+\\.?|[0-9a-fA-F]*\\.[0-9a-fA-F]+)[pP][+-]?\\d+)[fFdD]?)\\\\?$)(?:(?!\\\\$).)+(?=\\\\?$)",
+            "name": "invalid.illegal.numeric.rwconfig"
+        },
+        "decimal.valid": {
+            "match": "[+-]?(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?(?=\\\\?$)",
+            "name": "constant.numeric.rwconfig"
+        },
+        "decimal.invalid": {
+            "match": "(?![+-]?(?:\\d+\\.\\d+|\\d+\\.|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?\\\\?$)(?:(?!\\\\$).)+(?=\\\\?$)",
             "name": "invalid.illegal.numeric.rwconfig"
         },
         "boolean.valid": {
@@ -269,7 +277,7 @@
                 },
                 {
                     "comment": "double",
-                    "begin": "(?<=^\\s*(?i:double|bigDecimal)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+                    "begin": "(?<=^\\s*(?i:double)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
                     "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
@@ -288,7 +296,7 @@
                 },
                 {
                     "comment": "double list",
-                    "begin": "(?<=^\\s*(?i:doubleList|bigDecimalList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+                    "begin": "(?<=^\\s*(?i:doubleList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
                     "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
@@ -320,7 +328,7 @@
                 },
                 {
                     "comment": "double range",
-                    "begin": "(?<=^\\s*(?i:double|doubleList|bigDecimal|bigDecimalList)\\s*)\\[[ \\t]*",
+                    "begin": "(?<=^\\s*(?i:double|doubleList)\\s*)\\[[ \\t]*",
                     "end": "\\]|(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
@@ -359,6 +367,109 @@
                                                         },
                                                         {
                                                             "include": "#double.invalid"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "comment": "big decimal",
+                    "begin": "(?<=^\\s*(?i:bigDecimal)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
+                    "patterns": [
+                        {
+                            "include": "#continuation.indent"
+                        },
+                        {
+                            "include": "#continuation"
+                        },
+                        {
+                            "include": "#decimal.valid"
+                        },
+                        {
+                            "include": "#decimal.invalid"
+                        }
+                    ]
+                },
+                {
+                    "comment": "big decimal list",
+                    "begin": "(?<=^\\s*(?i:bigDecimalList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
+                    "patterns": [
+                        {
+                            "include": "#continuation.indent"
+                        },
+                        {
+                            "include": "#continuation"
+                        },
+                        {
+                            "include": "#empty.list.item"
+                        },
+                        {
+                            "comment": "big decimal",
+                            "match": "((?:(?!\\\\$)[^,\\]\\s])+)",
+                            "captures": {
+                                "1": {
+                                    "patterns": [
+                                        {
+                                            "include": "#decimal.valid"
+                                        },
+                                        {
+                                            "include": "#decimal.invalid"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "comment": "big decimal range",
+                    "begin": "(?<=^\\s*(?i:bigDecimal|bigDecimalList)\\s*)\\[[ \\t]*",
+                    "end": "\\]|(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
+                    "patterns": [
+                        {
+                            "include": "#continuation"
+                        },
+                        {
+                            "include": "#empty.allowed.value"
+                        },
+                        {
+                            "comment": "range",
+                            "match": "((?:(?!\\\\$)[^,\\]\\n])+)",
+                            "captures": {
+                                "1": {
+                                    "patterns": [
+                                        {
+                                            "include": "#range.invalid"
+                                        },
+                                        {
+                                            "comment": "big decimal",
+                                            "match": "((?:(?!\\.\\.)[^,\\]\\s])+)\\s*(?:\\.\\.\\s*((?:(?!\\.\\.)[^,\\]\\s])+))?",
+                                            "captures": {
+                                                "1": {
+                                                    "patterns": [
+                                                        {
+                                                            "include": "#decimal.valid"
+                                                        },
+                                                        {
+                                                            "include": "#decimal.invalid"
+                                                        }
+                                                    ]
+                                                },
+                                                "2": {
+                                                    "patterns": [
+                                                        {
+                                                            "include": "#decimal.valid"
+                                                        },
+                                                        {
+                                                            "include": "#decimal.invalid"
                                                         }
                                                     ]
                                                 }

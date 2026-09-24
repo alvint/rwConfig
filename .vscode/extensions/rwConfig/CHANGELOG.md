@@ -16,6 +16,11 @@ by hand.
 - A line ending in an escaped backslash, `\\`, is no longer highlighted as
   continuing onto the next line, which now matches the library. Only an odd run
   of backslashes continues a line.
+- Numbers are marked invalid only when the library would reject them. A leading
+  `+` is accepted on every numeric type, and a `double` accepts `NaN`,
+  `Infinity`, a hex float such as `0x1p3`, and an `f` or `d` suffix - all of
+  which the library always has. A `bigDecimal` still rejects those, as the
+  library does.
 
 ## 0.2.0
 

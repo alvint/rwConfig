@@ -184,6 +184,55 @@ describe('the big number types', () => {
     });
 });
 
+describe('a number is valid in the editor exactly when the parser accepts it', () => {
+    // each form here was checked against the parser - Integer.parseInt and
+    // Long.parseLong, BigInteger, Double.parseDouble, and BigDecimal
+
+    test('a leading plus sign, on every numeric type', async () => {
+        for (const type of ['int', 'long', 'bigInteger']) {
+            await assertValid(`${type} x = +42`);
+            await assertValid(`${type}List x = 1, +42`);
+            await assertValid(`${type}[+1..100] x = 50`);
+        }
+        for (const type of ['double', 'bigDecimal']) {
+            await assertValid(`${type} x = +1.5`);
+            await assertValid(`${type} x = +.5`);
+            await assertValid(`${type} x = +1.5E-3`);
+            await assertValid(`${type}List x = 1.0, +42`);
+            await assertValid(`${type}[+.5..100] x = 50`);
+        }
+    });
+
+    test('a double takes NaN, Infinity, a type suffix, and a hex float', async () => {
+        for (const value of ['NaN', '+NaN', '-NaN', 'Infinity', '+Infinity', '-Infinity',
+                             '1.5d', '1.5f', '1.5D', '1.5F', '0x1p3', '0x1.8p1', '0X1P-3']) {
+            await assertValid(`double x = ${value}`);
+            await assertValid(`doubleList x = 1.0, ${value}`);
+        }
+        await assertValid('double[-Infinity..Infinity] x = 5');
+    });
+
+    test('but only as Java spells them', async () => {
+        for (const value of ['nan', 'infinity', 'Inf', '1.5x', '0x1.8', '1.5dd', '+', '1.2.3']) {
+            await assertInvalid(`double x = ${value}`);
+        }
+    });
+
+    test('a bigDecimal takes none of what only a double does', async () => {
+        for (const value of ['NaN', 'Infinity', '-Infinity', '1.5d', '1.5f', '0x1p3']) {
+            await assertInvalid(`bigDecimal x = ${value}`);
+            await assertInvalid(`bigDecimalList x = 1.0, ${value}`);
+        }
+    });
+
+    test('an integer takes a sign and digits, and nothing else', async () => {
+        for (const value of ['1.5', '1e3', '0x1F', '1_000', '+', '++1']) {
+            await assertInvalid(`int x = ${value}`);
+            await assertInvalid(`bigInteger x = ${value}`);
+        }
+    });
+});
+
 describe('the parts of a declaration', () => {
     test('a type, a name and a value', async () => {
         const line = 'int myProp = 42';
