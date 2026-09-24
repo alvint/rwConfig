@@ -1,5 +1,10 @@
-"""Regenerate `icon.png`. No dependencies: it rasterizes and writes the PNG itself."""
-import zlib, struct, math
+"""Regenerate `icon.png`. No dependencies: it rasterizes and writes the PNG itself.
+
+`python3 make-icon.py` writes the 256-pixel `icon.png` the extension ships with.
+`python3 make-icon.py 1024` writes `icon-1024.png` - any size works, since the
+icon is drawn from shapes rather than scaled up from pixels.
+"""
+import zlib, struct, math, sys
 
 def png(path, pix, w, h):
     raw = b''.join(b'\x00' + bytes(pix[y*w*4:(y+1)*w*4]) for y in range(h))
@@ -97,12 +102,18 @@ def spec(x, y, N):
     g = max(g, u(27) - math.hypot(x - u(64), y - u(64)))
     c = min(seg(x, y, u(38), u(64), u(58), u(84), u(14)),
             seg(x, y, u(58), u(84), u(94), u(42), u(14)))
-    ga, ca = cov(g, u(1)), cov(c, u(1))
+    # Edges are blended over the width of one unit, capped at two pixels: the
+    # cap leaves every size up to 256 exactly as it was, and keeps a large render
+    # sharp rather than blurring each edge across a unit's many pixels.
+    edge = min(u(1), 2.0)
+    ga, ca = cov(g, edge), cov(c, edge)
     a = max(ga, ca)
     if a <= 0.0:
         return SLATE, 0.0
     return tuple((AMBER[i]*ca + SLATE[i]*ga*(1-ca)) / a for i in range(3)), a
 
 if __name__ == '__main__':
-    png('icon.png', render(256, spec), 256, 256)
-    print('icon.png written')
+    size = int(sys.argv[1]) if len(sys.argv) > 1 else 256
+    name = 'icon.png' if size == 256 else f'icon-{size}.png'
+    png(name, render(size, spec), size, size)
+    print(f'{name} written')

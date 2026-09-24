@@ -1,4 +1,4 @@
-<img src=".vscode/extensions/rwConfig/icon.png" alt="" width="104" align="right">
+<img src=".vscode/extensions/rwConfig/icon-1024.png" alt="" width="104" align="right">
 
 # rwConfig
 [![Maven Central](https://img.shields.io/maven-central/v/net.rabbitware.config/config)](https://central.sonatype.com/artifact/net.rabbitware.config/config)
