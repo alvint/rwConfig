@@ -15,7 +15,7 @@ issues when it's too late to do something about it.
 For more information see the [project page](https://github.com/alvint/rwConfig)
 on GitHub.
 
-This extention provides syntax highlighting for `rwconfig` files, and checks
+This extension provides syntax highlighting for `rwconfig` files, and checks
 that your Java code matches what they declare.
 
 ## Highlighting
