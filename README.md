@@ -124,7 +124,7 @@ look at the [takeaway](benchmark/README.md).
 - **Errors at startup, not at 3am** - missing values, unparsable values, and
   values outside their allowed range. Wrong types on the Java side and requests
   for properties that no declaration mentions are caught as you write your code.
-- **All of your config sources in one place** - get all of your config info
+- **Access all of your config sources in one place** - get all of your config info
   through one interface with built-in support for command line arguments,
   environment variables, system properties, `.properties` files, `.env` files,
   and directories (including Kubernetes secrets and config maps). Plus YAML,
