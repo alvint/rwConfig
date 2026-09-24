@@ -61,7 +61,7 @@ public class ConsulPlugin implements SimpleConfigSourcePlugin {
         if (address == null) {
             throw new Exception("missing required property: address");
         }
-        // an optional property is absent as a null, not a missing key
+        // an optional property that is not set is not in the map at all
         prefix = properties.getOrDefault("prefix", "");
     }
 
@@ -102,8 +102,10 @@ A few things worth getting right:
   the library reports it before your plugin is asked for anything. Checking
   again in `setPluginProperties`, as above, costs nothing and makes the plugin
   usable on its own.
-- **Optional properties arrive as `null`** when they are not set, so use
-  `getOrDefault` or a null check. The map always contains the key.
+- **An optional property that is not set is left out of the map**, so
+  `getOrDefault` gives your default and `containsKey` says whether it was set.
+  One that is set always has a value: the `rwconfig` file rejects a setting with
+  nothing after the `=`, so you will never be handed an empty one.
 - **Throw on anything you cannot handle.** The library wraps your exception
   with the source name, so the user is told which source failed. Never return a
   partial map.
@@ -255,6 +257,7 @@ bundled plugins use so your plugin feels the same as theirs:
   `intList`, and `[9.99, 10]` becomes `9.99,10`, readable as a `doubleList` -
   what the items are read as is the declaration's business, not the plugin's.
   Only an array holding an object or another array falls back to indexed names.
+  `ListValues` does this for you - see below.
 - **Escape a literal backslash in a key** by doubling it, so a nested `a`/`b`
   (`a\b`) cannot collide with a flat key that really is called `a\b`
   (`a\\b`).
@@ -265,6 +268,31 @@ examples.
 Return values as strings and let the library parse them. Do not try to
 interpret types yourself - the `rwconfig` file already says what each property
 is, and your idea of "looks like a number" may not match it.
+
+**Return a value exactly as it is.** A value from a source is taken literally,
+so do not escape anything in it - a Windows path is just `C:\dir`. The one
+exception is a list your plugin joins from an array: the list syntax separates
+items with commas and reads backslashes as escapes, so each item has to be
+escaped. `ListValues`, in the plugin API, does both halves - deciding whether an
+array can be one list value, and joining it:
+
+```java
+case JSONArray array -> {
+    if (ListValues.allAreValues(array, MyPlugin::isValue)) {
+        map.put(prefix, ListValues.join(array, String::valueOf));
+    } else {
+        for (int i = 0; i < array.length(); i++) {
+            flatten(prefix + "\\" + i, array.get(i), map);
+        }
+    }
+}
+```
+
+`isValue` is yours, since only your plugin knows its library's types: it says
+whether one item is a plain value - a string, number, boolean, or null - rather
+than an object or an array. `join` takes each item's text as it is, and escapes
+a comma or backslash inside it, whitespace at its start, and an array holding a
+single empty string, so every item reads back exactly.
 
 ## Helpers you get for free
 
@@ -328,7 +356,7 @@ module declaration and naming are right.
       `module-info.java`, `META-INF/services`, or both
 - [ ] module named so the `rwconfig` file can reach it
 - [ ] required properties listed, and checked in `setPluginProperties`
-- [ ] optional properties handled when absent (they arrive as `null`)
+- [ ] optional properties handled when absent (they are left out of the map)
 - [ ] failures throw, with a message saying what was being attempted
 - [ ] uses `loadResource` if it takes a location
 - [ ] the module name and the implementing class's package are the same
