@@ -745,9 +745,23 @@ public class ConfigFactory {
         /** What is used before the file's own settings have been read. */
         static final Redaction DEFAULT = new Redaction(Set.of(), true);
 
+        /** Whether this property's values from this source are withheld. */
+        boolean hides(String propertyName, String sourceName) {
+            return isSecret(propertyName, sourceName, secretSources, byName);
+        }
+
         /** The value, or {@link #REDACTED} if it should not be shown. */
         String show(String propertyName, String sourceName, String value) {
-            return isSecret(propertyName, sourceName, secretSources, byName) ? REDACTED : value;
+            return hides(propertyName, sourceName) ? REDACTED : value;
+        }
+
+        /**
+         * The exception to keep as the cause of an error about a value - none,
+         * if the value is withheld. A parser's own exception quotes the text it
+         * failed on, and a logged stack trace prints every cause.
+         */
+        Throwable cause(String propertyName, String sourceName, Throwable e) {
+            return hides(propertyName, sourceName) ? null : e;
         }
     }
 
@@ -891,7 +905,7 @@ public class ConfigFactory {
             return switch (propertyType) {
                 case BOOLEAN -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction).trim();
                     // parse
                     boolean value;
                     if (
@@ -928,7 +942,7 @@ public class ConfigFactory {
                 }
                 case INT -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction).trim();
                     // parse
                     int value = Integer.parseInt(unescapedValueString);
                     // check if value is allowed
@@ -947,7 +961,7 @@ public class ConfigFactory {
                 case LONG -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction).trim();
                     // parse
                     long value = Long.parseLong(unescapedValueString);
                     // check if value is allowed
@@ -966,7 +980,7 @@ public class ConfigFactory {
                 case DOUBLE -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction).trim();
                     // parse
                     double value = Double.parseDouble(unescapedValueString);
                     // check if value is allowed
@@ -984,7 +998,7 @@ public class ConfigFactory {
                 }
                 case STRING -> {
                     // unescape any escaped characters in the value string
-                    var unescapedValueString = unescape(sourceName, valueString, syntax);
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction);
                     // check if value is allowed
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.String)range.min).s.compareTo(unescapedValueString) <= 0 &&
@@ -1001,7 +1015,7 @@ public class ConfigFactory {
                 }
                 case BIG_INTEGER -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction).trim();
                     // parse
                     BigInteger value = new BigInteger(unescapedValueString);
                     // check if value is allowed
@@ -1020,7 +1034,7 @@ public class ConfigFactory {
                 }
                 case BIG_DECIMAL -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction).trim();
                     // parse
                     BigDecimal value = new BigDecimal(unescapedValueString);
                     // check if value is allowed
@@ -1039,9 +1053,9 @@ public class ConfigFactory {
                 }
                 case DURATION -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction).trim();
                     // parse the number as milliseconds
-                    long value = parseDuration(propertyName, sourceName, unescapedValueString);
+                    long value = parseDuration(propertyName, sourceName, unescapedValueString, redaction);
                     // check if value is allowed
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
@@ -1057,9 +1071,9 @@ public class ConfigFactory {
                 }
                 case SIZE -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction).trim();
                     // parse the number as bytes
-                    long value = parseSize(propertyName, sourceName, unescapedValueString);
+                    long value = parseSize(propertyName, sourceName, unescapedValueString, redaction);
                     // check if value is allowed
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
@@ -1075,9 +1089,9 @@ public class ConfigFactory {
                 }
                 case TIMESTAMP -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
+                    var unescapedValueString = unescape(sourceName, propertyName, valueString, syntax, redaction).trim();
                     // parse the number as milliseconds from the epoch
-                    long value = parseTimestamp(propertyName, sourceName, unescapedValueString);
+                    long value = parseTimestamp(propertyName, sourceName, unescapedValueString, redaction);
                     // check if value is allowed
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.Long)range.min).l <= value && value <= ((Value.Long)range.max).l
@@ -1207,7 +1221,8 @@ public class ConfigFactory {
             String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
             throw new ConfigException(
                 "error parsing the value of `" + propertyName + "` (in " + source + ") as type `"
-                + propertyType.name + "`: "+ valueString, e
+                + propertyType.name + "`: " + redaction.show(propertyName, sourceName, valueString),
+                redaction.cause(propertyName, sourceName, e)
             );
         }
     }
@@ -1305,20 +1320,22 @@ public class ConfigFactory {
      * mistyped year is the likeliest way to get one. Declare a {@code long} if
      * you want to write an epoch value directly.
      */
-    private static long parseTimestamp(String propertyName, String sourceName, String value) {
+    private static long parseTimestamp(String propertyName, String sourceName, String value, Redaction redaction) {
+        String shown = redaction.show(propertyName, sourceName, value);
         // a space may stand in for the `T`; nothing else about the form is relaxed
         String normalized = value.replaceFirst("^(\\d{4}-\\d{2}-\\d{2})[ ]+", "$1T");
         java.time.Instant instant;
         try {
             instant = java.time.Instant.parse(normalized);
         } catch (java.time.format.DateTimeParseException e) {
-            throw new ConfigException(timestampError(propertyName, sourceName, value), e);
+            throw new ConfigException(
+                timestampError(propertyName, sourceName, shown), redaction.cause(propertyName, sourceName, e));
         }
         if (instant.getNano() % 1_000_000 != 0) {
             String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
             throw new ConfigException(
                 "value is more precise than a millisecond for property `" + propertyName + "` (in "
-                + source + "): " + value
+                + source + "): " + shown
                 + "\n\na timestamp is a whole number of milliseconds since the epoch, so anything finer"
                 + " would be silently discarded"
             );
@@ -1327,10 +1344,10 @@ public class ConfigFactory {
     }
 
     /** The accepted forms are listed, since the error is where a reader looks. */
-    private static String timestampError(String propertyName, String sourceName, String value) {
+    private static String timestampError(String propertyName, String sourceName, String shown) {
         String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
         return "error parsing the value of `" + propertyName + "` (in " + source + ") as type"
-            + " `timestamp`: " + value
+            + " `timestamp`: " + shown
             + "\n\na timestamp is an ISO-8601 date and time that states its offset from UTC:"
             + "\n    2026-08-17T00:00:00Z"
             + "\n    2026-08-17T00:00:00+02:00"
@@ -1340,12 +1357,12 @@ public class ConfigFactory {
             + " declare a `long` to write milliseconds since the epoch directly";
     }
 
-    private static long parseDuration(String propertyName, String sourceName, String value) {
-        return parseUnitValue(propertyName, sourceName, value, "duration", DURATION_UNITS);
+    private static long parseDuration(String propertyName, String sourceName, String value, Redaction redaction) {
+        return parseUnitValue(propertyName, sourceName, value, "duration", DURATION_UNITS, redaction);
     }
 
-    private static long parseSize(String propertyName, String sourceName, String value) {
-        return parseUnitValue(propertyName, sourceName, value, "size", SIZE_UNITS);
+    private static long parseSize(String propertyName, String sourceName, String value, Redaction redaction) {
+        return parseUnitValue(propertyName, sourceName, value, "size", SIZE_UNITS, redaction);
     }
 
     /**
@@ -1355,36 +1372,39 @@ public class ConfigFactory {
      * of a thousand.
      */
     private static long parseUnitValue(
-        String propertyName, String sourceName, String value, String typeName, Map<String, Long> units
+        String propertyName, String sourceName, String value, String typeName, Map<String, Long> units,
+        Redaction redaction
     ) {
+        String shown = redaction.show(propertyName, sourceName, value);
         Matcher matcher = UNIT_VALUE.matcher(value);
         if (!matcher.matches()) {
-            throw new ConfigException(unitError(propertyName, sourceName, value, typeName, units));
+            throw new ConfigException(unitError(propertyName, sourceName, shown, typeName, units));
         }
         String unit = matcher.group(2);
         long multiplier = unit.isEmpty()
             ? 1 // no unit means the canonical one
             : units.getOrDefault(unit, 0L);
         if (multiplier == 0) {
-            throw new ConfigException(unitError(propertyName, sourceName, value, typeName, units));
+            throw new ConfigException(unitError(propertyName, sourceName, shown, typeName, units));
         }
         try {
             return Math.multiplyExact(Long.parseLong(matcher.group(1)), multiplier);
         } catch (ArithmeticException e) {
             String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
             throw new ConfigException(
-                "value is too large for property `" + propertyName + "` (in " + source + "): " + value, e
+                "value is too large for property `" + propertyName + "` (in " + source + "): " + shown,
+                redaction.cause(propertyName, sourceName, e)
             );
         }
     }
 
     /** The units are listed, since the error is the only place a reader looks. */
     private static String unitError(
-        String propertyName, String sourceName, String value, String typeName, Map<String, Long> units
+        String propertyName, String sourceName, String shown, String typeName, Map<String, Long> units
     ) {
         String source = sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file";
         return "error parsing the value of `" + propertyName + "` (in " + source + ") as type `"
-            + typeName + "`: " + value
+            + typeName + "`: " + shown
             + "\n\na " + typeName + " is a whole number with an optional unit, and the units are: "
             + units.keySet().stream().sorted().collect(Collectors.joining(", "))
             + "\nwith no unit meaning " + (units == DURATION_UNITS ? "milliseconds" : "bytes");
@@ -1455,10 +1475,13 @@ public class ConfigFactory {
     }
 
     /** The value with its escape sequences handled, or as it is when it is literal. */
-    private static String unescape(String sourceName, String value, Syntax syntax) {
+    private static String unescape(
+        String sourceName, String propertyName, String value, Syntax syntax, Redaction redaction
+    ) {
         return syntax == Syntax.LITERAL
             ? value
-            : handleEscapeSequences(sourceName, value, syntax == Syntax.ALLOWED_VALUE);
+            : handleEscapeSequences(sourceName, value, syntax == Syntax.ALLOWED_VALUE,
+                redaction.show(propertyName, sourceName, value));
     }
 
     /**
@@ -1474,8 +1497,11 @@ public class ConfigFactory {
      * {@code \]}, which only mean something inside the brackets. A list item
      * from a config source has only what the list syntax needs - the source's
      * own format has escapes of its own for the rest.
+     * <p>
+     * {@code shown} is what an error or a warning may say the value was - the
+     * value itself, or a stand-in for one that is withheld.
      */
-    private static String handleEscapeSequences(String sourceName, String value, boolean allowedValue) {
+    private static String handleEscapeSequences(String sourceName, String value, boolean allowedValue, String shown) {
         boolean inTheFile = sourceName == null;
         StringBuilder result = new StringBuilder(value.length());
         // an escaped space is only meaningful as the first non-whitespace
@@ -1495,7 +1521,7 @@ public class ConfigFactory {
                 continue;
             }
             if (i == value.length() - 1) {
-                throw new ConfigException("invalid ending backslash in value: " + value);
+                throw new ConfigException("invalid ending backslash in value: " + shown);
             }
             char escaped = value.charAt(++i);
             switch (escaped) {
@@ -1507,21 +1533,21 @@ public class ConfigFactory {
                             "an escaped space is only meaningful at the start of a value, so it does nothing here"
                             + " (in {}): {}",
                             inTheFile ? "the `rwconfig` file" : "source `" + sourceName + "`",
-                            value
+                            shown
                         );
                         warned = true;
                     }
                     result.append(' ');
                 }
-                case 't' -> result.append(requireFile(inTheFile, escaped, value, '\t'));
-                case 'n' -> result.append(requireFile(inTheFile, escaped, value, '\n'));
-                case 'r' -> result.append(requireFile(inTheFile, escaped, value, '\r'));
+                case 't' -> result.append(requireFile(inTheFile, escaped, shown, '\t'));
+                case 'n' -> result.append(requireFile(inTheFile, escaped, shown, '\n'));
+                case 'r' -> result.append(requireFile(inTheFile, escaped, shown, '\r'));
                 case 'u' -> {
-                    requireFile(inTheFile, escaped, value, 'u');
+                    requireFile(inTheFile, escaped, shown, 'u');
                     String hex = value.length() >= i + 5 ? value.substring(i + 1, i + 5) : "";
                     if (!hex.matches("[0-9a-fA-F]{4}")) {
                         throw new ConfigException(
-                            "invalid escape sequence `\\u` in value, which needs four hex digits: " + value);
+                            "invalid escape sequence `\\u` in value, which needs four hex digits: " + shown);
                     }
                     result.append((char) Integer.parseInt(hex, 16));
                     i += 4;
@@ -1530,12 +1556,12 @@ public class ConfigFactory {
                     if (!allowedValue) {
                         throw new ConfigException(
                             "invalid escape sequence `\\" + escaped + "` in value, which is only needed inside"
-                            + " an allowed values list: " + value);
+                            + " an allowed values list: " + shown);
                     }
                     result.append(escaped);
                 }
                 default -> throw new ConfigException(
-                    "invalid escape sequence `\\" + escaped + "` in value: " + value);
+                    "invalid escape sequence `\\" + escaped + "` in value: " + shown);
             }
             pastTheStart = true;
         }
@@ -1543,9 +1569,9 @@ public class ConfigFactory {
     }
 
     /** An escape only the `rwconfig` file has - a config source's own format has one for it. */
-    private static char requireFile(boolean inTheFile, char escaped, String value, char meaning) {
+    private static char requireFile(boolean inTheFile, char escaped, String shown, char meaning) {
         if (!inTheFile) {
-            throw new ConfigException("invalid escape sequence `\\" + escaped + "` in value: " + value);
+            throw new ConfigException("invalid escape sequence `\\" + escaped + "` in value: " + shown);
         }
         return meaning;
     }

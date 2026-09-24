@@ -519,6 +519,13 @@ value is replaced, by `****`, so an error stays diagnosable:
 value is not allowed for property `dbPassword` (in source `vault`): ****
 ```
 
+That holds for every error about a value - one that is not a number, a
+timestamp without an offset, a unit that does not exist, an escape sequence that
+is not one - and for the warning about a misplaced escaped space. The exception
+from the underlying parser is left off as well when a value is withheld, since
+its own message quotes the text it failed on, and a logged stack trace prints
+every cause.
+
 ## Which sources can be watched
 
 With [change detection](java-api.md#noticing-that-a-source-has-changed) turned

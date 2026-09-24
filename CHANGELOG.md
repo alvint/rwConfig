@@ -119,6 +119,12 @@ could not see.
 
 ### Security
 
+- **A secret that failed to parse was shown in the error.** Withholding a
+  value covered only the allowed-values check, so `12x34` for an `int apiSecret`
+  appeared in full - and a second time in the message of the parser's own
+  exception, kept as the cause. Every error about a value now withholds it, as
+  does the warning about a misplaced escaped space, and a withheld value's error
+  no longer carries the parser's exception.
 - **HOCON directives that reach outside the document are refused by default.**
   `include` in every form - bare, `file()`, `url()`, and `classpath()` - and
   substitutions that fall back to environment variables or system properties now

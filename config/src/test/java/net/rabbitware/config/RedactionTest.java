@@ -101,6 +101,104 @@ class RedactionTest {
     }
 
     @Nested
+    @DisplayName("a value that cannot be parsed is withheld too")
+    class ParseErrors {
+
+        /**
+         * Load a value that fails to parse, from a system property, and return
+         * the error. A system property is taken as it is, so the value reaches
+         * the parser exactly as written here.
+         */
+        private ConfigException parseError(String declaration, String value) throws IOException {
+            String name = declaration.substring(declaration.lastIndexOf(' ') + 1);
+            Path file = tempDir.resolve("rwconfig");
+            Files.write(file, List.of("rwc.sources = sys", "rwc.sys.type = systemProperties", declaration));
+            System.setProperty(name, value);
+            try {
+                return assertThrows(ConfigException.class, () -> ConfigFactory.create(
+                    new String[] { ConfigFactory.CONFIG_FILE_PATH_PROPERTY + "=file:" + file }));
+            } finally {
+                System.clearProperty(name);
+            }
+        }
+
+        /** Every message in the chain - a logged stack trace prints them all. */
+        private List<String> messages(Throwable e) {
+            List<String> messages = new ArrayList<>();
+            for (Throwable t = e; t != null; t = t.getCause()) {
+                messages.add(t.getClass().getName() + ": " + t.getMessage());
+            }
+            return messages;
+        }
+
+        private void assertWithheld(String declaration, String value) throws IOException {
+            ConfigException e = parseError(declaration, value);
+            assertTrue(e.getMessage().contains("****"), declaration + " should have been redacted: " + e.getMessage());
+            for (String message : messages(e)) {
+                assertFalse(message.contains(value), declaration + " leaked its value in: " + message);
+            }
+        }
+
+        @Test
+        @DisplayName("a number that is not one - including the parser's own exception, kept as the cause")
+        void aNumber() throws IOException {
+            assertWithheld("int apiSecret", "12x34");
+            assertWithheld("bigDecimal apiSecret", "12x34");
+        }
+
+        @Test
+        @DisplayName("a timestamp that is not one, or is finer than a millisecond")
+        void aTimestamp() throws IOException {
+            assertWithheld("timestamp apiSecret", "not-a-date-12x34");
+            assertWithheld("timestamp apiSecret", "2026-08-17T00:00:00.0001234Z");
+        }
+
+        @Test
+        @DisplayName("a duration or size with a unit that does not exist, or too large to hold")
+        void aDurationOrSize() throws IOException {
+            assertWithheld("duration apiSecret", "5parsecs");
+            assertWithheld("size apiSecret", "99999999999999999TB");
+        }
+
+        @Test
+        @DisplayName("a list item with an escape sequence that is not one")
+        void anEscapeSequence() throws IOException {
+            assertWithheld("stringList apiSecret", "a\\qb");
+            assertWithheld("stringList apiSecret", "abc\\");
+        }
+
+        @Test
+        @DisplayName("a misplaced escaped space, which is only a warning, is not logged either")
+        void anEscapedSpaceWarning() throws IOException {
+            java.io.PrintStream original = System.err;
+            var captured = new java.io.ByteArrayOutputStream();
+            Path file = tempDir.resolve("rwconfig");
+            Files.write(file, List.of("rwc.sources = sys", "rwc.sys.type = systemProperties",
+                "stringList apiSecret = none"));
+            System.setProperty("apiSecret", "hunter2\\ x");
+            try {
+                System.setErr(new java.io.PrintStream(captured, true, java.nio.charset.StandardCharsets.UTF_8));
+                ConfigFactory.create(new String[] { ConfigFactory.CONFIG_FILE_PATH_PROPERTY + "=file:" + file });
+            } finally {
+                System.setErr(original);
+                System.clearProperty("apiSecret");
+            }
+            String log = captured.toString(java.nio.charset.StandardCharsets.UTF_8);
+            assertTrue(log.contains("escaped space is only meaningful"), "expected the warning, but got: " + log);
+            assertFalse(log.contains("hunter2"), log);
+        }
+
+        @Test
+        @DisplayName("an ordinary property still shows its value, and keeps the parser's exception")
+        void anOrdinaryPropertyStillShowsItsValue() throws IOException {
+            ConfigException e = parseError("int port", "12x34");
+            assertTrue(e.getMessage().contains("12x34"), e.getMessage());
+            assertTrue(e.getCause() instanceof NumberFormatException, "the cause is still useful: " + e.getCause());
+        }
+    }
+
+
+    @Nested
     @DisplayName("declaring a whole source secret")
     class BySource {
 
