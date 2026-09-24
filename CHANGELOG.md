@@ -83,6 +83,13 @@ could not see.
   property. Typesafe Config turns `2.00` into the integer `2`, so the list
   looked mixed and was split into indexed properties that nothing declared.
 
+- **A list item or allowed value ending in an escaped backslash swallowed the
+  next one.** `stringList paths = a\\, b` was read as the single item `a\, b`,
+  because only the one character before a comma was checked, and the backslash
+  there was taken as escaping it rather than as the second half of `\\`. The
+  same was true of the `..` in a range. A comma is now escaped only by an odd
+  number of backslashes before it.
+
 ### Security
 
 - **HOCON directives that reach outside the document are refused by default.**

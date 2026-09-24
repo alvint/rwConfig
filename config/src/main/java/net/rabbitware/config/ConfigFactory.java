@@ -834,9 +834,9 @@ public class ConfigFactory {
                     case SIZE, SIZE_LIST -> DeclaredType.SIZE;
                     case TIMESTAMP, TIMESTAMP_LIST -> DeclaredType.TIMESTAMP;
                 };
-            Stream.of(allowedValues.split("(?<!\\\\),\\s*", -1)) // remove leading whitespace but not trailing
+            Stream.of(splitUnescaped(allowedValues, ",\\s*")) // remove leading whitespace but not trailing
                 .forEach(rangeString -> {
-                    String[] minMax = rangeString.split("(?<!\\\\)\\.\\.\\s*", -1); // remove leading whitespace only
+                    String[] minMax = splitUnescaped(rangeString, "\\.\\.\\s*"); // remove leading whitespace only
                     if (minMax.length > 2) {
                         throw new ConfigException(
                             "invalid allowed value range for property `" + name + "`: " + rangeString
@@ -1071,7 +1071,7 @@ public class ConfigFactory {
                 case BOOLEAN_LIST -> {
                     List<Value.Boolean> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                        : Stream.of(splitUnescaped(valueString, ","))
                             .map(s -> (Value.Boolean)
                                 parseValue(sourceName, propertyName, s, DeclaredType.BOOLEAN, allowedValues, redaction)
                             )
@@ -1081,7 +1081,7 @@ public class ConfigFactory {
                 case INT_LIST -> {
                     List<Value.Integer> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                        : Stream.of(splitUnescaped(valueString, ","))
                             .map(s -> (Value.Integer)
                                 parseValue(sourceName, propertyName, s, DeclaredType.INT, allowedValues, redaction)
                             )
@@ -1091,7 +1091,7 @@ public class ConfigFactory {
                 case LONG_LIST -> {
                     List<Value.Long> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                        : Stream.of(splitUnescaped(valueString, ","))
                             .map(s -> (Value.Long)
                                 parseValue(sourceName, propertyName, s, DeclaredType.LONG, allowedValues, redaction))
                             .toList();
@@ -1100,7 +1100,7 @@ public class ConfigFactory {
                 case DOUBLE_LIST -> {
                     List<Value.Double> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                        : Stream.of(splitUnescaped(valueString, ","))
                             .map(s -> (Value.Double)
                                 parseValue(sourceName, propertyName, s, DeclaredType.DOUBLE, allowedValues, redaction)
                             )
@@ -1112,7 +1112,7 @@ public class ConfigFactory {
                     // on unescaped commas
                     List<Value.String> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),\\s*", -1))
+                        : Stream.of(splitUnescaped(valueString, ",\\s*"))
                             .map(s -> (Value.String)
                                 parseValue(sourceName, propertyName, s, DeclaredType.STRING, allowedValues, redaction)
                             )
@@ -1122,7 +1122,7 @@ public class ConfigFactory {
                 case BIG_INTEGER_LIST -> {
                     List<Value.BigInteger> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                        : Stream.of(splitUnescaped(valueString, ","))
                             .map(s -> (Value.BigInteger)
                                 parseValue(
                                     sourceName, propertyName, s, DeclaredType.BIG_INTEGER, allowedValues, redaction
@@ -1134,7 +1134,7 @@ public class ConfigFactory {
                 case BIG_DECIMAL_LIST -> {
                     List<Value.BigDecimal> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                        : Stream.of(splitUnescaped(valueString, ","))
                             .map(s -> (Value.BigDecimal)
                                 parseValue(
                                     sourceName, propertyName, s, DeclaredType.BIG_DECIMAL, allowedValues, redaction
@@ -1146,7 +1146,7 @@ public class ConfigFactory {
                 case DURATION_LIST -> {
                     List<Value.Long> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                        : Stream.of(splitUnescaped(valueString, ","))
                             .map(s -> (Value.Long)
                                 parseValue(sourceName, propertyName, s, DeclaredType.DURATION, allowedValues, redaction)
                             )
@@ -1156,7 +1156,7 @@ public class ConfigFactory {
                 case SIZE_LIST -> {
                     List<Value.Long> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                        : Stream.of(splitUnescaped(valueString, ","))
                             .map(s -> (Value.Long)
                                 parseValue(sourceName, propertyName, s, DeclaredType.SIZE, allowedValues, redaction)
                             )
@@ -1166,7 +1166,7 @@ public class ConfigFactory {
                 case TIMESTAMP_LIST -> {
                     List<Value.Long> list = valueString.isEmpty()
                         ? List.of()
-                        : Stream.of(valueString.split("(?<!\\\\),", -1))
+                        : Stream.of(splitUnescaped(valueString, ","))
                             .map(s -> (Value.Long)
                                 parseValue(
                                     sourceName, propertyName, s, DeclaredType.TIMESTAMP, allowedValues, redaction
@@ -1387,6 +1387,33 @@ public class ConfigFactory {
                 configPrefix, sourceName, value, type
             );
         }
+    }
+
+    /**
+     * Split a value on a separator that is not escaped - the commas of a list,
+     * or the {@code ..} of a range.
+     * <p>
+     * A separator is escaped by an odd number of backslashes before it, not
+     * merely by one: {@code \\,} is an escaped backslash followed by a real
+     * comma. Looking back a single character would read that backslash as
+     * escaping the comma, and join two items into one. So each escaped
+     * backslash is set aside first - the same way {@link #handleEscapeSequences}
+     * does it - which leaves a backslash before a separator only when it
+     * really escapes it, and each piece gets its escaped backslashes back.
+     *
+     * @param value
+     * the value to split
+     * @param separator
+     * a regex for the separator, which is not matched after a backslash
+     * @return
+     * the pieces, including empty ones, still escaped
+     */
+    private static String[] splitUnescaped(String value, String separator) {
+        String[] pieces = value.replace("\\\\", "\0").split("(?<!\\\\)" + separator, -1);
+        for (int i = 0; i < pieces.length; i++) {
+            pieces[i] = pieces[i].replace("\0", "\\\\");
+        }
+        return pieces;
     }
 
     private static String handleEscapeSequences(String sourceName, String value) {

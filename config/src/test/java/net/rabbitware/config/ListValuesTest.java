@@ -80,6 +80,15 @@ class ListValuesTest {
         }
 
         @Test
+        @DisplayName("an item ending in an escaped backslash does not swallow the next one")
+        void itemEndingInABackslash() throws IOException {
+            // an item is in value syntax, so the text `a\\` is the value `a\`
+            assertEquals(
+                List.of("a\\", "b"),
+                roundTrip("stringList", List.of("a\\\\", "b")).getStringList("listValuesTestProperty"));
+        }
+
+        @Test
         @DisplayName("trailing whitespace is kept, which it always was")
         void trailingWhitespace() throws IOException {
             assertRoundTrips(List.of("a ", "b\t"));

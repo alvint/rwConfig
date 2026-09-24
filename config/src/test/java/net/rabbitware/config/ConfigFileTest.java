@@ -317,6 +317,34 @@ class ConfigFileTest {
         void unicodeEscapesWorkInItems() throws IOException {
             assertEquals(List.of("aAb", "c"), config("stringList myList = a\\u0041b, c").getsl("myList"));
         }
+
+        @Test
+        @DisplayName("an item can end in an escaped backslash - the comma after it still separates")
+        void anItemEndingInAnEscapedBackslash() throws IOException {
+            // `a\\,b` is an escaped backslash, then a real comma. Looking back one
+            // character took that backslash as escaping the comma, and read one item
+            assertEquals(List.of("a\\", "b"), config("stringList myList = a\\\\,b").getsl("myList"));
+            assertEquals(List.of("a\\\\", "b"), config("stringList myList = a\\\\\\\\,b").getsl("myList"));
+        }
+
+        @Test
+        @DisplayName("an escaped backslash then an escaped comma is one item")
+        void anEscapedBackslashThenAnEscapedComma() throws IOException {
+            assertEquals(List.of("a\\,b"), config("stringList myList = a\\\\\\,b").getsl("myList"));
+        }
+
+        @Test
+        @DisplayName("the same holds for every list type, not only strings")
+        void otherListTypesSplitTheSameWay() throws IOException {
+            // no other type has a backslash in a valid item, so an escaped one
+            // splits off and is then rejected as that type - rather than
+            // joining two items and being rejected for that
+            ConfigException e = rejected("intList myList = 1\\\\,2");
+            assertTrue(
+                String.valueOf(e.getMessage()).endsWith(": 1\\\\"),
+                "expected the item `1\\\\` alone to be rejected, but got: " + e.getMessage()
+            );
+        }
     }
 
 
@@ -727,6 +755,27 @@ class ConfigFileTest {
             assertEquals("", config("string[\\e..z] myProp =").gets("myProp"));
             // the upper bound still applies
             rejected("string[\\e..z] myProp = zzz");
+        }
+
+        @Test
+        @DisplayName("an allowed value can end in an escaped backslash - the comma after it still separates")
+        void anAllowedValueEndingInAnEscapedBackslash() throws IOException {
+            assertEquals("b", config("string[a\\\\, b] myProp = b").gets("myProp"));
+            // the value comes from a system property, since one written at the
+            // end of the line would be continued onto the next - see config-file.md
+            System.setProperty("myProp", "a\\\\");
+            try {
+                assertEquals("a\\", config("string[a\\\\, b] myProp = b").gets("myProp"));
+            } finally {
+                System.clearProperty("myProp");
+            }
+        }
+
+        @Test
+        @DisplayName("a range bound can end in an escaped backslash - the `..` after it is still a range")
+        void aRangeBoundEndingInAnEscapedBackslash() throws IOException {
+            // from `a\` to `z`, so `m` is inside it; read as one value, it was not
+            assertEquals("m", config("string[a\\\\..z] myProp = m").gets("myProp"));
         }
 
         @Test
