@@ -15,6 +15,7 @@ import org.snakeyaml.engine.v2.api.LoadSettings;
 import org.snakeyaml.engine.v2.nodes.ScalarNode;
 import org.snakeyaml.engine.v2.nodes.Tag;
 import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.ListValues;
 
 /**
  * A simple YAML plugin implementation. It leverages the {@code eo-yaml}
@@ -116,20 +117,11 @@ public class YamlPlugin extends LocationBasedConfigSourcePlugin {
                 }
             }
             case List<?> list -> {
-                // treat arrays of values as a list
-                if (arrayIsAllValues(list)) { // treat as a list
-                    StringBuilder sb = new StringBuilder();
+                if (ListValues.allAreValues(list, YamlPlugin::isValue)) { // one list value
+                    add(map, prefix, ListValues.join(list, String::valueOf));
+                } else { // indexed
                     for (int index = 0; index < list.size(); index++) {
-                        if (index > 0) {
-                            sb.append(",");
-                        }
-                        sb.append(list.get(index));
-                    }
-                    add(map, prefix, sb.toString());
-                } else { // treat as indexed objects
-                    for (int index = 0; index < list.size(); index++) {
-                        Object value = list.get(index);
-                        getContents(prefix + "\\" + index, value, map);
+                        getContents(prefix + "\\" + index, list.get(index), map);
                     }
                 }
             }
@@ -146,16 +138,11 @@ public class YamlPlugin extends LocationBasedConfigSourcePlugin {
     }
 
 
-    // return true if the given list contains only values
-    private boolean arrayIsAllValues(List<?> a) {
-        for (int i = 0; i < a.size(); i++) {
-            Object o = a.get(i);
-            if (!(o == null || o instanceof String || o instanceof Number || o instanceof Boolean)) {
-                return false;
-            }
-        }
-        return true;
-    }        
+    // a value that can be one item of a list - anything else, including a
+    // value tagged `!!binary` or `!!set`, cannot be written out as one
+    private static boolean isValue(Object o) {
+        return o == null || o instanceof String || o instanceof Number || o instanceof Boolean;
+    }
 
     private void add(Map<String, String> map, String key, Object value) {
         if (map.containsKey(key)) {

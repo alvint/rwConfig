@@ -98,6 +98,14 @@ class XmlPluginTest {
         }
 
         @Test
+        @DisplayName("an item's comma is escaped, so the item reads back whole")
+        void itemsAreEscaped() throws Exception {
+            // the escaping itself is ListValues' - see ListValuesTest in the config module.
+            // No leading-space case here: the XML parser trims element text itself
+            assertEquals("a\\,b,c", loadRepeated("a,b", "c").get("root\\x\\v"));
+        }
+
+        @Test
         @DisplayName("strings and numbers together - a `stringList` can read either")
         void stringsMixedWithNumbers() throws Exception {
             assertEquals("a,1", loadRepeated("a", "1").get("root\\x\\v"));

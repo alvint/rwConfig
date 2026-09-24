@@ -23,6 +23,7 @@ import com.typesafe.config.ConfigValueType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.ListValues;
 
 /**
  * A simple HOCON plugin implementation. It leverages Typesafe Config to read
@@ -171,17 +172,9 @@ public class HoconPlugin extends LocationBasedConfigSourcePlugin {
                 }
             }
             case ConfigList list -> {
-                // treat arrays of values as a list
-                if (arrayIsAllValues(list)) { // treat as a list
-                    StringBuilder sb = new StringBuilder();
-                    for (int i = 0; i < list.size(); i++) {
-                        if (i > 0) {
-                            sb.append(",");
-                        }
-                        sb.append(text(list.get(i)));
-                    }
-                    add(map, prefix, sb.toString());
-                } else { // treat as indexed objects
+                if (ListValues.allAreValues(list, HoconPlugin::isValue)) { // one list value
+                    add(map, prefix, ListValues.join(list, HoconPlugin::text));
+                } else { // indexed
                     for (int i = 0; i < list.size(); i++) {
                         getContents(prefix.isEmpty() ? String.valueOf(i) : prefix + "\\" + i, list.get(i), map);
                     }
@@ -197,20 +190,12 @@ public class HoconPlugin extends LocationBasedConfigSourcePlugin {
     }
 
 
-    // return true if the given list contains only values
-    private boolean arrayIsAllValues(ConfigList a) {
-        for (int i = 0; i < a.size(); i++) {
-            ConfigValue value = a.get(i);
-            if (!(
-                value.valueType() == ConfigValueType.NULL ||
-                value.valueType() == ConfigValueType.STRING ||
-                value.valueType() == ConfigValueType.NUMBER ||
-                value.valueType() == ConfigValueType.BOOLEAN
-            )) {
-                return false; // non-value object found
-            }
-        }
-        return true;
+    // a value that can be one item of a list, rather than an object or a list
+    private static boolean isValue(ConfigValue value) {
+        return switch (value.valueType()) {
+            case NULL, STRING, NUMBER, BOOLEAN -> true;
+            case OBJECT, LIST -> false;
+        };
     }
 
     private void add(Map<String, String> map, String key, Object value) {

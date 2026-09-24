@@ -129,6 +129,13 @@ class JsonPluginTest {
         }
 
         @Test
+        @DisplayName("an item's comma and leading space are escaped, so the item reads back whole")
+        void itemsAreEscaped() throws Exception {
+            // the escaping itself is ListValues' - see ListValuesTest
+            assertEquals("a\\,b,\\e c", loadArray("[\"a,b\", \" c\"]").get("x"));
+        }
+
+        @Test
         @DisplayName("strings, numbers, and booleans together - a `stringList` can read any of them")
         void anyMixOfPlainValues() throws Exception {
             assertEquals("a,1", loadArray("[\"a\",1]").get("x"));

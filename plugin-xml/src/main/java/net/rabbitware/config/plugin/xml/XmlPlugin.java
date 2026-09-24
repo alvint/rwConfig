@@ -6,6 +6,7 @@ import org.json.XML;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.rabbitware.config.plugin.api.LocationBasedConfigSourcePlugin;
+import net.rabbitware.config.plugin.api.ListValues;
 
 /**
  * A simple XML plugin implementation. It leverages the {@code org.json}
@@ -57,22 +58,11 @@ public class XmlPlugin extends LocationBasedConfigSourcePlugin {
                 }
             }
             case org.json.JSONArray jsonArray -> {
-                // treat arrays of values as a list
-                if (arrayIsAllValues(jsonArray)) {
-                    // treat as a list
-                    StringBuilder sb = new StringBuilder();
+                if (ListValues.allAreValues(jsonArray, XmlPlugin::isValue)) { // one list value
+                    add(map, prefix, ListValues.join(jsonArray, String::valueOf));
+                } else { // indexed
                     for (int i = 0; i < jsonArray.length(); i++) {
-                        if (i > 0) {
-                            sb.append(",");
-                        }
-                        sb.append(String.valueOf(jsonArray.get(i)));
-                    }
-                    add(map, prefix, sb.toString());
-                } else {
-                    // treat as indexed objects
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        Object value = jsonArray.get(i);
-                        getContents(prefix + "\\" + i, value, map);
+                        getContents(prefix + "\\" + i, jsonArray.get(i), map);
                     }
                 }
             }
@@ -90,15 +80,9 @@ public class XmlPlugin extends LocationBasedConfigSourcePlugin {
     }
 
 
-    // return true if the given JSONArray contains only values
-    private boolean arrayIsAllValues(org.json.JSONArray a) {
-        for (int i = 0; i < a.length(); i++) {
-            Object o = a.get(i);
-            if (!(o == JSONObject.NULL || o instanceof String || o instanceof Number || o instanceof Boolean)) {
-                return false; // non-value object found
-            }
-        }
-        return true;
+    // a value that can be one item of a list, rather than an object or an array
+    private static boolean isValue(Object o) {
+        return o == JSONObject.NULL || o instanceof String || o instanceof Number || o instanceof Boolean;
     }
 
     private void add(Map<String, String> map, String key, Object value) {
