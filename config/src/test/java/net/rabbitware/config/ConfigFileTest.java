@@ -136,6 +136,12 @@ class ConfigFileTest {
         }
 
         @Test
+        @DisplayName("a comment ending in an escaped backslash does not swallow the next line")
+        void aCommentEndingInAnEscapedBackslashDoesNotSwallowTheNextLine() throws IOException {
+            assertEquals("kept", config("# a comment \\\\", "string myProp = kept").gets("myProp"));
+        }
+
+        @Test
         @DisplayName("a line is joined before comments are removed, so a comment swallows the next line")
         void aCommentThatEndsWithABackslashSwallowsTheNextLine() throws IOException {
             Config config = config("# a comment \\", "string myProp = surprise");
@@ -149,15 +155,20 @@ class ConfigFileTest {
         }
 
         @Test
-        @DisplayName("a line ending in two backslashes joins as well - the test is a plain suffix test")
-        void twoTrailingBackslashesAlsoJoin() {
-            // the last backslash joins the lines and is removed, which leaves
-            // `a\b` - and `\b` is not a valid escape sequence
-            ConfigException e = rejected("string myProp = a\\\\", "b");
-            assertTrue(
-                e.getMessage().contains("invalid escape sequence `\\b`"),
-                "expected the joined value to be `a\\b`, but got: " + e.getMessage()
-            );
+        @DisplayName("a line ending in an escaped backslash is not joined - the value ends in a backslash")
+        void anEscapedBackslashAtTheEndDoesNotJoin() throws IOException {
+            // `\\` is an escaped backslash, not a continuation. It used to be
+            // joined anyway, which ran the next declaration into this value
+            Config config = config("string myProp = a\\\\", "string myOther = b");
+            assertEquals("a\\", config.gets("myProp"));
+            assertEquals("b", config.gets("myOther"));
+        }
+
+        @Test
+        @DisplayName("an escaped backslash followed by one more still joins")
+        void anEscapedBackslashThenABackslashJoins() throws IOException {
+            // an odd run of backslashes: the last one continues the line
+            assertEquals("a\\b", config("string myProp = a\\\\\\", "b").gets("myProp"));
         }
     }
 
@@ -266,14 +277,26 @@ class ConfigFileTest {
         }
 
         @Test
+        @DisplayName("a value can end in an escaped backslash")
+        void aValueCanEndWithAnEscapedBackslash() throws IOException {
+            assertEquals("a\\", config("string myProp = a\\\\").gets("myProp"));
+        }
+
+        @Test
+        @DisplayName("a lone backslash at the end of a value is rejected")
         void aValueCannotEndWithALoneBackslash() {
-            // the joiner takes the trailing backslash off the last line, which
-            // leaves a value that ends with the backslash that preceded it
-            ConfigException e = rejected("string myProp = a\\\\");
-            assertTrue(
-                e.getMessage().contains("invalid ending backslash"),
-                "expected an `invalid ending backslash` error, but got: " + e.getMessage()
-            );
+            // in the `rwconfig` file a lone trailing backslash always continues
+            // the line, so only a config source can deliver one
+            System.setProperty("myProp", "a\\");
+            try {
+                ConfigException e = rejected("string myProp = b");
+                assertTrue(
+                    e.getMessage().contains("invalid ending backslash"),
+                    "expected an `invalid ending backslash` error, but got: " + e.getMessage()
+                );
+            } finally {
+                System.clearProperty("myProp");
+            }
         }
     }
 
@@ -761,14 +784,7 @@ class ConfigFileTest {
         @DisplayName("an allowed value can end in an escaped backslash - the comma after it still separates")
         void anAllowedValueEndingInAnEscapedBackslash() throws IOException {
             assertEquals("b", config("string[a\\\\, b] myProp = b").gets("myProp"));
-            // the value comes from a system property, since one written at the
-            // end of the line would be continued onto the next - see config-file.md
-            System.setProperty("myProp", "a\\\\");
-            try {
-                assertEquals("a\\", config("string[a\\\\, b] myProp = b").gets("myProp"));
-            } finally {
-                System.clearProperty("myProp");
-            }
+            assertEquals("a\\", config("string[a\\\\, b] myProp = a\\\\").gets("myProp"));
         }
 
         @Test

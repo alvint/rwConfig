@@ -90,6 +90,12 @@ could not see.
   same was true of the `..` in a range. A comma is now escaped only by an odd
   number of backslashes before it.
 
+- **A line ending in an escaped backslash was joined with the next line.**
+  `string winDir = C:\\` ran the next declaration into its value, and failed with
+  an invalid escape sequence, so no value could end in a backslash. Only an odd
+  run of backslashes now continues a line, and a comment ending in `\\` no
+  longer swallows the line after it.
+
 ### Security
 
 - **HOCON directives that reach outside the document are refused by default.**

@@ -132,7 +132,7 @@
                 {
                     "comment": "comment. a comment that ends with a backslash swallows the next line, just like it does in the parser",
                     "begin": "^\\s*[#!]",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "name": "comment.line.number-sign.rwconfig"
                 },
                 {
@@ -167,7 +167,7 @@
                 {
                     "comment": "integer",
                     "begin": "(?<=^\\s*(?i:int|long|bigInteger)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation.indent"
@@ -186,7 +186,7 @@
                 {
                     "comment": "integer list",
                     "begin": "(?<=^\\s*(?i:intList|longList|bigIntegerList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation.indent"
@@ -218,7 +218,7 @@
                 {
                     "comment": "integer range",
                     "begin": "(?<=^\\s*(?i:int|intList|long|longList|bigInteger|bigIntegerList)\\s*)\\[[ \\t]*",
-                    "end": "\\]|(?<![\\\\\\n])$",
+                    "end": "\\]|(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation"
@@ -270,7 +270,7 @@
                 {
                     "comment": "double",
                     "begin": "(?<=^\\s*(?i:double|bigDecimal)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation.indent"
@@ -289,7 +289,7 @@
                 {
                     "comment": "double list",
                     "begin": "(?<=^\\s*(?i:doubleList|bigDecimalList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation.indent"
@@ -321,7 +321,7 @@
                 {
                     "comment": "double range",
                     "begin": "(?<=^\\s*(?i:double|doubleList|bigDecimal|bigDecimalList)\\s*)\\[[ \\t]*",
-                    "end": "\\]|(?<![\\\\\\n])$",
+                    "end": "\\]|(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation"
@@ -373,7 +373,7 @@
                 {
                     "comment": "boolean",
                     "begin": "(?<=^\\s*(?i:boolean)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation.indent"
@@ -392,7 +392,7 @@
                 {
                     "comment": "boolean list",
                     "begin": "(?<=^\\s*(?i:booleanList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation.indent"
@@ -424,7 +424,7 @@
                 {
                     "comment": "boolean range",
                     "begin": "(?<=^\\s*(?i:boolean|booleanList)\\s*)\\[[ \\t]*",
-                    "end": "\\]|(?<![\\\\\\n])$",
+                    "end": "\\]|(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation"
@@ -476,7 +476,7 @@
                 {
                     "comment": "string",
                     "begin": "(?<=^\\s*(?i:string\\s*)?(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "contentName": "string.unquoted.rwconfig",
                     "patterns": [
                         {
@@ -502,7 +502,7 @@
                 {
                     "comment": "string list",
                     "begin": "(?<=^\\s*(?i:stringList)\\b\\s*(?:\\[(?:\\\\.|[^\\]])*]\\s*)?[^\\s\\[\\]=]+\\s*)=[ \\t]*",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation.indent"
@@ -541,7 +541,7 @@
                 {
                     "comment": "string range",
                     "begin": "(?<=^\\s*(?i:string\\s*|stringList\\s*)?)\\[[ \\t]*",
-                    "end": "\\]|(?<![\\\\\\n])$",
+                    "end": "\\]|(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation"
@@ -610,7 +610,7 @@
                 {
                     "comment": "value of a property whose allowed values list was opened on an earlier line. the type is not on this line, so the value cannot be validated, but it still has to be joined with any lines that follow it",
                     "begin": "(?<=^(?:\\\\.|[^\\]])*\\]\\s*[^\\s\\[=]+\\s*)=[ \\t]*",
-                    "end": "(?<![\\\\\\n])$",
+                    "end": "(?<![\\\\\\n])$|(?<=(?:^|[^\\\\\\n])(?:\\\\\\\\)+)$",
                     "patterns": [
                         {
                             "include": "#continuation.indent"

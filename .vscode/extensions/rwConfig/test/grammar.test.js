@@ -259,6 +259,32 @@ describe('lines that end with a backslash are joined with the next line', () => 
         );
     });
 
+    test('a line ending in an escaped backslash is not joined, as the parser does', async () => {
+        // `\\` is an escaped backslash - only an odd run of backslashes continues
+        const lines = await tokenizeLines('string myProp = a\\\\\nstring myOther = b');
+        assert.ok(
+            lines[1].some((token) => token.scopes.some((s) => s.endsWith('storage.type.rwconfig'))),
+            `the next line should be a new declaration, but got: ${JSON.stringify(lines[1])}`
+        );
+        await assertValid('string myProp = a\\\\\nstring myOther = b');
+    });
+
+    test('an escaped backslash followed by one more still joins', async () => {
+        const lines = await tokenizeLines('string myProp = a\\\\\\\nstring myOther = b');
+        assert.ok(
+            !lines[1].some((token) => token.scopes.some((s) => s.endsWith('storage.type.rwconfig'))),
+            `the next line should be part of the value, but got: ${JSON.stringify(lines[1])}`
+        );
+    });
+
+    test('a comment ending in an escaped backslash does not swallow the next line', async () => {
+        const lines = await tokenizeLines('# a comment \\\\\nstring myProp = kept');
+        assert.ok(
+            lines[1].some((token) => token.scopes.some((s) => s.endsWith('storage.type.rwconfig'))),
+            `the next line should be a declaration, but got: ${JSON.stringify(lines[1])}`
+        );
+    });
+
     test('an empty line ends the joined line', async () => {
         const lines = await tokenizeLines('string myProp = a\\\n\nint myOther = 42');
         assert.deepEqual(

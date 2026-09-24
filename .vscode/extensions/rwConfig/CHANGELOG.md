@@ -13,6 +13,9 @@ by hand.
   list forms, and their short names - the same way as every other read: a
   misspelled name, the wrong getter for the declared type, and properties never
   read.
+- A line ending in an escaped backslash, `\\`, is no longer highlighted as
+  continuing onto the next line, which now matches the library. Only an odd run
+  of backslashes continues a line.
 
 ## 0.2.0
 

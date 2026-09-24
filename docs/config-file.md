@@ -326,9 +326,15 @@ Two things to know:
   string myProperty = this line disappears into the comment
   ```
 
-- **The test is a plain "does it end with a backslash".** A line ending in `\\`
-  also continues, and leaves a trailing backslash behind, which is usually an
-  invalid escape sequence.
+- **An escaped backslash does not continue the line.** `\\` is a literal
+  backslash, so a line ending in it ends there, and the value ends in `\`. It is
+  an odd run of backslashes that continues a line - `\\\` is a literal
+  backslash, and then the line goes on.
+
+  ```
+  string winDir = C:\\
+  string next = this is its own property
+  ```
 
 ## Library settings
 

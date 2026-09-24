@@ -593,11 +593,14 @@ public class ConfigFactory {
             try {
                 List<String> lines = LocationBasedConfigSourcePlugin.loadResource(location).lines().toList();
                 // join lines that end with a backslash with the next line, and
-                // remove the backslash
+                // remove the backslash. Only a backslash that is not itself
+                // escaped counts - an odd run of them - so a value can end in
+                // an escaped backslash, `\\`, without swallowing the next line
                 List<String> joinedLines = new LinkedList<>();
                 StringBuilder currentLine = new StringBuilder();
                 for (String line : lines) {
-                    boolean continues = line.endsWith("\\");
+                    int trailingBackslashes = line.length() - line.replaceAll("\\\\+$", "").length();
+                    boolean continues = trailingBackslashes % 2 == 1;
                     currentLine.append(continues ? line.substring(0, line.length() - 1) : line);
                     if (!continues) {
                         joinedLines.add(currentLine.toString());
