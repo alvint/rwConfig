@@ -3,7 +3,7 @@
 # rwConfig
 [![Maven Central](https://img.shields.io/maven-central/v/net.rabbitware.config/config)](https://central.sonatype.com/artifact/net.rabbitware.config/config)
 ![Java](https://img.shields.io/badge/Java-21%2B-blue)
-![Tests](https://img.shields.io/badge/tests-519-brightgreen)
+![Tests](https://img.shields.io/badge/tests-627-brightgreen)
 ![Runtime deps](https://img.shields.io/badge/runtime%20deps-slf4j%20only-brightgreen)
 ![Status](https://img.shields.io/badge/status-pre--1.0-orange)
 
