@@ -43,6 +43,46 @@ args  >  local  >  environment  >  the default in the rwconfig file
 A source having a property at all is what counts, not whether the value is
 interesting - an empty value from `args` still beats `local`.
 
+## Values are taken as they are
+
+The [escape sequences](config-file.md#escape-sequences) are part of the
+`rwconfig` file's syntax, not of a source's. A value from a source is exactly
+the text the source holds, so a Windows path needs nothing special:
+
+```
+MY_DIR=C:\dir\new                    ->  C:\dir\new   from the environment
+myDir=C:\\dir\\new                   ->  C:\dir\new   from a .properties file
+{"myDir": "C:\\dir\\new"}            ->  C:\dir\new   from JSON
+```
+
+The second and third look doubled because `.properties` and JSON have escapes
+of their own, which they apply before rwConfig sees the value. A `.env` file's
+double quotes do the same; its single quotes do not.
+
+**A list is the exception.** A property declared as a list type reads its value
+as a comma-separated list, and a comma or a backslash inside an item has to be
+escaped for the list to be read unambiguously. Items are separated the same way
+as in the `rwconfig` file:
+
+| in an item | write |
+|---|---|
+| a comma | `\,` |
+| a backslash | `\\` |
+| an empty item on its own | `\e` |
+| a leading space | `\ ` as the first character |
+
+```
+HOSTS=a\,b,c                         ->  ["a,b", "c"]
+PATHS=C:\\dir,D:\\x                  ->  ["C:\dir", "D:\x"]
+```
+
+Those four are all a list item from a source can use. Any other escape - `\t`,
+`\u0041` - is an error, since the source's own format is the place for it.
+
+An array in a JSON, YAML, HOCON, or XML source needs none of this - its items
+are separate already, and the plugin escapes them as it joins them into one
+list value.
+
 ## Built-in source types
 
 ### `commandLineArguments`

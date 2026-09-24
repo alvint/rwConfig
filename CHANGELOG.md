@@ -64,6 +64,21 @@ could not see.
   such an array, like `prices\0`, no longer matches anything** - declare the
   array itself as a list type instead.
 
+- **A value from a config source is taken as it is**, rather than read with the
+  `rwconfig` file's escape sequences. A Windows path such as `C:\dir\new` - from
+  the environment, a system property, the command line, or any file-based
+  source - used to fail at startup with `invalid escape sequence \d`, or needed
+  its backslashes doubled on top of the source's own escaping. **Text that
+  looked like an escape sequence in a source value is now kept as it is**, so a
+  source value of `\e` is those two characters rather than an empty string. A
+  list property is the exception: its value is still read with commas and
+  escapes, so `\,` and `\\` still mean a comma and a backslash inside an item.
+
+- **`\.` and `\]` are rejected in a value**, as the documentation has always
+  said. They are escapes only inside an allowed values list, and were accepted
+  everywhere; the editor extension already marked them as errors. A default
+  written as `c\.\.d` should be written `c..d`.
+
 ### Fixed
 
 - **A YAML source that did not set `resolveMergeKeys` failed at startup** with
@@ -95,6 +110,12 @@ could not see.
   an invalid escape sequence, so no value could end in a backslash. Only an odd
   run of backslashes now continues a line, and a comment ending in `\\` no
   longer swallows the line after it.
+
+- **A `\u` escape for a backslash or a dollar sign failed at startup.**
+  `\u005c` and `\u0024` threw, because the escape was expanded with
+  `Matcher.replaceAll`, which reads both characters as its own syntax. Escapes
+  are now read in a single pass, so a character one produces is never read as
+  the start of another - `a\u005cq` is `a\q`.
 
 ### Security
 

@@ -56,10 +56,11 @@ public final class ListValues {
      * Join the items into one list value, escaped so that each item reads back
      * as exactly the text it started as.
      * <p>
-     * An item is taken to be in the syntax of a value already - the same as a
-     * single value from the same source - so only what the list syntax adds is
-     * escaped:
+     * An item is a value as it is - the same text a single value from the same
+     * source would be taken as - and the list syntax is what needs escaping:
      * <ul>
+     * <li>a backslash is doubled, since the list syntax reads it as the start of
+     * an escape sequence;</li>
      * <li>a comma inside an item is escaped, so it does not split the item;</li>
      * <li>an item starting with whitespace is prefixed with {@code \e}, the
      * empty string. The list splitter trims whitespace after each comma, and
@@ -81,7 +82,7 @@ public final class ListValues {
         StringBuilder joined = new StringBuilder();
         int count = 0;
         for (T item : items) {
-            String value = text.apply(item).replace(",", "\\,");
+            String value = text.apply(item).replace("\\", "\\\\").replace(",", "\\,");
             if (LEADING_WHITESPACE.matcher(value).find()) {
                 value = "\\e" + value;
             }

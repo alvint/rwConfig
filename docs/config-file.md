@@ -201,7 +201,17 @@ string e = \   indented      ->  "   indented"
 | `\ ` | a space - **only** as the first non-whitespace character of a value |
 | `\,` | a literal comma, so a list item can contain one |
 
-Anything else - `\q`, `\[`, a malformed `\u12` - is an error.
+Anything else - `\q`, `\[`, a malformed `\u12` - is an error. That includes `\.`
+and `\]`, which only mean something [inside an allowed values
+list](#escapes-inside-allowed-values).
+
+Each escape is read once, and what it produces is never read again. So
+`\u005c` is a backslash and nothing more - `a\u005cq` is `a\q`, not an error
+about `\q`.
+
+These are for the `rwconfig` file. A value from a config source is taken as it
+is, except that a list is still read with commas and escapes - see [Values are
+taken as they are](config-sources.md#values-are-taken-as-they-are).
 
 `\ ` anywhere but the start of a value does nothing (a space needs no escaping
 there), so it is almost always a mistake. The library logs a warning and treats

@@ -80,12 +80,17 @@ class ListValuesTest {
         }
 
         @Test
-        @DisplayName("an item ending in an escaped backslash does not swallow the next one")
-        void itemEndingInABackslash() throws IOException {
-            // an item is in value syntax, so the text `a\\` is the value `a\`
-            assertEquals(
-                List.of("a\\", "b"),
-                roundTrip("stringList", List.of("a\\\\", "b")).getStringList("listValuesTestProperty"));
+        @DisplayName("a backslash is kept, wherever it is - an item is a value, not rwConfig syntax")
+        void backslashes() throws IOException {
+            assertRoundTrips(List.of("C:\\dir\\new", "D:\\"));
+            assertRoundTrips(List.of("a\\", "b"));
+            assertRoundTrips(List.of("\\", "\\\\"));
+        }
+
+        @Test
+        @DisplayName("text that looks like an escape sequence is kept as it is")
+        void textThatLooksLikeAnEscape() throws IOException {
+            assertRoundTrips(List.of("\\e", "\\,", "\\ x", "\\n", "\\u0041", "\\q"));
         }
 
         @Test
@@ -138,6 +143,12 @@ class ListValuesTest {
         @DisplayName("a comma is escaped, and leading whitespace is guarded by `\\e`, the empty string")
         void escapes() {
             assertEquals("a\\,b,\\e c", ListValues.join(List.of("a,b", " c"), Function.identity()));
+        }
+
+        @Test
+        @DisplayName("a backslash is doubled, before the comma is escaped")
+        void backslashesAreDoubled() {
+            assertEquals("C:\\\\dir,a\\\\\\,b", ListValues.join(List.of("C:\\dir", "a\\,b"), Function.identity()));
         }
 
         @Test

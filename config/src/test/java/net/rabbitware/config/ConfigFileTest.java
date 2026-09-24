@@ -209,6 +209,42 @@ class ConfigFileTest {
         }
 
         @Test
+        @DisplayName("a unicode escape for a backslash or a dollar sign is just that character")
+        void unicodeEscapesForSpecialCharacters() throws IOException {
+            // these were expanded with Matcher.replaceAll, which reads `\` and
+            // `$` in its replacement text as its own syntax - and threw
+            assertEquals("a\\", config("string myProp = a\\u005c").gets("myProp"));
+            assertEquals("price $100", config("string myProp = price \\u0024100").gets("myProp"));
+        }
+
+        @Test
+        @DisplayName("a backslash from a unicode escape does not start another escape sequence")
+        void aUnicodeBackslashStartsNoEscape() throws IOException {
+            // each escape is read once - the character it produces is never
+            // read as part of another one
+            assertEquals("a\\q", config("string myProp = a\\u005cq").gets("myProp"));
+            assertEquals("a\\,b", config("string myProp = a\\u005c,b").gets("myProp"));
+            assertEquals("a\\e", config("string myProp = a\\u005ce").gets("myProp"));
+        }
+
+        @Test
+        @DisplayName("`\\u` needs four hex digits")
+        void aShortUnicodeEscapeIsRejected() {
+            ConfigException e = rejected("string myProp = a\\u12");
+            assertTrue(e.getMessage().contains("four hex digits"), e.getMessage());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"string myProp = a\\]b", "string myProp = a\\.b", "stringList myProp = a\\.b, c"})
+        @DisplayName("`\\]` and `\\.` are only escapes inside an allowed values list")
+        void allowedValueEscapesAreRejectedInAValue(String line) {
+            // in a value they escape nothing, and the editor extension marks
+            // them as errors - which is what config-file.md has always said
+            ConfigException e = rejected(line);
+            assertTrue(e.getMessage().contains("only needed inside an allowed values list"), e.getMessage());
+        }
+
+        @Test
         @DisplayName("an escaped leading space is kept, and trailing spaces are always kept")
         void anEscapedLeadingSpaceIsPreserved() throws IOException {
             // only the escaped space is needed - any space after it is already
@@ -283,13 +319,14 @@ class ConfigFileTest {
         }
 
         @Test
-        @DisplayName("a lone backslash at the end of a value is rejected")
-        void aValueCannotEndWithALoneBackslash() {
+        @DisplayName("a list item ending in a lone backslash is rejected")
+        void aListItemCannotEndWithALoneBackslash() {
             // in the `rwconfig` file a lone trailing backslash always continues
-            // the line, so only a config source can deliver one
+            // the line, and a scalar from a source is taken as it is - so a list
+            // from a source is the one place a lone trailing backslash can occur
             System.setProperty("myProp", "a\\");
             try {
-                ConfigException e = rejected("string myProp = b");
+                ConfigException e = rejected("stringList myProp = b");
                 assertTrue(
                     e.getMessage().contains("invalid ending backslash"),
                     "expected an `invalid ending backslash` error, but got: " + e.getMessage()
@@ -797,7 +834,10 @@ class ConfigFileTest {
         @Test
         @DisplayName("an escaped `..` is part of the value rather than a range separator")
         void anEscapedRangeSeparatorDoesNotMakeARange() throws IOException {
-            assertEquals("a..b", config("string[a\\.\\.b, c] myProp = a\\.\\.b").gets("myProp"));
+            // the value is written plainly: `\.` is only an escape inside the
+            // brackets, where a `..` would otherwise make a range
+            assertEquals("a..b", config("string[a\\.\\.b, c] myProp = a..b").gets("myProp"));
+            rejected("string[a\\.\\.b, c] myProp = a\\.b");
         }
 
         @Test

@@ -523,13 +523,19 @@ public class ConfigFactory {
                             }
                         } else if(!configProperties.containsKey(propertyName)) {
                             PropertyInfo propertyInfo = propertyInfoMap.get(propertyName);
+                            // a value from a source is taken as it is - its own
+                            // format has already had its say about escapes, and
+                            // `C:\dir` must stay a path. Only a list property
+                            // reads rwConfig syntax, since its items are
+                            // separated with commas that an item may contain
                             Value value = parseValue(
                                 sourceName,
                                 propertyName,
                                 valueString,
                                 propertyInfo.propertyType,
                                 propertyInfo.allowedValues,
-                                sourceRedaction
+                                sourceRedaction,
+                                Syntax.LITERAL
                             );
                             // do not log the value of the property - it may contain
                             // sensitive information
@@ -845,8 +851,10 @@ public class ConfigFactory {
                             "invalid allowed value range for property `" + name + "`: " + rangeString
                         );
                     }
-                    Value min = parseValue(null, name, minMax[0], rangeType, List.of(), redaction);
-                    Value max = minMax.length == 2 ? parseValue(null, name, minMax[1], rangeType, List.of(), redaction) : min;
+                    Value min = parseValue(null, name, minMax[0], rangeType, List.of(), redaction, Syntax.ALLOWED_VALUE);
+                    Value max = minMax.length == 2
+                        ? parseValue(null, name, minMax[1], rangeType, List.of(), redaction, Syntax.ALLOWED_VALUE)
+                        : min;
                     ranges.add(new Range(min, max));
                 });
         }
@@ -865,11 +873,25 @@ public class ConfigFactory {
         List<Range> allowedValues,
         Redaction redaction
     ) throws ConfigException {
+        return parseValue(sourceName, propertyName, valueString, propertyType, allowedValues, redaction, Syntax.VALUE);
+    }
+
+    // `syntax` says which escape sequences a scalar value may use. The items of
+    // a list are always read as values, since a comma separates them
+    private static Value parseValue(
+        String sourceName,
+        String propertyName,
+        String valueString,
+        DeclaredType propertyType,
+        List<Range> allowedValues,
+        Redaction redaction,
+        Syntax syntax
+    ) throws ConfigException {
         try {
             return switch (propertyType) {
                 case BOOLEAN -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
                     // parse
                     boolean value;
                     if (
@@ -906,7 +928,7 @@ public class ConfigFactory {
                 }
                 case INT -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
                     // parse
                     int value = Integer.parseInt(unescapedValueString);
                     // check if value is allowed
@@ -925,7 +947,7 @@ public class ConfigFactory {
                 case LONG -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
                     // parse
                     long value = Long.parseLong(unescapedValueString);
                     // check if value is allowed
@@ -944,7 +966,7 @@ public class ConfigFactory {
                 case DOUBLE -> {
                     // unescape any escaped characters in the value string (and
                     // trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
                     // parse
                     double value = Double.parseDouble(unescapedValueString);
                     // check if value is allowed
@@ -962,7 +984,7 @@ public class ConfigFactory {
                 }
                 case STRING -> {
                     // unescape any escaped characters in the value string
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString);
+                    var unescapedValueString = unescape(sourceName, valueString, syntax);
                     // check if value is allowed
                     if (!allowedValues.isEmpty() && allowedValues.stream().noneMatch(range ->
                         ((Value.String)range.min).s.compareTo(unescapedValueString) <= 0 &&
@@ -979,7 +1001,7 @@ public class ConfigFactory {
                 }
                 case BIG_INTEGER -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
                     // parse
                     BigInteger value = new BigInteger(unescapedValueString);
                     // check if value is allowed
@@ -998,7 +1020,7 @@ public class ConfigFactory {
                 }
                 case BIG_DECIMAL -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
                     // parse
                     BigDecimal value = new BigDecimal(unescapedValueString);
                     // check if value is allowed
@@ -1017,7 +1039,7 @@ public class ConfigFactory {
                 }
                 case DURATION -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
                     // parse the number as milliseconds
                     long value = parseDuration(propertyName, sourceName, unescapedValueString);
                     // check if value is allowed
@@ -1035,7 +1057,7 @@ public class ConfigFactory {
                 }
                 case SIZE -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
                     // parse the number as bytes
                     long value = parseSize(propertyName, sourceName, unescapedValueString);
                     // check if value is allowed
@@ -1053,7 +1075,7 @@ public class ConfigFactory {
                 }
                 case TIMESTAMP -> {
                     // unescape any escaped characters in the value string (and trim whitespace)
-                    var unescapedValueString = handleEscapeSequences(sourceName, valueString).trim();
+                    var unescapedValueString = unescape(sourceName, valueString, syntax).trim();
                     // parse the number as milliseconds from the epoch
                     long value = parseTimestamp(propertyName, sourceName, unescapedValueString);
                     // check if value is allowed
@@ -1419,57 +1441,113 @@ public class ConfigFactory {
         return pieces;
     }
 
-    private static String handleEscapeSequences(String sourceName, String value) {
-        // turn escaped backslashes into nulls temporarily, so they don't get
-        // unescaped in the next step
-        value = value.replaceAll("\\\\\\\\", "\0");
+    /** Where a value was written, which decides the escape sequences it may use. */
+    private enum Syntax {
+        /** A whole value from a config source - taken as it is, with none. */
+        LITERAL,
+        /**
+         * A value or list item in the `rwconfig` file, or a list item from a
+         * config source - whose escapes are only the ones the list needs.
+         */
+        VALUE,
+        /** An allowed value, or a bound of a range - which adds `\.` and `\]`. */
+        ALLOWED_VALUE
+    }
+
+    /** The value with its escape sequences handled, or as it is when it is literal. */
+    private static String unescape(String sourceName, String value, Syntax syntax) {
+        return syntax == Syntax.LITERAL
+            ? value
+            : handleEscapeSequences(sourceName, value, syntax == Syntax.ALLOWED_VALUE);
+    }
+
+    /**
+     * Read the escape sequences in a value, in a single pass.
+     * <p>
+     * Each backslash is read once, together with what follows it, and the
+     * result is never read again - so an escape cannot produce the start of
+     * another one - a unicode escape for a backslash is a backslash, not the
+     * beginning of another escape sequence.
+     * <p>
+     * Which escapes are allowed depends on where the value was written. The
+     * `rwconfig` file has them all, and an allowed value adds {@code \.} and
+     * {@code \]}, which only mean something inside the brackets. A list item
+     * from a config source has only what the list syntax needs - the source's
+     * own format has escapes of its own for the rest.
+     */
+    private static String handleEscapeSequences(String sourceName, String value, boolean allowedValue) {
+        boolean inTheFile = sourceName == null;
+        StringBuilder result = new StringBuilder(value.length());
         // an escaped space is only meaningful as the first non-whitespace
         // character of a value, where it keeps the leading space from being
         // trimmed. anywhere else the space does not need to be escaped, so an
         // escaped space there is almost certainly a mistake - but it is only a
         // warning for now, since config sources hold arbitrary values that we
-        // do not control. note that each item of a list, and each allowed
-        // value, is its own value here (checking the last escaped space is
-        // enough - if anything precedes it, whether that is an ordinary
-        // character or an earlier escaped space, it is not at the start)
-        int escapedSpaceIndex = value.lastIndexOf("\\ ");
-        if (escapedSpaceIndex != -1 && !value.substring(0, escapedSpaceIndex).isBlank()) {
-            logger.warn(
-                "an escaped space is only meaningful at the start of a value, so it does nothing here (in {}): {}",
-                sourceName != null ? "source `" + sourceName + "`" : "the `rwconfig` file",
-                value.replace('\0', '\\')
-            );
-        }
-        // handle escape sequences supported by java.util.Properties in rwconfig
-        if (sourceName == null) { // this is the rwconfig file
-            value = value.replaceAll("\\\\t", "\t");
-            value = value.replaceAll("\\\\n", "\n");
-            value = value.replaceAll("\\\\r", "\r");
-            // handle unicode escape sequences
-            Pattern pattern = java.util.regex.Pattern.compile("\\\\u([0-9a-fA-F]{4})");
-            Matcher matcher = pattern.matcher(value);
-            value = matcher.replaceAll(match -> String.valueOf((char) Integer.parseInt(match.group(1), 16)));
-        }
-        // handle other escape sequences
-        value = value.replaceAll("\\\\,", ",");
-        value = value.replaceAll("\\\\\\.", ".");
-        value = value.replaceAll("\\\\ ", " ");
-        value = value.replaceAll("\\\\e", "");
-        value = value.replaceAll("\\\\\\]", "]");
-        // throw an exception if there are any remaining unrecognized escape sequences
-        int errorIndex = value.indexOf('\\');
-        if ( errorIndex != -1) {
-            if (errorIndex == value.length() - 1) {
-                throw new ConfigException("invalid ending backslash in value: " + value);
-            } else {
-                throw new ConfigException(
-                    "invalid escape sequence `\\" + value.charAt(errorIndex + 1)+ "` in value: " + value
-                );
+        // do not control. each item of a list, and each allowed value, is its
+        // own value here
+        boolean pastTheStart = false;
+        boolean warned = false;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c != '\\') {
+                result.append(c);
+                pastTheStart |= !Character.isWhitespace(c);
+                continue;
             }
+            if (i == value.length() - 1) {
+                throw new ConfigException("invalid ending backslash in value: " + value);
+            }
+            char escaped = value.charAt(++i);
+            switch (escaped) {
+                case '\\', ',' -> result.append(escaped);
+                case 'e' -> { } // the empty string
+                case ' ' -> {
+                    if (pastTheStart && !warned) {
+                        logger.warn(
+                            "an escaped space is only meaningful at the start of a value, so it does nothing here"
+                            + " (in {}): {}",
+                            inTheFile ? "the `rwconfig` file" : "source `" + sourceName + "`",
+                            value
+                        );
+                        warned = true;
+                    }
+                    result.append(' ');
+                }
+                case 't' -> result.append(requireFile(inTheFile, escaped, value, '\t'));
+                case 'n' -> result.append(requireFile(inTheFile, escaped, value, '\n'));
+                case 'r' -> result.append(requireFile(inTheFile, escaped, value, '\r'));
+                case 'u' -> {
+                    requireFile(inTheFile, escaped, value, 'u');
+                    String hex = value.length() >= i + 5 ? value.substring(i + 1, i + 5) : "";
+                    if (!hex.matches("[0-9a-fA-F]{4}")) {
+                        throw new ConfigException(
+                            "invalid escape sequence `\\u` in value, which needs four hex digits: " + value);
+                    }
+                    result.append((char) Integer.parseInt(hex, 16));
+                    i += 4;
+                }
+                case '.', ']' -> {
+                    if (!allowedValue) {
+                        throw new ConfigException(
+                            "invalid escape sequence `\\" + escaped + "` in value, which is only needed inside"
+                            + " an allowed values list: " + value);
+                    }
+                    result.append(escaped);
+                }
+                default -> throw new ConfigException(
+                    "invalid escape sequence `\\" + escaped + "` in value: " + value);
+            }
+            pastTheStart = true;
         }
-        // turn the nulls back into backslashes
-        value = value.replaceAll("\0", "\\\\");
-        return value;
+        return result.toString();
+    }
+
+    /** An escape only the `rwconfig` file has - a config source's own format has one for it. */
+    private static char requireFile(boolean inTheFile, char escaped, String value, char meaning) {
+        if (!inTheFile) {
+            throw new ConfigException("invalid escape sequence `\\" + escaped + "` in value: " + value);
+        }
+        return meaning;
     }
 
     /**

@@ -92,6 +92,102 @@ class ConfigSourceTest {
 
 
     @Nested
+    @DisplayName("a value from a source is taken as it is")
+    class LiteralValues {
+
+        private static final String WINDOWS_PATH = "C:\\dir\\new";
+
+        private String fromSystemProperty(String type, String value) throws IOException {
+            setSystemProperty("myProp", value);
+            Config config = config("rwc.sources = sys", "rwc.sys.type = systemProperties", type + " myProp = none");
+            return type.endsWith("List") ? config.getStringList("myProp").toString() : config.getString("myProp");
+        }
+
+        @Test
+        @DisplayName("a Windows path from a system property")
+        void aPathFromASystemProperty() throws IOException {
+            assertEquals(WINDOWS_PATH, fromSystemProperty("string", WINDOWS_PATH));
+        }
+
+        @Test
+        @DisplayName("a Windows path from a command line argument")
+        void aPathFromTheCommandLine() throws IOException {
+            Config config = config(new String[] {"myProp=" + WINDOWS_PATH},
+                "rwc.sources = args", "rwc.args.type = commandLineArguments", "string myProp = none");
+            assertEquals(WINDOWS_PATH, config.getString("myProp"));
+        }
+
+        @Test
+        @DisplayName("a Windows path from a `.properties` file, which has already had its own escapes read")
+        void aPathFromAPropertiesFile() throws IOException {
+            // `C:\\dir\\new` in the file is `C:\dir\new` once java.util.Properties
+            // has read its escapes - rwConfig must not read them a second time
+            Config config = config("rwc.sources = local", "rwc.local.type = properties",
+                "rwc.local.location = " + propertiesFile("p.properties", "myProp=C:\\\\dir\\\\new"),
+                "string myProp = none");
+            assertEquals(WINDOWS_PATH, config.getString("myProp"));
+        }
+
+        @Test
+        @DisplayName("a Windows path from a `.env` file, quoted either way")
+        void aPathFromADotEnvFile() throws IOException {
+            Path env = tempDir.resolve(".env");
+            Files.write(env, List.of("MY_PROP=\"C:\\\\dir\\\\new\"", "MY_OTHER='C:\\dir\\new'"));
+            Config config = config("rwc.sources = env", "rwc.env.type = dotenv", "rwc.env.location = file:" + env,
+                "string myProp = none", "string myOther = none");
+            assertEquals(WINDOWS_PATH, config.getString("myProp"), "double quotes read their own escapes");
+            assertEquals(WINDOWS_PATH, config.getString("myOther"), "single quotes are literal");
+        }
+
+        @Test
+        @DisplayName("text that looks like an escape sequence is kept as it is")
+        void textThatLooksLikeAnEscape() throws IOException {
+            for (String value : List.of("\\e", "a\\,b", "\\ x", "\\n", "\\u0041", "\\q", "a\\")) {
+                assertEquals(value, fromSystemProperty("string", value), value);
+            }
+        }
+
+        @Test
+        @DisplayName("a number is still trimmed, as it always was")
+        void numbersAreStillTrimmed() throws IOException {
+            setSystemProperty("myProp", " 42 ");
+            Config config = config("rwc.sources = sys", "rwc.sys.type = systemProperties", "int myProp = 0");
+            assertEquals(42, config.getInt("myProp"));
+        }
+
+        @Test
+        @DisplayName("but a list is rwConfig syntax, since a comma separates its items")
+        void aListIsRwConfigSyntax() throws IOException {
+            assertEquals("[a,b, c]", fromSystemProperty("stringList", "a\\,b,c"));
+            assertEquals("[C:\\dir, D:\\x]", fromSystemProperty("stringList", "C:\\\\dir,D:\\\\x"));
+            assertEquals("[, x]", fromSystemProperty("stringList", "\\e,x"));
+        }
+
+        @Test
+        @DisplayName("a list from a source has only the escapes the list syntax needs")
+        void aListFromASourceHasOnlyTheListEscapes() throws IOException {
+            assertEquals("[a,b, c\\]", fromSystemProperty("stringList", "a\\,b,c\\\\"));
+            assertEquals("[ a, b]", fromSystemProperty("stringList", "\\ a,b"));
+            // the rest belong to the source's own format, or to the `rwconfig` file
+            for (String value : List.of("a\\tb", "a\\u0041", "a\\.b", "a\\]b")) {
+                setSystemProperty("myProp", value);
+                assertThrows(ConfigException.class,
+                    () -> config("rwc.sources = sys", "rwc.sys.type = systemProperties", "stringList myProp = none"),
+                    value);
+            }
+        }
+
+        @Test
+        @DisplayName("so a backslash in a list item has to be escaped")
+        void anUnescapedBackslashInAListIsRejected() {
+            setSystemProperty("myProp", WINDOWS_PATH);
+            ConfigException e = rejected("rwc.sources = sys", "rwc.sys.type = systemProperties", "stringList myProp = none");
+            assertTrue(String.valueOf(e.getMessage()).contains("invalid escape sequence"), e.getMessage());
+        }
+    }
+
+
+    @Nested
     @DisplayName("the built-in source types")
     class SourceTypes {
 
