@@ -5,8 +5,11 @@ the two are one thing to install and one thing to reason about. `package-jars.sh
 takes the version from the jars it bundles, so there is nothing to keep in step
 by hand.
 
-## Unreleased
+## 0.3.0
 
+- Ships rwConfig 0.3.0: `bigInteger` and `bigDecimal` types, the HOCON `trusted`
+  setting, and the fixes to how values and escape sequences are read. See the
+  library's changelog for the whole list.
 - Highlights the new `bigInteger` and `bigDecimal` types and their list forms,
   and marks a value, list item, or allowed value they would reject as invalid.
 - Checks reads through their getters - `getBigInteger`, `getBigDecimal`, the two

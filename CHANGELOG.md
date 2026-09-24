@@ -8,42 +8,54 @@ This project uses [semantic versioning](https://semver.org). Before 1.0 the file
 format and the Java API may still change between minor versions; anything that
 would break an existing `rwconfig` file is called out here.
 
-## Unreleased
+## 0.3.0
 
-A security fix in the HOCON plugin, changed how plugins receive optional plugin
-settings, and fixed two bugs that made YAML sources unusable in ways their tests
-could not see.
+Arbitrary-precision numbers, a security fix in the HOCON plugin, and a long run
+of fixes to how values are read: exact decimals from YAML and HOCON, arrays that
+mix whole numbers and decimals, Windows paths from any source, and escape
+sequences. Several of those change behavior that existing files or code may
+rely on, so they are gathered here first.
+
+### Upgrading from 0.2.0
+
+- A HOCON source that uses `include`, or substitutes an environment variable,
+  needs `trusted = true` - see Security.
+- `Config.PropertyType` is now `RuntimeType`, with four new constants.
+- A value from a config source is no longer read with escape sequences, so a
+  source value like `\e` is kept as those two characters. List properties are
+  unchanged.
+- `\.` and `\]` are errors in a value; they belong only inside an allowed
+  values list.
+- In a HOCON source, an `int` or `long` written as `8080.0` or `2.0e3` is
+  rejected, as it is from every other source.
+- An array that mixes kinds of value, such as `[9.99, 10]`, used to be split
+  into one property per element, so it could be read by declaring `prices\0`
+  and `prices\1`. It now arrives as one list value, `prices`. Those element
+  declarations get no value: they fail at startup, or quietly take their
+  default if they have one. Declare `doubleList prices` instead.
+- For plugin authors: an optional setting that is not set is left out of the
+  map given to `setPluginProperties`.
 
 ### Added
-
-- **`trusted` config setting on a HOCON source** (default `false`). This turns
-  on HOCON features that can reach outside of the document - `include` and substitutions from  system properties and environment variables. See Security below.
-- **A trusted HOCON source can substitute java system properties**. They only
-  fill in substitutions. Unlike Typesafe Config's `ConfigFactory.load()`, they
-  are not merged into the source and do not override the document's own values.
 
 - **`bigInteger` and `bigDecimal` property types**, with `bigIntegerList` and
   `bigDecimalList`, for numbers a `long` or a `double` cannot hold. They are
   read with `getBigInteger` and `getBigDecimal` (`getbi`, `getbd`) and their
-  list forms. A `bigDecimal` keeps every digit and the scale it
-  was written with; allowed values compare by value, so `bigDecimal[0.0..1.0]`
+  list forms, and the Maven plugin and the editor extension check reads through
+  them like any other. A `bigDecimal` keeps every digit and the scale it was
+  written with; allowed values compare by value, so `bigDecimal[0.0..1.0]`
   accepts `1.00`.
+- **`trusted` on a HOCON source** (default `false`). It turns on the HOCON
+  features that reach outside the document - `include`, and substitutions from
+  system properties and environment variables. See Security.
+- **A trusted HOCON source can substitute Java system properties.** They only
+  fill in substitutions: unlike Typesafe Config's `ConfigFactory.load()`, they
+  are not merged into the source and do not override the document's own values.
+- **`ListValues` in the plugin API**, for a plugin that reads a nested format.
+  It decides whether an array can be one list value and joins it, escaping each
+  item so it reads back exactly. The bundled plugins use it.
 
 ### Changed
-
-- **An optional plugin setting the `rwconfig` file does not mention is left out
-  of the map handed to `setPluginProperties`**, rather than included as a key
-  mapped to `null`. `get` returns `null` either way; what changes is that
-  `containsKey` now means the setting was given, and `getOrDefault` now returns
-  the default. A third-party plugin that relied on every optional name being
-  present as a key should read it with `get` instead.
-- **A number in a HOCON source arrives exactly as written**, rather than as
-  Typesafe Config normalizes it: `1.0` stays `1.0` rather than becoming `1`, and
-  `2.0e3` stays `2.0e3` rather than becoming `2000`. **This can break an `int`
-  or `long` property written with a fraction or an exponent** - `port = 8080.0`
-  used to be rewritten to `8080` before rwConfig parsed it, and is now rejected,
-  the same as it is from every other source. A `string` property gets the text
-  as written.
 
 - **`Config.PropertyType` is now `RuntimeType`**, a top-level enum in
   `net.rabbitware.config`, and is what `getType` returns. **This breaks code
@@ -52,18 +64,6 @@ could not see.
   `BIG_DECIMAL`, `BIG_INTEGER_LIST`, and `BIG_DECIMAL_LIST`, so a `switch` over
   `getType()` with no `default` has to handle them. A class implementing
   `Config` itself, such as a test double, has the new getters to implement.
-
-- **An array of plain values becomes one list value, whatever mix it holds.**
-  Only an array of one kind - all strings, all whole numbers, all decimals, or
-  all booleans - used to be joined, and any other was split into indexed
-  properties. So `prices: [9.99, 10]` failed at startup for a `doubleList` or
-  `bigDecimalList`, with an error about `prices\0` that did not say why. It now
-  arrives as `9.99,10`, and the declared type decides how the items are read.
-  Only an array holding an object or another array is still split. This applies
-  to JSON, XML, YAML, and HOCON sources. **A declaration naming one element of
-  such an array, like `prices\0`, no longer matches anything** - declare the
-  array itself as a list type instead.
-
 - **A value from a config source is taken as it is**, rather than read with the
   `rwconfig` file's escape sequences. A Windows path such as `C:\dir\new` - from
   the environment, a system property, the command line, or any file-based
@@ -73,20 +73,35 @@ could not see.
   source value of `\e` is those two characters rather than an empty string. A
   list property is the exception: its value is still read with commas and
   escapes, so `\,` and `\\` still mean a comma and a backslash inside an item.
-
 - **`\.` and `\]` are rejected in a value**, as the documentation has always
   said. They are escapes only inside an allowed values list, and were accepted
   everywhere; the editor extension already marked them as errors. A default
   written as `c\.\.d` should be written `c..d`.
+- **An array of plain values becomes one list value, whatever mix it holds.**
+  Only an array of one kind - all strings, all whole numbers, all decimals, or
+  all booleans - used to be joined, and any other was split into indexed
+  properties. This allows more flexibility in how list properties are declared.
+  For example, `doubleList foo = 1, 2.5, 3, 4.0` now works as expected.
+- **A number in a HOCON source arrives exactly as written**, rather than as
+  Typesafe Config normalizes it: `1.0` stays `1.0` rather than becoming `1`, and
+  `2.0e3` stays `2.0e3` rather than becoming `2000`. **This can break an `int`
+  or `long` property written with a fraction or an exponent** - `port = 8080.0`
+  used to be rewritten to `8080` before rwConfig parsed it, and is now rejected,
+  the same as it is from every other source. A `string` property gets the text
+  as written.
+- **An optional plugin setting the `rwconfig` file does not mention is left out
+  of the map handed to `setPluginProperties`**, rather than included as a key
+  mapped to `null`. `get` returns `null` either way; what changes is that
+  `containsKey` now means the setting was given, and `getOrDefault` now returns
+  the default. A third-party plugin that relied on every optional name being
+  present as a key should read it with `get` instead.
 
 ### Fixed
 
 - **A YAML source that did not set `resolveMergeKeys` failed at startup** with
-  `invalid boolean value : null`. The unset setting reached the plugin as a key
-  mapped to `null`, so `getOrDefault` returned that `null` rather than the
-  default. Every YAML source that took the default was affected, as would be
-  any plugin reading an optional setting the same way. Fixed by the change
-  above.
+  `invalid boolean value : null`. Every YAML source that took the default was
+  affected, as would be any plugin reading an optional setting the same way.
+   Fixed by the change to optional settings above.
 - **The YAML plugin never received `username` or `password`**, so HTTP basic
   authentication was silently ignored for YAML sources. It listed its own
   optional setting in place of the inherited ones rather than alongside them.
@@ -94,23 +109,20 @@ could not see.
   decimal into a `double`, so `1.00000000000000000001` arrived as `1.0` from
   YAML and `1` from HOCON, and `10.50` lost its trailing zero. Both now keep
   every digit, and the scale.
-- **A HOCON list such as `[1.50, 2.00]` failed at startup** for a `doubleList`
-  property. Typesafe Config turns `2.00` into the integer `2`, so the list
-  looked mixed and was split into indexed properties that nothing declared.
-
+- **An array item could change on its way into a list.** A comma inside an item
+  split it in two, so `["a,b", "c"]` read as three items; a leading space was
+  trimmed away; and `[""]` read as an empty list rather than one empty string.
 - **A list item or allowed value ending in an escaped backslash swallowed the
   next one.** `stringList paths = a\\, b` was read as the single item `a\, b`,
   because only the one character before a comma was checked, and the backslash
   there was taken as escaping it rather than as the second half of `\\`. The
   same was true of the `..` in a range. A comma is now escaped only by an odd
   number of backslashes before it.
-
 - **A line ending in an escaped backslash was joined with the next line.**
-  `string winDir = C:\\` ran the next declaration into its value, and failed with
-  an invalid escape sequence, so no value could end in a backslash. Only an odd
-  run of backslashes now continues a line, and a comment ending in `\\` no
+  `string winDir = C:\\` ran the next declaration into its value, and failed
+  with an invalid escape sequence, so no value could end in a backslash. Only an
+  odd run of backslashes now continues a line, and a comment ending in `\\` no
   longer swallows the line after it.
-
 - **A `\u` escape for a backslash or a dollar sign failed at startup.**
   `\u005c` and `\u0024` threw, because the escape was expanded with
   `Matcher.replaceAll`, which reads both characters as its own syntax. Escapes
@@ -119,12 +131,6 @@ could not see.
 
 ### Security
 
-- **A secret that failed to parse was shown in the error.** Withholding a
-  value covered only the allowed-values check, so `12x34` for an `int apiSecret`
-  appeared in full - and a second time in the message of the parser's own
-  exception, kept as the cause. Every error about a value now withholds it, as
-  does the warning about a misplaced escaped space, and a withheld value's error
-  no longer carries the parser's exception.
 - **HOCON directives that reach outside the document are refused by default.**
   `include` in every form - bare, `file()`, `url()`, and `classpath()` - and
   substitutions that fall back to environment variables or system properties now
@@ -143,6 +149,12 @@ could not see.
 
   The 0.2.0 notes described this exposure as one rwConfig could not prevent.
   That was wrong on the facts - it can, and now does.
+- **A secret that failed to parse was shown in the error.** Withholding a
+  value covered only the allowed-values check, so `12x34` for an `int apiSecret`
+  appeared in full - and a second time in the message of the parser's own
+  exception, kept as the cause. Every error about a value now withholds it, as
+  does the warning about a misplaced escaped space, and a withheld value's error
+  no longer carries the parser's exception.
 
 ## 0.2.0
 

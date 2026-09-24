@@ -167,7 +167,7 @@ Add this to your project's pom.xml:
     <dependency>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>config</artifactId>
-        <version>0.2.0</version>
+        <version>0.3.0</version>
     </dependency>
 </dependencies>
 ```
@@ -274,7 +274,7 @@ strongly recommended.
     <plugin>
         <groupId>net.rabbitware.config</groupId>
         <artifactId>rwconfig-maven-plugin</artifactId>
-        <version>0.2.0</version>
+        <version>0.3.0</version>
         <executions>
             <execution><goals><goal>check</goal></goals></execution>
         </executions>

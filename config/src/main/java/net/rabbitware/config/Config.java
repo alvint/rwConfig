@@ -445,8 +445,8 @@ public interface Config {
         /**
          * Called when an error occurs while watching the configuration.
          *
-         * @param e
-         * the exception that occurred
+         * @param event
+         * the error event, holding the exception that occurred
          */
         public void onError(ErrorEvent event) throws Exception;
     }

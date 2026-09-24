@@ -6,7 +6,7 @@
 
     <groupId>net.rabbitware.config</groupId>
     <artifactId>parent</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <packaging>pom</packaging>
 
     <name>rwConfig parent</name>
@@ -231,7 +231,7 @@
                             <publishingServerId>central</publishingServerId>
                             <!--
                                 These two are part of this repo, not things to depend
-                                on. The plugin does not honour `maven.deploy.skip`, so
+                                on. The plugin does not honor `maven.deploy.skip`, so
                                 naming them here is what actually keeps them out of the
                                 bundle - and a published artifact can never be removed.
                             -->

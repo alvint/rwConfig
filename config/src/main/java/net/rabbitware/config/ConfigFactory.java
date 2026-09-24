@@ -157,8 +157,6 @@ public class ConfigFactory {
      * Create a new `Config` instance with a random UUID name, the given change
      * detection setting, and the given command line arguments.
      *
-     * @param name
-     * the name of the config instance
      * @param enableChangeDetection
      * whether to enable change detection for the config instance
      * @param commandLineArgs

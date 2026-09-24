@@ -32,20 +32,15 @@ import java.util.Set;
  * </li>
  * <li>
  * The config library will call the {@link #setPluginProperties(Map)} method to
- * to provide the plugin with its configuration properties. The plugin should
- * validate the properties and throw an exception if the properties as set are
- * not able to configure the plugin correctly.
+ * provide the plugin with its configuration properties. An optional property
+ * the {@code rwconfig} file does not set is left out of the map. The plugin
+ * should validate the properties and throw an exception if the properties as
+ * set are not able to configure the plugin correctly.
  * </li>
  * <li>
- * The config library may call the {@link #isChangeDetectionSupported()} method
- * to determine if the plugin supports change detection.
- * </li>
- * <li>
- * If change detection is supported, the config library may call the
- * {@link #addChangeListener(ChangeListener)} method to register a change
- * listener with the plugin. The plugin should notify the listener of changes
- * to the configuration source properties by calling the listener's
- * {@link ChangeListener#onChange(ChangeEvent)} method.
+ * If the config was created with change detection enabled, the config library
+ * will call the {@link #isChangeDetectionSupported()} method to determine if
+ * the plugin supports it, and if so, {@link #startChangeDetection()}.
  * </li>
  * <li>
  * The config library will call the {@link #getConfigSourceProperties()} method
@@ -53,6 +48,12 @@ import java.util.Set;
  * should return a map of property names and values that represent the source's
  * properties. If the plugin is unable to retrieve the properties, it should
  * throw an exception.
+ * </li>
+ * <li>
+ * If change detection was started, the config library will call
+ * {@link #isChanged()} on every polling cycle - the library polls, and the
+ * plugin never has to notify anything - and {@link #stopChangeDetection()}
+ * when the config is discarded.
  * </li>
  * </ul>
  */

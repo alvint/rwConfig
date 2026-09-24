@@ -5,6 +5,10 @@ set -e
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)
 mkdir -p "$here/lib"
+# Start from an empty `lib/`. The extension puts every jar in it on the class
+# path, so a jar left over from the last version - `config-0.2.0.jar` beside
+# `config-0.3.0.jar` - would ship too, and whichever sorts first would win.
+rm -f "$here/lib"/*.jar
 mvn -q -f "$root/pom.xml" -pl rwconfig-analyzer -am install -DskipTests
 # One jar per module, by name. A glob would happily copy two versions of the
 # same module after a version change - `target` keeps whatever was built before
@@ -34,8 +38,9 @@ count=$(ls "$here/lib"/*.jar 2>/dev/null | wc -l | tr -d ' ')
 # `vscode:prepublish` runs this before packaging. Publishing without the jars
 # produces an extension that silently does nothing but highlight syntax, so a
 # missing one has to stop the build rather than warn.
-if [ "$count" -lt 4 ]; then
-    echo "only $count jars in $here/lib - refusing to package an extension without the analyzer" >&2
+if [ "$count" -ne 4 ]; then
+    echo "$count jars in $here/lib, not 4 - refusing to package an extension without exactly one analyzer" >&2
+    ls "$here/lib" >&2
     exit 1
 fi
 

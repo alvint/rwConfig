@@ -38,7 +38,7 @@ Add the dependency to your project:
 <dependency>
     <groupId>net.rabbitware.config</groupId>
     <artifactId>config</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
@@ -208,7 +208,7 @@ Add it to the build, and that is the whole of it:
 <plugin>
     <groupId>net.rabbitware.config</groupId>
     <artifactId>rwconfig-maven-plugin</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <executions>
         <execution><goals><goal>check</goal></goals></execution>
     </executions>
@@ -222,7 +222,7 @@ and a module that has neither is skipped silently, which makes this safe to put
 in a parent pom. To try it once without editing anything:
 
 ```
-mvn net.rabbitware.config:rwconfig-maven-plugin:0.2.0:check
+mvn net.rabbitware.config:rwconfig-maven-plugin:0.3.0:check
 ```
 
 `rwconfig.failOnError`, `rwconfig.reportUnread`, `rwconfig.skipRules`, and
