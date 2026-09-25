@@ -1,5 +1,10 @@
+// compatibility { } below comes with plugin-publish, from Gradle's
+// compatibility-plugin, which writes it into the plugin descriptor
+import org.gradle.plugin.compatibility.compatibility
+
 plugins {
     `java-gradle-plugin`
+    signing
     id("com.gradle.plugin-publish") version "2.2.1"
 }
 
@@ -85,6 +90,20 @@ gradlePlugin {
             description = "Checks a project's Java sources against its rwconfig file, so that a " +
                 "misread property fails the build rather than the application."
             tags = listOf("configuration", "config", "validation", "static-analysis", "rwconfig")
+            // every functional test runs with the configuration cache on
+            compatibility {
+                features {
+                    configurationCache = true
+                }
+            }
         }
     }
+}
+
+// The Plugin Portal does not require signatures, but a build that turns on
+// Gradle's dependency verification can only check a signed plugin against its
+// author's key. plugin-publish signs whatever the signing plugin is set up to
+// sign, here with the same gpg and gpg-agent the Maven release uses.
+signing {
+    useGpgCmd()
 }

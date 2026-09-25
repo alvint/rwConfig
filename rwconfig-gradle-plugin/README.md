@@ -63,9 +63,16 @@ Maven Central. Both commands below need a Plugin Portal API key, as
 - which `./gradlew login` writes for you:
 
 ```
+echo | gpg --clearsign > /dev/null         # enter the passphrase once
 ./gradlew publishPlugins --validate-only   # check everything without uploading
 ./gradlew publishPlugins
 ```
+
+Every file is signed with `gpg`, the same key the Maven release uses. Gradle
+runs `gpg` with no terminal to ask for the passphrase on, so the first line has
+gpg-agent ask for it and remember it - for ten minutes, by default. Without it,
+signing fails with `gpg: signing failed: No such file or directory`.
+`publishToMavenLocal` signs too, so it needs the same first step.
 
 The analyzer version it defaults to must already be on Maven Central, or no
 build that applies the plugin can resolve it - so publish the Maven artifacts

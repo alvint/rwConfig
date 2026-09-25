@@ -95,9 +95,14 @@ class RwconfigPluginFunctionalTest {
             """.formatted(name, read));
     }
 
-    /** A build of the project - one where any deprecated use of Gradle fails it. */
+    /**
+     * A build of the project, with the configuration cache on - the plugin says
+     * it supports it, so every test holds it to that - and where any deprecated
+     * use of Gradle fails the build.
+     */
     private GradleRunner runner(String... arguments) {
         List<String> all = new ArrayList<>(List.of(arguments));
+        all.add("--configuration-cache");
         all.add("--warning-mode=fail");
         return GradleRunner.create()
             .withProjectDir(project.toFile())
@@ -478,14 +483,14 @@ class RwconfigPluginFunctionalTest {
         }
 
         @Test
-        @DisplayName("works with the configuration cache, and still sees a change once the cache is reused")
+        @DisplayName("reuses the configuration cache, and still sees a change when it does")
         void configurationCache() throws IOException {
-            succeeds("rwconfigCheck", "--configuration-cache");
-            BuildResult reused = succeeds("rwconfigCheck", "--configuration-cache");
+            succeeds("rwconfigCheck");
+            BuildResult reused = succeeds("rwconfigCheck");
             assertTrue(reused.getOutput().contains("Reusing configuration cache."), reused.getOutput());
 
             source("App", "config.getInt(\"prot\")");
-            BuildResult failed = fails("rwconfigCheck", "--configuration-cache");
+            BuildResult failed = fails("rwconfigCheck");
             assertTrue(failed.getOutput().contains("Reusing configuration cache."), failed.getOutput());
             assertTrue(failed.getOutput().contains("[unknown-property]"), failed.getOutput());
         }
@@ -517,8 +522,7 @@ class RwconfigPluginFunctionalTest {
             write("src/main/resources/rwconfig", "int port = 8080\nstring unused = x\n");
             // every setting, so each kind of value goes through the configuration cache
             buildScript("rwconfig { reportUnread = true; failOnError = true }");
-            GradleRunner runner = runner("rwconfigCheck", "--configuration-cache",
-                "-Prwconfig.skipRules=unread-property");
+            GradleRunner runner = runner("rwconfigCheck", "-Prwconfig.skipRules=unread-property");
             if (!"current".equals(version)) {
                 // Gradle 8.5 runs on nothing newer than Java 21
                 write("gradle.properties", "org.gradle.java.home=" + JAVA_21.replace("\\", "\\\\") + "\n");
