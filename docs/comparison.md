@@ -33,9 +33,9 @@ system to use a different one is rarely worth it.
 
 ## At a glance
 
-| | learning curve | read | load | validation | layered sources | reload | maturity |
+| | learning curve | reads | startup | validation | layered sources | reload | maturity |
 |---|---|---|---|---|---|---|---|
-| **rwConfig** | small, but a new file format | 3.3 ns | 209 us | **types + allowed values, at startup** | built in | notification only | **new, unproven** |
+| **rwConfig** | small, but a new file format | 3.3 ns | 209 us | **types + allowed values at startup; names and getters in the build** | built in | notification only | **new, unproven** |
 | Typesafe Config | moderate - HOCON, path semantics | 17 ns | 62 us | optional, limited | merge/fallback | no | very mature, widely used |
 | Commons Configuration | large, sprawling API | 44 ns | 84 us | none | composite config | yes | very mature |
 | Spring `Environment` | large, if you are not already in Spring | 35 ns | n/a | via binding + JSR-380 | property sources | yes | very mature, huge ecosystem |
@@ -216,6 +216,12 @@ class, and one source is enough.
 - **Misconfiguration fails at startup**, naming the property. A missing value,
   a wrong type, a value outside its allowed range, and - uniquely here - a
   property in a source that no declaration mentions, which catches typos.
+- **Mistakes in the code are caught before it runs.** The Maven plugin and the
+  VS Code extension check every `config.getInt("name")` against the file, so a
+  misspelled name or the wrong getter fails the build, or is underlined as you
+  type - with no code generation or annotations.
+- **Secrets stay out of error messages.** A value is withheld when its source is
+  declared secret or its name reads like one, including when it fails to parse.
 - **The read API is as simple as it gets.** `config.getInt("port")` returns an
   `int`. No `Optional`, no cast, no default at the call site, no exception to
   handle.
@@ -244,12 +250,14 @@ class, and one source is enough.
   environment, system properties, and command line are fixed at startup.
 - **No framework integration.** Nothing binds it to Spring, Quarkus, Micronaut,
   or anything else.
-- **No binding to a class.** Reads are by name, so you get neither compile-time
-  property names nor IDE completion.
+- **No binding to a class.** Reads are by name, so there is no IDE completion,
+  and without the Maven plugin a misspelled name is caught only when that read
+  runs.
 - **A bespoke file format to learn.** Small, and close to `.properties`, but it
   is one more thing, and only this project's editor extension understands it.
-- **Limited types.** No durations, sizes, enums, or `URI`. `int timeoutSeconds`
-  works but is not what most people want to write.
+- **No enum or `URI` types.** `string[dev, staging, prod] stage` restricts a
+  value to those three, but it reads back as a `String`, so the `valueOf` is
+  still yours to write.
 
 ### When it is a good fit
 

@@ -152,6 +152,9 @@ look at the [takeaway](benchmark/README.md).
   requires Java Base.
 - **Secure by omission** - values your app never declared are not added to the
   Config object, even when the config source contains them.
+- **Secrets stay out of your logs** - when a value is rejected, the error names
+  the property and its source but withholds the value if the source is declared
+  secret or the property's name reads like one (`dbPassword`, `apiKey`, ...).
 - **Change detection, opt in** - ask for it and rwConfig watches the sources
   that can be watched, then tells you when one changes. It notifies rather than
   reloads: the `Config` you hold stays the snapshot it was, and **you** decide
