@@ -216,10 +216,10 @@ class, and one source is enough.
 - **Misconfiguration fails at startup**, naming the property. A missing value,
   a wrong type, a value outside its allowed range, and - uniquely here - a
   property in a source that no declaration mentions, which catches typos.
-- **Mistakes in the code are caught before it runs.** The Maven plugin and the
-  VS Code extension check every `config.getInt("name")` against the file, so a
-  misspelled name or the wrong getter fails the build, or is underlined as you
-  type - with no code generation or annotations.
+- **Mistakes in the code are caught before it runs.** The Maven and Gradle
+  plugins and the VS Code extension check every `config.getInt("name")`
+  against the file, so a misspelled name or the wrong getter fails the build,
+  or is underlined as you type - with no code generation or annotations.
 - **Secrets stay out of error messages.** A value is withheld when its source is
   declared secret or its name reads like one, including when it fails to parse.
 - **The read API is as simple as it gets.** `config.getInt("port")` returns an
@@ -251,8 +251,8 @@ class, and one source is enough.
 - **No framework integration.** Nothing binds it to Spring, Quarkus, Micronaut,
   or anything else.
 - **No binding to a class.** Reads are by name, so there is no IDE completion,
-  and without the Maven plugin a misspelled name is caught only when that read
-  runs.
+  and without the Maven or Gradle plugin a misspelled name is caught only when
+  that read runs.
 - **A bespoke file format to learn.** Small, and close to `.properties`, but it
   is one more thing, and only this project's editor extension understands it.
 - **No enum or `URI` types.** `string[dev, staging, prod] stage` restricts a

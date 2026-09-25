@@ -44,8 +44,8 @@ when every read in the project names a property it can pin down, whether written
 at the call site or held in a constant, since a name worked out at run time could
 be reading any of them.
 
-The checking is done by the `rwconfig-analyzer` jar, the same one the Maven
-plugin uses, so the editor and the build never disagree.
+The checking is done by the `rwconfig-analyzer` jar, the same one the Maven and
+Gradle plugins use, so the editor and the build never disagree.
 
 **Config sources are not loaded.** Only the declarations are read, so the checks
 need no network, database, or secrets. To find out whether the whole

@@ -16,8 +16,8 @@ sources.
 
 What distinguishes rwConfig from the pack is its design philosophy: define
 what you need and what it should look like ahead of time, and validate that
-you have what you need at coding/compile time (with the Maven plugin and/or
-the VS Code extension) and on startup. This means that you can rest easier
+you have what you need at coding/compile time (with the Maven or Gradle plugin
+and/or the VS Code extension) and on startup. This means that you can rest easier
 knowing that you won't be surprised by configuration issues when it's too
 late to do something about it.
 
@@ -135,7 +135,7 @@ look at the [takeaway](benchmark/README.md).
 - **Layered sources, with precedence you declare** - Want an environment
   variable to trump the same property in your config file? No problem! You're in
   control.
-- **VS Code and Maven plugins** - with these tools, even more configuration
+- **VS Code, Maven, and Gradle plugins** - with these tools, even more configuration
   errors are caught as you code or at compile time. Most of the rest are caught
   at startup.
 - **Fast, uniform reads** - a read is one HashMap lookup of an already-parsed
@@ -161,7 +161,7 @@ look at the [takeaway](benchmark/README.md).
   when to build a new one.
 
 ## Quick Start
-### 1. Jar Installation (via Maven)
+### 1. Jar Installation
 Add this to your project's pom.xml:
 
 ```xml
@@ -173,6 +173,12 @@ Add this to your project's pom.xml:
         <version>0.3.0</version>
     </dependency>
 </dependencies>
+```
+Or, if you use Gradle, add this to build.gradle.kts:
+```kotlin
+dependencies {
+    implementation("net.rabbitware.config:config:0.3.0")
+}
 ```
 
 ### 2. Create a File Called `rwconfig`
@@ -285,8 +291,17 @@ strongly recommended.
   </plugins>
 </build>
 ```
+#### Gradle Plugin
+The Gradle plugin does the same job for Gradle builds: it checks the code before
+`compileJava`, and as part of `check`.
+```kotlin
+plugins {
+    java
+    id("net.rabbitware.rwconfig") version "0.3.0"
+}
+```
 #### VS Code Extension
-The VS Code extension catches the same issues as the Maven plugin even earlier
+The VS Code extension catches the same issues as the build plugins even earlier
 (whenever you save), and highlights them directly in the editor.
 
 To install it, Search for "rwConfig" in the VS Code Extensions Marketplace, or

@@ -1,0 +1,4 @@
+# Gradle writes these; the wrapper under gradle/ is committed
+.gradle/
+build/
+.kotlin/

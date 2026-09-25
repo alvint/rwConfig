@@ -42,6 +42,14 @@ Add the dependency to your project:
 </dependency>
 ```
 
+Or, with Gradle:
+
+```kotlin
+dependencies {
+    implementation("net.rabbitware.config:config:0.3.0")
+}
+```
+
 ## A first `rwconfig` file
 
 Create a file named `rwconfig` in your working directory, or in
@@ -164,12 +172,11 @@ rather than conditions you handle.
 
 ## Catching mistakes before startup
 
-Everything above is caught when the application runs. Two optional tools move
-most of it earlier - to the moment you save a file, and to the build. Both are
-front ends over the same rule set, so a finding reads the same wherever you meet
-it.
+Everything above is caught when the application runs. Optional tools move most
+of it earlier - an editor extension to the moment you save a file, and a Maven
+or Gradle plugin to the build.
 
-Neither checks by loading a config source. Only the `rwconfig` file and your
+None of them checks by loading a config source. Only the `rwconfig` file and your
 Java sources are read, so the checks work with no network, no database, and no
 secrets - which is the normal state of a developer's machine. Loading the
 sources for real is a separate thing you ask for, described below.
@@ -228,6 +235,27 @@ mvn net.rabbitware.config:rwconfig-maven-plugin:0.3.0:check
 `rwconfig.failOnError`, `rwconfig.reportUnread`, `rwconfig.skipRules`, and
 `rwconfig.skip` decide what a finding does to the build.
 
+### The Gradle plugin
+
+Apply it alongside the `java` plugin:
+
+```kotlin
+plugins {
+    java
+    id("net.rabbitware.rwconfig") version "0.3.0"
+}
+```
+
+It adds an `rwconfigCheck` task that runs before `compileJava` and as part of
+`check`, so `./gradlew build` fails on a misread property before anything is
+compiled. It looks for the file in the same two places, and a project with
+neither is left alone, which makes it safe to apply to every project in a build.
+
+The settings are the Maven plugin's, set in an `rwconfig { }` block or as Gradle
+properties - `-Prwconfig.skip=true` skips the check for one build. The analyzer
+runs on the project's Java toolchain and is fetched from the project's own
+repositories, so `mavenCentral()` is all it needs.
+
 ### What gets caught
 
 A property read that nothing declares, with the nearest declared name
@@ -253,7 +281,7 @@ The full list of rules, with what each one catches and how severe it is, is in
   own.
 - **[Error messages](errors.md)** - what each startup error means.
 - **[Checking your code](../rwconfig-maven-plugin/README.md)** - every rule
-  the Maven plugin and the VS Code extension apply.
+  the build plugins and the VS Code extension apply, and every setting.
 - **[Bundled plugins](../PLUGINS.md)** - YAML, JSON, XML, HOCON, JDBC, and prefix.
 
 There is also a heavily commented [example `rwconfig`

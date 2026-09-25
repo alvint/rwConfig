@@ -1,8 +1,8 @@
 # Checking your code against your `rwconfig`
 
-Two tools, one set of rules. The `rwconfig-analyzer` module does the checking;
-the Maven plugin and the VS Code extension are front ends, so a finding reads
-the same wherever you meet it.
+Three tools, one set of rules. The `rwconfig-analyzer` module does the checking;
+the Maven plugin, the Gradle plugin, and the VS Code extension are front ends, so
+a finding reads the same wherever you meet it.
 
 ## What is checked
 
@@ -74,6 +74,59 @@ put in a parent pom.
 | `rwconfig.reportUnread` | `true` | whether to mention unread properties |
 | `rwconfig.skipRules` | none | rule ids to ignore, e.g. `unread-property` |
 | `rwconfig.skip` | `false` | skip the check entirely |
+
+## Gradle
+
+```kotlin
+plugins {
+    java
+    id("net.rabbitware.rwconfig") version "0.3.0"
+}
+```
+
+It adds an `rwconfigCheck` task to any project with the `java` plugin, and runs
+it before `compileJava` and as part of `check` - the same reasoning as the Maven
+plugin's `process-sources`. The same two places are searched for the file, and a
+project with neither is not checked, so the plugin is safe to apply to every
+project in a build.
+
+Settings go in an `rwconfig` block, or can be given as Gradle properties - on
+the command line or in `gradle.properties` - which the block overrides:
+
+```kotlin
+rwconfig {
+    reportUnread = false
+    skipRules.add("secret-default-in-file")
+}
+```
+
+| setting | Gradle property | default | |
+|---|---|---|---|
+| `file` | | `src/main/resources/rwconfig`, then `rwconfig` | where the file is |
+| `failOnError` | `rwconfig.failOnError` | `true` | whether errors fail the build |
+| `reportUnread` | `rwconfig.reportUnread` | `true` | whether to mention unread properties |
+| `skipRules` | `rwconfig.skipRules` | none | rule ids to ignore; the property takes a comma-separated list |
+| `skip` | `rwconfig.skip` | `false` | skip the check entirely |
+
+A few things work differently from Maven:
+
+- **The analyzer runs in a JVM of its own**, from the project's Java toolchain,
+  so Gradle itself can run on an older Java. The toolchain has to be Java 21 or
+  later, as rwConfig itself requires.
+- **The analyzer is resolved from the project's repositories**, like Checkstyle
+  and PMD are - `mavenCentral()`, which the library needs anyway, is enough. It
+  comes through a configuration named `rwconfig`, so a different version can be
+  used by declaring it there:
+  `dependencies { rwconfig("net.rabbitware.config:rwconfig-analyzer:<version>") }`.
+- **An `rwconfig` file that cannot be read fails the build**, with the line that
+  could not be read. The Maven plugin only warns about it.
+- **What it reports is also written** to `build/reports/rwconfig/findings.txt`.
+- **The check is not run again when nothing it reads has changed** - the
+  sources, the file, and the settings - and Gradle shows it as `UP-TO-DATE`. A
+  failed check is always run again, so it keeps failing until it is fixed. The
+  task works with the configuration cache.
+
+It needs Gradle 8.5 or later.
 
 ## The command line
 
