@@ -311,7 +311,7 @@ have VS Code added to your path, you can also type this:
 code --install-extension rabbitware.rwconfig
 ```
 
-## Should I Rip Out My Old Config System And Use It?
+## Should I Rip Out My Old Config System And Use rwConfig?
 The short answer is "probably not". The more accurate answer is "it depends,
 but probably not". It's generally not worth the effort to make that kind of
 change in an existing project, frameworks normally have their own "blessed"
