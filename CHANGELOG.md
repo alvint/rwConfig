@@ -29,10 +29,10 @@ rely on, so they are gathered here first.
 - In a HOCON source, an `int` or `long` written as `8080.0` or `2.0e3` is
   rejected, as it is from every other source.
 - An array that mixes kinds of value, such as `[9.99, 10]`, used to be split
-  into one property per element, so it could be read by declaring `prices\0`
-  and `prices\1`. It now arrives as one list value, `prices`. Those element
-  declarations get no value: they fail at startup, or quietly take their
-  default if they have one. Declare `doubleList prices` instead.
+  into one property per element, so it could be read by declaring `double
+  prices\0` and `double prices\1`. It now arrives as one list value, `prices`.
+  The former element declarations get no value: they fail at startup, or quietly
+  take their default if they have one. Declare `doubleList prices` instead.
 - For plugin authors: an optional setting that is not set is left out of the
   map given to `setPluginProperties`.
 
