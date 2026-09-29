@@ -95,8 +95,9 @@ string greeting = Hello
 dbPassword
 ```
 
-Now `dbPassword` can be set with `dbPassword=secret` on the command line or the
-environment variable `DB_PASSWORD`, and either will override a default.
+Now `dbPassword` can be set with `dbPassword=secret` on the command line (not a
+good idea from a security perspective) or the environment variable `DB_PASSWORD`.
+A value provided by any config source will override a default.
 
 Look here for more examples of `rwconfig` files:
 - a [minimal `rwconfig`](../example/src/main/resources/rwconfig-minimal)
